@@ -26,6 +26,7 @@ namespace SyncFaction
             services.AddSingleton<UiTools>();
             services.AddSingleton<MarkdownRender>();
             services.AddSingleton<Markdown>();
+            services.AddSingleton<FfClient>();
             services.AddLogging(x => x.ClearProviders());
         }
 

@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
+using HTMLConverter;
 using SyncFaction.Services;
+using SyncFaction.Services.FactionFiles;
 
 namespace SyncFaction;
 
@@ -14,70 +14,79 @@ public class UiTools
 {
     private readonly MarkdownRender render;
     private readonly Tools tools;
-    public List<Link> playlists = new ();
+    private readonly FfClient ffClient;
+    public readonly List<IMod> items = new();
 
-    public UiTools(MarkdownRender render, Tools tools)
+    public UiTools(MarkdownRender render, Tools tools, FfClient ffClient)
     {
         this.render = render;
         this.tools = tools;
+        this.ffClient = ffClient;
     }
 
-    public async Task<bool> ApplyPlaylist(DirectoryInfo gameDir, string? playlistName, CancellationToken token)
+    public async Task<bool> ApplySelected(DirectoryInfo gameDir, IMod mod, CancellationToken token)
     {
         render.Clear();
-        render.Append($"> Applying playlist: {playlistName}...");
+        render.Append($"> Applying: {mod}...");
 
-        if (playlistName == null)
+        if (mod is null or SeparatorItem)
         {
-            render.Append("> Select playlist from side panel to apply");
+            render.Append("> Select mod from side panel to apply");
             return false;
         }
-        var playlist = playlists.SingleOrDefault(x => x.Name.StartsWith(playlistName));
-        if (playlist is null)
+        var dataDir = gameDir.GetDirectories().Single(x => x.Name == "data");
+        var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Constants.appDirName));
+        var modDir = await ffClient.DownloadMod(appDir, mod, token);
+        var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
+        render.Append("> Checking or creating backup...");
+        var bakDir = tools.EnsureBackup(dataDir, modDir.GetFiles().Select(x => Path.GetFileNameWithoutExtension(x.Name)).ToList());
+        if (bakDir == null)
         {
-            throw new InvalidOperationException($"No playlist for given name [{playlistName}]. Playlists: {JsonSerializer.Serialize(playlists)}");
+            throw new InvalidOperationException("Could not create backup!");
         }
 
-        var dataDir = gameDir.GetDirectories().Single(x => x.Name == "data");
-        var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Tools.appDirName));
-        var playlistDir = await tools.DownloadPlaylist(appDir, playlist, token);
-        var patches = string.Join(", ", playlistDir.GetFiles().Select(x => $"`{x.Name}`"));
-
-        render.Append("> Checking or creating backup...");
-        var bakDir = tools.EnsureBackup(dataDir, playlistDir.GetFiles().Select(x => Path.GetFileNameWithoutExtension(x.Name)).ToList());
-
-        render.Append($"> Patches to apply: {patches}");
-        await tools.ApplyPlaylist(dataDir, bakDir, playlistDir, token, s => render.Append(s));
-        render.Append($"**Success!**");
-        playlistDir.Delete(true);
-        return true;
+        render.Append($"> Mod contents: {files}");
+        var success = await tools.ApplyMod(dataDir, bakDir, modDir, token, s => render.Append(s));
+        if (success)
+        {
+            render.Append($"**Success!**");
+        }
+        else
+        {
+            render.Append("Failed to apply mod");
+        }
+        return success;
     }
-    public async Task GetReadme(string? playlistName, CancellationToken token)
+    public async Task DisplayMod(IMod mod, CancellationToken token)
     {
         render.Clear();
-        render.Append($"> Downloading readme for {playlistName}...");
-        if (playlistName is null)
+
+        if (mod is SeparatorItem)
         {
-            throw new ArgumentNullException(nameof(playlistName));
-        }
-        var playlist = playlists.SingleOrDefault(x => x.Name.StartsWith(playlistName));
-        if (playlist is null)
-        {
-            throw new InvalidOperationException($"No playlist for given name [{playlistName}]. Playlists: {JsonSerializer.Serialize(playlists)}");
+            return;
         }
 
-        var readme = await tools.GetReadme(playlist, token);
+        render.Append($"> Displaying readme for {mod}...");
+        if (mod is null)
+        {
+            throw new ArgumentNullException(nameof(mod));
+        }
+
         render.Clear();
-        render.Append(readme, false);
+        render.Append(mod.Markdown, false);
     }
     public async Task Restore(DirectoryInfo gameDir, CancellationToken token)
     {
         render.Clear();
         var dataDir = gameDir.GetDirectories().Single(x => x.Name == "data");
-        var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Tools.appDirName));
+        var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Constants.appDirName));
         render.Append("> Checking or creating backup...");
         var bakDir = tools.EnsureBackup(dataDir, Enumerable.Empty<string>().ToList());
-        var remainingFiles = new HashSet<string>(tools.knownFiles.Keys);
+        if (bakDir == null)
+        {
+            throw new InvalidOperationException("Could not create backup!");
+        }
+        var remainingFiles = new HashSet<string>(Constants.KnownFiles.Keys);
         render.Append("> Copying files from backup...");
         foreach (var x in remainingFiles)
         {
@@ -101,20 +110,29 @@ public class UiTools
         }
         render.Append($"**Success!**");
     }
-    public async Task Connect(string url, CancellationToken token)
+    public async Task Connect(CancellationToken token)
     {
-        render.Append($"> Downloading map lists from {url}...");
+        render.Append($"> Downloading map lists from FactionFiles...");
 
-        // upd text
-        var allLinks = await tools.GetIndexLinks(url, token);
-        var news = await tools.GetNews(allLinks, token);
-
-        render.Clear();
-        render.Append(news, false);
+        items.Clear();
 
         // upd list
-        playlists = tools.GetPlaylists(allLinks);
+        var mapPacks = await ffClient.GetMapPacks(token);
+        items.Add(new SeparatorItem("▶ map packs ◀"));
+        items.AddRange(mapPacks);
 
+        items.Add(new SeparatorItem("▶ maps ◀"));
+        items.Add(new SeparatorItem("(not yet)"));
+        //var maps = await ffClient.GetMaps(token);
+        //items.AddRange(maps);
+
+        // upd text
+        var document = await ffClient.GetNewsWiki(token);
+        var header = document.GetElementById("firstHeading").TextContent;
+        var content = document.GetElementById("mw-content-text").InnerHtml;
+        var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
+        render.Clear();
+        render.AppendXaml($"# {header}\n\n", xaml, false);
     }
     public async Task<string> Detect(CancellationToken token)
     {
@@ -122,5 +140,11 @@ public class UiTools
         var result = await tools.DetectGameLocation(token, s => render.Append(s));
         render.Append($"> Found game: `{result}`");
         return result;
+    }
+
+    public DirectoryInfo? EnsureBackup(DirectoryInfo gameDir)
+    {
+        var dataDir = gameDir.GetDirectories().Single(x => x.Name == "data");
+        return tools.EnsureBackup(dataDir, Enumerable.Empty<string>().ToList(), s => render.Append(s));
     }
 }

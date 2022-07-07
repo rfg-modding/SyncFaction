@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using MdXaml;
 
 namespace SyncFaction;
@@ -35,9 +36,15 @@ public class MarkdownRender
             return;
         }
 
-        // TODO how to append?!
         var newDoc = markdown.Transform(update.Value);
         view.Document.Blocks.AddRange(newDoc.Blocks.ToList());
+
+        if (!string.IsNullOrEmpty(update.xaml))
+        {
+            var docFromHtml = System.Windows.Markup.XamlReader.Parse(update.xaml) as FlowDocument;
+            view.Document.Blocks.AddRange(docFromHtml.Blocks.ToList());
+        }
+
         if (update.Scroll)
         {
             Scroll?.ScrollToBottom();
@@ -49,11 +56,16 @@ public class MarkdownRender
         progress.Report(new Update(value, autoScroll));
     }
 
+    public void AppendXaml(string value, string xaml, bool autoScroll=true)
+    {
+        progress.Report(new Update(value, autoScroll, xaml));
+    }
+
     public void Clear()
     {
         progress.Report(new Update("", false));
     }
 
-    private record Update(string Value, bool Scroll);
+    private record Update(string Value, bool Scroll, string? xaml=null);
 
 }
