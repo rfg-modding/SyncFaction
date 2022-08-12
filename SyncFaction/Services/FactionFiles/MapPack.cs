@@ -5,8 +5,27 @@ using System.Text.Json.Serialization;
 
 namespace SyncFaction.Services.FactionFiles;
 
-public class MapPackResponse : Dictionary<string, MapPack>
+public enum Category
 {
+    Artwork=37,
+    MpMaps=44,
+    WcMaps=45,
+    MapPacks=46,
+    ModsClassic=16,
+    ModsRemaster=30,
+    ModsScriptLoader=29,
+    ModsStandalone=4,
+    Patches=11,
+    Tools=3
+}
+
+public class CategoryPage
+{
+    public long TotalPages { get; set; }
+    public long CurrentPage { get; set; }
+    public long ResultsThisPage { get; set; }
+    public long ResultsTotal { get; set; }
+    public Dictionary<string, Item> Results { get; set; }
 }
 
 public interface IMod
@@ -40,7 +59,7 @@ public class SeparatorItem : IMod
     public override string ToString() => value;
 }
 
-public class MapPack : IMod
+public class Item : IMod
 {
     public long Id { get; init; }
     public string Name { get; init; }
@@ -56,12 +75,14 @@ public class MapPack : IMod
 
     [JsonPropertyName("image_thumb_4by3_url")]
     public string ImageThumb4By3Url { get; set; }
+
     public string DownloadUrl { get; init; }
 
     public string IdString => $"{GetType().Name}_{Id}";
     public string BrowserUrl => string.Format(Constants.BrowserUrlTemplate, Id);
     public DateTime CreatedAt => DateTime.UnixEpoch.AddSeconds(UploadTime);
     public string? ImagePath => ImageThumb4By3Url != null ? Path.Combine(Path.GetTempPath(), $"ff_{Id}.png") : null;
+
     public string Markdown => @$"# **{Name}** by {Author}
 
 *Added: {CreatedAt:yyyy MMMM dd}  #  Downloads: {DownloadCount}*  #  [See on FactionFiles]({BrowserUrl}) 

@@ -24,20 +24,28 @@ public class FfClient
         this.client = client;
     }
 
-    public async Task<IReadOnlyCollection<MapPack>> GetMapPacks(CancellationToken token)
+    public async Task<List<Item>> GetMods(Category category, CancellationToken token)
     {
-        var response = await client.GetAsync(Constants.MapPackUrl, token);
+        // NOTE: pagination currently is not implemented, everything is returned on first page
+        var builder = new UriBuilder(Constants.ApiUrl);
+        builder.Query = $"cat={category:D}&page=1";
+        var url = builder.Uri;
+
+        var response = await client.GetAsync(url, token);
         await using var content = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
-        var data = JsonSerializer.Deserialize<MapPackResponse>(content, new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = new JsonSnakeCaseNamingPolicy()
-        })?.Values;
+
+        var data = DeserializeData(content);
         if (data == null)
         {
             throw new InvalidOperationException("FactionFiles API returned unexpected data");
         }
 
-        foreach (var item in data)
+        if (data.ResultsTotal != data.Results.Count)
+        {
+            throw new InvalidOperationException("FffactionFiles API returned partial data, app update required to support this!");
+        }
+
+        foreach (var item in data.Results.Values)
         {
             item.DescriptionMd = BbCodeToMarkdown(item.Description);
 
@@ -53,7 +61,22 @@ public class FfClient
             await stream.CopyToAsync(f, token);
         }
 
-        return data.OrderByDescending(x => x.CreatedAt).ToList();
+        return data.Results.Values.OrderByDescending(x => x.CreatedAt).ToList();
+    }
+
+    private CategoryPage DeserializeData(Stream content)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<CategoryPage>(content, new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy = new JsonSnakeCaseNamingPolicy()
+            });
+        }
+        catch (JsonException e) when (e.Message.Contains("no files in cat"))
+        {
+            return new CategoryPage() { Results = new Dictionary<string, Item>() };
+        }
     }
 
     public async Task<DirectoryInfo> DownloadMod(DirectoryInfo baseDir, IMod mod, CancellationToken token)
@@ -83,8 +106,10 @@ public class FfClient
             {
                 continue;
             }
+
             Console.WriteLine(reader.Entry.Key);
-            reader.WriteEntryToDirectory(modDir.FullName, new ExtractionOptions() {ExtractFullPath = false, Overwrite = false});
+            reader.WriteEntryToDirectory(modDir.FullName,
+                new ExtractionOptions() { ExtractFullPath = false, Overwrite = false });
         }
 
         return modDir;
@@ -110,7 +135,7 @@ public class FfClient
         input = strike.Replace(input, "~~");
 
         var match = url.Match(input);
-        while(match.Success)
+        while (match.Success)
         {
 
             var text = match.Groups[2].Value;
@@ -120,7 +145,7 @@ public class FfClient
                 link = text;
             }
 
-            input = input[..match.Index] + $"[{text}]({link})" + input[(match.Index+match.Length)..];
+            input = input[..match.Index] + $"[{text}]({link})" + input[(match.Index + match.Length)..];
             match = url.Match(input);
         }
 

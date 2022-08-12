@@ -34,12 +34,14 @@ public class UiTools
             render.Append("> Select mod from side panel to apply");
             return false;
         }
+
         var dataDir = gameDir.GetDirectories().Single(x => x.Name == "data");
         var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Constants.appDirName));
         var modDir = await ffClient.DownloadMod(appDir, mod, token);
         var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
         render.Append("> Checking or creating backup...");
-        var bakDir = tools.EnsureBackup(dataDir, modDir.GetFiles().Select(x => Path.GetFileNameWithoutExtension(x.Name)).ToList());
+        var bakDir = tools.EnsureBackup(dataDir,
+            modDir.GetFiles().Select(x => Path.GetFileNameWithoutExtension(x.Name)).ToList());
         if (bakDir == null)
         {
             throw new InvalidOperationException("Could not create backup!");
@@ -55,8 +57,10 @@ public class UiTools
         {
             render.Append("Failed to apply mod");
         }
+
         return success;
     }
+
     public async Task DisplayMod(IMod mod, CancellationToken token)
     {
         render.Clear();
@@ -75,6 +79,7 @@ public class UiTools
         render.Clear();
         render.Append(mod.Markdown, false);
     }
+
     public async Task Restore(DirectoryInfo gameDir, CancellationToken token)
     {
         render.Clear();
@@ -86,6 +91,7 @@ public class UiTools
         {
             throw new InvalidOperationException("Could not create backup!");
         }
+
         var remainingFiles = new HashSet<string>(Constants.KnownFiles.Keys);
         render.Append("> Copying files from backup...");
         foreach (var x in remainingFiles)
@@ -108,8 +114,10 @@ public class UiTools
 
             render.Append($"* {fileName}");
         }
+
         render.Append($"**Success!**");
     }
+
     public async Task Connect(CancellationToken token)
     {
         render.Append($"> Downloading map lists from FactionFiles...");
@@ -117,14 +125,9 @@ public class UiTools
         items.Clear();
 
         // upd list
-        var mapPacks = await ffClient.GetMapPacks(token);
-        items.Add(new SeparatorItem("▶ map packs ◀"));
-        items.AddRange(mapPacks);
-
-        items.Add(new SeparatorItem("▶ maps ◀"));
-        items.Add(new SeparatorItem("(not yet)"));
-        //var maps = await ffClient.GetMaps(token);
-        //items.AddRange(maps);
+        await AddNonEmptyCategoryItems(Category.MapPacks, "▶ Map Packs ◀", token);
+        await AddNonEmptyCategoryItems(Category.MpMaps, "▶ MP Maps ◀", token);
+        await AddNonEmptyCategoryItems(Category.WcMaps, "▶ WC Maps ◀", token);
 
         // upd text
         var document = await ffClient.GetNewsWiki(token);
@@ -134,6 +137,18 @@ public class UiTools
         render.Clear();
         render.AppendXaml($"# {header}\n\n", xaml, false);
     }
+
+    public async Task AddNonEmptyCategoryItems(Category category, string label, CancellationToken token)
+    {
+        var mods = await ffClient.GetMods(category, token);
+        if (!mods.Any())
+        {
+            return;
+        }
+        items.Add(new SeparatorItem(label));
+        items.AddRange(mods);
+    }
+
     public async Task<string> Detect(CancellationToken token)
     {
         render.Append("> Looking for game install path...");

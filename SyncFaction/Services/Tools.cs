@@ -21,7 +21,8 @@ public class Tools
         this.log = log;
     }
 
-    public async Task<bool> ApplyMod(DirectoryInfo dataDir, DirectoryInfo bakDir, DirectoryInfo modDir, CancellationToken token, Action<string> callback=null)
+    public async Task<bool> ApplyMod(DirectoryInfo dataDir, DirectoryInfo bakDir, DirectoryInfo modDir,
+        CancellationToken token, Action<string> callback = null)
     {
         var modFiles = modDir.EnumerateFiles().ToList();
         if (!modFiles.Any(x => Path.GetExtension(x.Name) == ".xdelta"))
@@ -41,6 +42,7 @@ public class Tools
                 // file is not backed up meaning it was not modified before
                 continue;
             }
+
             var dstFile = new FileInfo(Path.Combine(dataDir.FullName, fileName));
             if (dstFile.Exists)
             {
@@ -88,7 +90,8 @@ public class Tools
         return true;
     }
 
-    public DirectoryInfo? EnsureBackup(DirectoryInfo dataDir, IReadOnlyList<string> filesToBackUp, Action<string> callback=null)
+    public DirectoryInfo? EnsureBackup(DirectoryInfo dataDir, IReadOnlyList<string> filesToBackUp,
+        Action<string> callback = null)
     {
         var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Constants.appDirName));
         var bakDir = new DirectoryInfo(Path.Combine(appDir.FullName, Constants.bakDirName));
@@ -141,7 +144,8 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
                 var source = dataFiles.Single(x => x.Name.ToLowerInvariant() == name);
                 if (!CheckHash(source, Constants.KnownFiles[x]))
                 {
-                    throw new InvalidOperationException($"Found modified game file, can't back up! {source.FullName}");
+                    throw new InvalidOperationException(
+                        $"Found modified game file, can't back up! {source.FullName}");
                 }
 
                 var destination = Path.Combine(bakDir.FullName, name);
@@ -160,7 +164,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
         fileStream.Position = 0;
         var hashValue = sha.ComputeHash(fileStream);
         //var hash = Convert.ToHexString(hashValue);
-        var hash = BitConverter.ToString(hashValue).Replace("-","");
+        var hash = BitConverter.ToString(hashValue).Replace("-", "");
 
         var result = expected.Equals(hash, StringComparison.OrdinalIgnoreCase);
         if (!result)
@@ -171,7 +175,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
         return result;
     }
 
-    public async Task<string> DetectGameLocation(CancellationToken token, Action<string> callback=null)
+    public async Task<string> DetectGameLocation(CancellationToken token, Action<string> callback = null)
     {
         //"HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath"
         using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\edi_wang"))
@@ -191,9 +195,11 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
             {
                 throw new InvalidOperationException("Is Steam installed?");
             }
+
             var config = await File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
             var regex = new Regex(@"""path""\s+""(.+?)""");
-            var locations = regex.Matches(config).Select(x => x.Groups).Select(x => x[1].Value).Select(x => x.Replace(@"\\", @"\").TrimEnd('\\'));
+            var locations = regex.Matches(config).Select(x => x.Groups).Select(x => x[1].Value)
+                .Select(x => x.Replace(@"\\", @"\").TrimEnd('\\'));
             var gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
             foreach (var location in locations)
             {
@@ -204,6 +210,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
                     return gameDir;
                 }
             }
+
             callback?.Invoke("> Game not installed in any of Steam libraries!");
             return string.Empty;
         }
