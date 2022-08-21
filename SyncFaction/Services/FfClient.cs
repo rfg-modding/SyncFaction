@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AngleSharp.Html.Dom;
 using JorgeSerrano.Json;
+using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using SyncFaction.Services.FactionFiles;
@@ -18,15 +19,18 @@ namespace SyncFaction.Services;
 public class FfClient
 {
     private readonly HttpClient client;
+    private readonly MarkdownRender render;
 
-    public FfClient(HttpClient client)
+    public FfClient(HttpClient client, MarkdownRender render)
     {
         this.client = client;
+        this.render = render;
     }
 
-    public async Task<List<Item>> GetMods(Category category, CancellationToken token)
+    public async Task<List<Mod>> GetMods(Category category, CancellationToken token)
     {
         // NOTE: pagination currently is not implemented, everything is returned on first page
+        render.Append($"> Reading FactionFiles category: {category}");
         var builder = new UriBuilder(Constants.ApiUrl);
         builder.Query = $"cat={category:D}&page=1";
         var url = builder.Uri;
@@ -75,44 +79,79 @@ public class FfClient
         }
         catch (JsonException e) when (e.Message.Contains("no files in cat"))
         {
-            return new CategoryPage() { Results = new Dictionary<string, Item>() };
+            return new CategoryPage() { Results = new Dictionary<string, Mod>() };
         }
     }
 
-    public async Task<DirectoryInfo> DownloadMod(DirectoryInfo baseDir, IMod mod, CancellationToken token)
+    public async Task DownloadMod(Filesystem filesystem, IMod mod, CancellationToken token)
     {
-        var modDir = new DirectoryInfo(Path.Combine(baseDir.FullName, mod.IdString));
+        render.Append($"> Downloading mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
+        var modDir = filesystem.ModDir(mod);
         if (modDir.Exists)
         {
-            modDir.Delete(true);
+            // clear directory except for original downloaded file
+            foreach (var file in modDir.EnumerateFiles().Where(x => !x.Name.StartsWith(".mod")))
+            {
+                file.Delete();
+            }
+
+            foreach (var dir in modDir.EnumerateDirectories())
+            {
+                dir.Delete(true);
+            }
         }
 
         modDir.Create();
-        var response = await client.GetAsync(mod.DownloadUrl, token);
-        await using var s = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
-
-        /*
-        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar ?? "file.zip";
+        var response = await client.GetAsync(mod.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
+        var originalName = response.Content.Headers.ContentDisposition.FileName ?? response.Content.Headers.ContentDisposition.FileNameStar;
+        var filteredName = originalName.Trim().Trim('"');
+        var extension = Path.GetExtension(filteredName);
+        var fileName = $".mod{extension}";
+        var contentSize = response.Content.Headers.ContentLength;
         var downloadedFile = new FileInfo(Path.Combine(modDir.FullName, fileName));
-        await using var dstStream = downloadedFile.OpenWrite();
-        await s.CopyToAsync(dstStream, token);
-        await dstStream.DisposeAsync();
-        */
-
-        var reader = ReaderFactory.Open(s);
-        while (reader.MoveToNextEntry())
+        if (!downloadedFile.Exists || downloadedFile.Length != contentSize)
         {
-            if (reader.Entry.IsDirectory)
+            if (downloadedFile.Exists)
             {
-                continue;
+                // check is required because IOException otherwise
+                downloadedFile.Delete();
             }
 
-            Console.WriteLine(reader.Entry.Key);
-            reader.WriteEntryToDirectory(modDir.FullName,
-                new ExtractionOptions() { ExtractFullPath = false, Overwrite = false });
+            await using var dstStream = downloadedFile.Create();
+            await using var s = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
+            await CopyStreamWithProgress(s, dstStream, contentSize ?? 0, token);
         }
 
-        return modDir;
+        try
+        {
+            await using var f = downloadedFile.OpenRead();
+            var reader = ReaderFactory.Open(f);
+            while (reader.MoveToNextEntry())
+            {
+                if (reader.Entry.IsDirectory)
+                {
+                    continue;
+                }
+
+                render.Append($"> Extracting {reader.Entry.Key}...");
+                reader.WriteEntryToDirectory(modDir.FullName, new ExtractionOptions() {ExtractFullPath = false, Overwrite = false});
+            }
+        }
+        catch (InvalidOperationException e)
+        {
+            // SharpCompress doesnt support streaming 7zip, for instance
+            var archive = ArchiveFactory.Open(downloadedFile.FullName);
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.IsDirectory)
+                {
+                    continue;
+                }
+
+                render.Append($"> Extracting {entry.Key}...");
+                entry.WriteToDirectory(modDir.FullName, new ExtractionOptions() {ExtractFullPath = true, Overwrite = true});
+            }
+        }
     }
 
     public async Task<IHtmlDocument> GetNewsWiki(CancellationToken token)
@@ -124,10 +163,30 @@ public class FfClient
 
     }
 
+    public async Task<long> GetLatestCommunityPatchId(CancellationToken token)
+    {
+        var builder = new UriBuilder(Constants.FindMapUrl);
+        builder.Query = "rflName=latestrfgcommpack";
+        var url = builder.Uri;
+
+        var response = await client.GetAsync(url, token);
+        var content = await response.EnsureSuccessStatusCode().Content.ReadAsStringAsync(token);
+        var parts = content.Trim('\0').Split().Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+        var id = long.Parse(parts.Last());
+        return id;
+    }
+
     private static string BbCodeToMarkdown(string input)
     {
         // BUG: markdown renderer breaks when there is a link inside bold/italic/..
-        input = Regex.Unescape(input);
+        try
+        {
+            input = Regex.Unescape(input);
+        }
+        catch (RegexParseException)
+        {
+            // BUG: some texts F up regex un-escaping, ignore it    
+        }
         input = input.Replace("\r", "\n");
         input = bold.Replace(input, "**");
         input = italic.Replace(input, "*");
@@ -150,6 +209,40 @@ public class FfClient
         }
 
         return input;
+    }
+
+    public async Task CopyStreamWithProgress(Stream source, Stream destination, long expectedSize, CancellationToken cancellationToken)
+    {
+        if (source == null)
+            throw new ArgumentNullException(nameof(source));
+        if (!source.CanRead)
+            throw new ArgumentException("Has to be readable", nameof(source));
+        if (destination == null)
+            throw new ArgumentNullException(nameof(destination));
+        if (!destination.CanWrite)
+            throw new ArgumentException("Has to be writable", nameof(destination));
+
+        var buffer = new byte[8192];
+        long totalBytesRead = 0;
+        int bytesRead;
+        var totalMb = (double) expectedSize / 1024 / 1024;
+        long lastReported = 0;
+        while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
+        {
+            await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+            totalBytesRead += bytesRead;
+            var readMiB = (long)Math.Floor((double) totalBytesRead / 1024 / 1024);
+            if (readMiB > 0 && readMiB % 10 == 0)
+            {
+                var current = readMiB / 10;
+                if (current <= lastReported)
+                {
+                    continue;
+                }
+                lastReported = current;
+                render.Append($"> {readMiB:F0} / {totalMb:F0} MiB");
+            }
+        }
     }
 
     private static Regex bold = new(@"\[/?b\]");

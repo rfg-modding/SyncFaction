@@ -6,106 +6,117 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using PleOps.XdeltaSharp.Decoder;
+using SyncFaction.Services.FactionFiles;
 
 namespace SyncFaction.Services;
 
 public class Tools
 {
-    private readonly ILogger<Tools> log;
+    private readonly MarkdownRender render;
 
-    public Tools(ILogger<Tools> log)
+    public Tools(MarkdownRender render)
     {
-        this.log = log;
+        this.render = render;
     }
-
-    public async Task<bool> ApplyMod(DirectoryInfo dataDir, DirectoryInfo bakDir, DirectoryInfo modDir,
-        CancellationToken token, Action<string> callback = null)
+    
+    public async Task<bool> ApplyMod(Filesystem filesystem, IMod mod, CancellationToken token)
     {
+        // TODO support other stuff like .exe in base game directory and other file types besides vpp_pc
+        
+        var modDir = filesystem.ModDir(mod);
         var modFiles = modDir.EnumerateFiles().ToList();
-        if (!modFiles.Any(x => Path.GetExtension(x.Name) == ".xdelta"))
-        {
-            callback?.Invoke("# Mod does not contain .xdelta patches and is not supported");
-            return false;
-        }
-
-        var remainingFiles = new HashSet<string>(Constants.KnownFiles.Keys);
+        
         // restore files from backup if they were backed up before
+        // DO NOT restore files belonging to community patch
+        // TODO community patch txt should list files and hashes? keep track and backup of community-patched files!
+        throw new NotImplementedException("current method reverts community patch when applying another mod");
+        var remainingFiles = new HashSet<string>(Constants.KnownMpVppPc.Keys);
         foreach (var x in remainingFiles)
         {
             var fileName = x + ".vpp_pc";
-            var srcFile = new FileInfo(Path.Combine(bakDir.FullName, fileName));
+            var srcFile = new FileInfo(Path.Combine(filesystem.Bak.FullName, fileName));
             if (!srcFile.Exists)
             {
                 // file is not backed up meaning it was not modified before
                 continue;
             }
 
-            var dstFile = new FileInfo(Path.Combine(dataDir.FullName, fileName));
+            var dstFile = new FileInfo(Path.Combine(filesystem.Data.FullName, fileName));
             if (dstFile.Exists)
             {
                 dstFile.Delete();
             }
 
             srcFile.CopyTo(dstFile.FullName);
-            log.LogInformation("Copied vanilla file {file}", fileName);
-            callback?.Invoke($"* Copied original {fileName}");
+            render.Append($"* Copied original {fileName}");
         }
 
-        // apply patches for each file in mod dir
+        bool anythingChanged = false;
+        // process each file in mod dir
         foreach (var x in modFiles)
         {
-            if (Path.GetExtension(x.Name) != ".xdelta")
-            {
-                callback?.Invoke($"* Skipped ~~{x.Name}~~");
-                continue;
-            }
-
             var item_name = Path.GetFileNameWithoutExtension(x.Name);
             var fileName = item_name + ".vpp_pc";
-            log.LogInformation("Patching {file}", fileName);
-
-            var dstFile = new FileInfo(Path.Combine(dataDir.FullName, fileName));
-            if (dstFile.Exists)
+            var dstFile = new FileInfo(Path.Combine(filesystem.Data.FullName, fileName));
+            
+            if (Path.GetExtension(x.Name) == ".xdelta")
             {
-                dstFile.Delete();
+                // apply binary patch
+                if (dstFile.Exists)
+                {
+                    dstFile.Delete();
+                }
+                dstFile.Create().Close();
+                await using var srcStream = new FileInfo(Path.Combine(filesystem.Bak.FullName, fileName)).OpenRead();
+                await using var patchStream = x.OpenRead();
+                await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
+
+                using var decoder = new Decoder(srcStream, patchStream, dstStream);
+                decoder.Run();
+
+                remainingFiles.Remove(item_name);
+                render.Append($"* __Patched__ {fileName}");
+                anythingChanged = true;
             }
-
-            dstFile.Create().Close();
-
-            await using var srcStream = new FileInfo(Path.Combine(bakDir.FullName, fileName)).OpenRead();
-            await using var patchStream = x.OpenRead();
-            await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
-
-            using var decoder = new Decoder(srcStream, patchStream, dstStream);
-            decoder.Run();
-
-            remainingFiles.Remove(item_name);
-            log.LogInformation("Patched file {file}", fileName);
-            callback?.Invoke($"* __Patched__ {fileName}");
+            else if (Path.GetExtension(x.Name) == ".vpp_pc")
+            {
+                // TODO test!
+                // copy file over original
+                x.CopyTo(dstFile.FullName);
+                render.Append($"* __Copied__ {fileName}");
+                anythingChanged = true;
+            }
+            else
+            {
+                render.Append($"* Skipped ~~{x.Name}~~");
+            }
         }
 
-        return true;
+        if (!anythingChanged)
+        {
+            render.Append("# Nothing was changed by mod, maybe it contained only unsupported files");
+        }
+
+        return anythingChanged;
     }
 
-    public DirectoryInfo? EnsureBackup(DirectoryInfo dataDir, IReadOnlyList<string> filesToBackUp,
-        Action<string> callback = null)
+    public bool EnsureBackup(Filesystem filesystem, IReadOnlyList<string> filesToBackUp)
     {
-        var appDir = new DirectoryInfo(Path.Combine(dataDir.FullName, Constants.appDirName));
-        var bakDir = new DirectoryInfo(Path.Combine(appDir.FullName, Constants.bakDirName));
-        if (!bakDir.Exists)
+        if (!filesystem.Bak.Exists)
         {
             // probably is't first launch, check all files and bail if something is wrong
-            callback?.Invoke($"# Validating game contents. This is one-time thing, but going to take a while");
-            foreach (var kv in Constants.KnownFiles.OrderBy(x => x.Key))
+            render.Append($"# Validating game contents. This is one-time thing, but going to take a while");
+            foreach (var kv in Constants.AllKnownVppPc.OrderBy(x => x.Key))
             {
-                var file = dataDir.EnumerateFiles().Single(x => Path.GetFileNameWithoutExtension(x.Name) == kv.Key);
-                callback?.Invoke($"* *Checking* {file.Name}");
+                // TODO support other files, move extension to KnownFiles table
+                var key = $"{kv.Key}.vpp_pc";
+                var file = filesystem.Data.EnumerateFiles().Single(x => x.Name == key);
+                render.Append($"* *Checking* {file.Name}");
                 if (!CheckHash(file, kv.Value))
                 {
-                    callback?.Invoke(@$"# Action needed:
+                    render.Append(@$"# Action needed:
 
 Found modified game file: {file.FullName}
 
@@ -115,46 +126,46 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
 
 *See you later miner!*
 ");
-                    return null;
+                    return false;
                 }
             }
 
 
-            bakDir.Create();
+            filesystem.Bak.Create();
         }
 
-        var existingFiles = bakDir.GetFiles();
+        var existingFiles = filesystem.Bak.GetFiles();
         var existingMapFiles = existingFiles
             .Where(x => x.Extension == ".vpp_pc")
             .Select(x => Path.GetFileNameWithoutExtension(x.Name))
             .ToList();
 
-        var filesToCopy = filesToBackUp.Intersect(Constants.KnownFiles.Keys).Except(existingMapFiles);
+        var filesToCopy = filesToBackUp.Intersect(Constants.AllKnownVppPc.Keys).Except(existingMapFiles);
         // dont check hashes if backup has a file (it's slow). probably user didn't fiddle with our directory
         if (filesToCopy.Any())
         {
-            log.LogWarning("Backing up files: {files}", filesToCopy);
+            render.Append($"Backing up files: {filesToCopy}");
             // backup is compromised, erase and copy over
-            var dataFiles = dataDir.GetFiles();
+            var dataFiles = filesystem.Data.GetFiles();
             foreach (var x in filesToCopy)
             {
                 var name = $"{x}.vpp_pc";
                 var file = existingFiles.SingleOrDefault(x => x.Name.ToLowerInvariant() == name);
                 file?.Delete();
                 var source = dataFiles.Single(x => x.Name.ToLowerInvariant() == name);
-                if (!CheckHash(source, Constants.KnownFiles[x]))
+                if (!CheckHash(source, Constants.AllKnownVppPc[x]))
                 {
                     throw new InvalidOperationException(
                         $"Found modified game file, can't back up! {source.FullName}");
                 }
 
-                var destination = Path.Combine(bakDir.FullName, name);
+                var destination = Path.Combine(filesystem.Bak.FullName, name);
                 source.CopyTo(destination);
-                log.LogWarning("Copied to backup: {file}", source.FullName);
+                render.Append($"Copied to backup: {source.FullName}");
             }
         }
 
-        return bakDir;
+        return true;
     }
 
     public bool CheckHash(FileInfo file, string expected)
@@ -169,7 +180,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
         var result = expected.Equals(hash, StringComparison.OrdinalIgnoreCase);
         if (!result)
         {
-            log.LogWarning("Bad hash. Expected {expectedHash}, got {hash}", expected, hash);
+            render.Append($"> Bad hash. Expected {expected}, got {hash}");
         }
 
         return result;
@@ -177,16 +188,6 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
 
     public async Task<string> DetectGameLocation(CancellationToken token, Action<string> callback = null)
     {
-        //"HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath"
-        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\edi_wang"))
-        {
-            if (key != null)
-            {
-                Object o = key.GetValue("Title");
-                Console.WriteLine(o.ToString());
-            }
-        }
-
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(@"Software\Wow6432Node\Valve\Steam", false);
@@ -224,6 +225,6 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
     public bool IsKnown(string value)
     {
         var name = Path.GetFileNameWithoutExtension(value.ToLowerInvariant());
-        return Constants.KnownFiles.ContainsKey(name);
+        return Constants.AllKnownVppPc.ContainsKey(name);
     }
 }

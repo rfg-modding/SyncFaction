@@ -5,7 +5,7 @@ namespace SyncFaction.Services;
 
 public static class Constants
 {
-    public static readonly ImmutableDictionary<string, string> KnownFiles = new Dictionary<string, string>()
+    public static readonly ImmutableDictionary<string, string> AllKnownVppPc = new Dictionary<string, string>()
     {
         { "activities", "99eb018c1b0032d30788f80a49e3998caf03cb937dd3c9a67dd0f6b2816faf0f" },
         { "anims", "97ed7f3937f8f15e1a7781a869133509ab4ee8b65fd3e6a822aad843142beaa5" },
@@ -114,10 +114,70 @@ public static class Constants
         { "zonescript_terr01", "04b9db2005d1d621d4acda7ba7438fde39864c7986d90c063acd8f2487343c79" },
 
     }.ToImmutableDictionary();
+    
+    public static readonly ImmutableDictionary<string, string> KnownMpVppPc = new Dictionary<string, string>()
+    {
+        { "effects_mp", "6546b9e83043ffedb01867d3a3b7e37c37133ccb2337688bd0420ba88837f0fc" },
+        { "items_mp", "256c9ff01d34c27733af0d9f59158d3ae683e6eb50d2f2853ee204fa0b41d39a" },
+        { "mpdlc_broadside", "38a04d2ad153e4094da3b34f5a6b7d83a0397e841d458fcda08173279fb82955" },
+        { "mpdlc_division", "c30f1bb009bf7ad7b0803a0b0302445aa89fa6534811306b7716d4b5e620e47b" },
+        { "mpdlc_islands", "dac2cd35ffb4f9f55de67be7173ade132329c9709eb186495f1cbde0f2ff0ed8" },
+        { "mpdlc_landbridge", "d0fd039379f90466424098b746c1b070f89204d9481fbd5a3380d36f18861b94" },
+        { "mpdlc_minibase", "52e4d5cde529b7bff50a78e226c89b5685a1cf3e4f41d5875d34b6370bff1854" },
+        { "mpdlc_overhang", "c471ea7cae9b2901cfe8771c52773eef8b2e39cecae9f93d4532963a5eb49a70" },
+        { "mpdlc_puncture", "63366c488eea981786833aea85a3d4279fbbae76298be0b411f7d14752108120" },
+        { "mpdlc_ruins", "ca84c091f781c2d1e7ec516b70436a0a44447f0dd56053ebfbb23184ad42b7c0" },
+        { "mp_common", "1458cc60012826d94b775c1542881d4209e679725769f9f042c3b57e94ac5d33" },
+        { "mp_cornered", "003c8447bef565f8bcfa631a776a9d8774897b3b3983ed3973ea48a4a50b4c96" },
+        { "mp_crashsite", "1c7c3dbd856b18a9cece555ee554f697fc4a41e6e8a13d5442f1cfab553ed6e2" },
+        { "mp_crescent", "fc0458286bd39ea5324e0efca8f05adddcf28d44311dd12aaf052d08be9282a4" },
+        { "mp_crevice", "0289b371bb4a4114dbae530ff5aeb445f9409342ea45f828e9ce837cd5c4c5ed" },
+        { "mp_deadzone", "d1248dda632d6c9ff35fb258c74f94afb6d4782fe6b27e7892f9f638558c98b1" },
+        { "mp_downfall", "754461f5f3046824fc5b6fe90d20d665eee403cb588b9d7688b3356d1ed0c6fe" },
+        { "mp_excavation", "a2d7bb01d1cc56107b37eadf9321965b8aa7b9de8031ca72fd86999aa2fff3e2" },
+        { "mp_fallfactor", "92b5a7bb73c1963ca7893cb57d90b8b5257f74d0c9ebc69a7e043c7bba0b5839" },
+        { "mp_framework", "2f7c8359c9b67002d407cba3500814ad0110a07cb3e4c486b8f5a609f9e68ec0" },
+        { "mp_garrison", "8ffd39525a2c2b3545b3ff00f6b419f40d1ed1cd9971552cbc05ea6dc0822dfc" },
+        { "mp_gauntlet", "0b8bc3b20b361e2c625e7daa34180ecfa357af5507c650391abf6fe9bc95df23" },
+        { "mp_overpass", "51476ec89f342c5adc02d52052a2e326f9246edc168208f7e6307fcb91d6df7c" },
+        { "mp_pcx_assembly", "68abe655399008127dbd545b3b5b18618d424bffe7bcbcc426e7328e0351564e" },
+        { "mp_pcx_crossover", "08c60ecc33e764cd4463d06bde30a139470be4f107ec50f45c55b20de58a6fa6" },
+        { "mp_pinnacle", "56a77914a86991dc993bacb07584804318e008a0a4f14c6508d15a25a1958cab" },
+        { "mp_quarantine", "7c3d5be4a5b9d545431e6c7fe8962333a41bcadcde0834b2f5a0af21afd45639" },
+        { "mp_radial", "023598e493c5f30e8175077529dff027093a9eddde2a2707911ee77e9f2041fb" },
+        { "mp_rift", "582cff5a9b2aedba9feb3a06459f519ee81c60c2688bceae8ffd5ac711b01291" },
+        { "mp_sandpit", "9f726ae42e5d9bad5aaf7235cc2c3c40ac7a395529cb2495d5c2997924c2ed91" },
+        { "mp_settlement", "c912a2da75ca9a0f625fabcaa3aebbe5ab24a014b4daf28404984cc8b8411243" },
+        { "mp_warlords", "6ec0bd0e3aa420f69e74a36e52f1f0860d7c024b886717cd1a1de9297dca4a2f" },
+        { "mp_wasteland", "1b7e17cdd309204183668dd7adae1cb0184acbc7c8381c3252c79c0b0f3a4973" },
+        { "mp_wreckage", "0ae900aa5ed46878a646ddcaa8bd260623171dcfe69cbe13906307f5bed736aa" },
+        { "wc1", "2b82a9e16c5f0fb6b7ce1f43f28bff0fa4a5351be8ee3d253a4c75c0785c73f6" },
+        { "wc10", "cd3614d0ea3a87842363c25918377162758b887eb5341b88b503a84d67ad6153" },
+        { "wc2", "26a2ac2aeb9da1fcf762becfd34f76a6e36c4aaefb978ec9a5475998ec9f34fa" },
+        { "wc3", "9bdb64a8189d7d0091521ecb7b491ca5c14ab61c10a905e509168ff418e7b613" },
+        { "wc4", "5ad4b021ed96fee689b177ab24b6291fd5381a8b2d4b8000eaf2ebab41472b65" },
+        { "wc5", "00eb38007759582f4e645d27e2af3adabf244772b182abcf92f84086864c8934" },
+        { "wc6", "ae75ba3039b1ddfebf8ccfc02ea5ceecf4b450553b9f08b8625756907ddf7fee" },
+        { "wc7", "1a7df1d41fd3d9fe88a4202706c21468b2a1921a971162633b7e3e773e0fb23b" },
+        { "wc8", "9d9fcbb06db0bf3e5ae250ca18970de526b7868089703ab44d46291d35ed74b6" },
+        { "wc9", "4117cfc1dc15ab57422a63aa9f458685006e6ab286c83bc538b10cfc77147a4b" },
+        { "wcdlc1", "ecf90efbef1cabc91ea7b96d2d82607ba706f1d55fd8262594b0ab2893bf5ac4" },
+        { "wcdlc2", "6d87a31e9d36cf70505a948f215849449ffa29d7fe9b2a88cb52d66e248a0d30" },
+        { "wcdlc3", "088eded2f6655b92dd1b7d87a01232589772c05ffae8697b2d5229c8818c6e78" },
+        { "wcdlc4", "f268dd39a429db86e58bbe8a2a4a50f5103551de7141ffd5670d7d249eda4c6d" },
+        { "wcdlc5", "df5e5109d7a703b6ac55aaf40110eabd089cde832ac9c4429e73f8682cfb9665" },
+        { "wcdlc6", "569b8356caf59fcb878052e08d3414293f89bda422bd12c4f33530fe6f4d1062" },
+        { "wcdlc7", "a8f7996d5fb7cace81bd3229c275e07f99c4ecc31ef11e52890058ca9b2d4a17" },
+        { "wcdlc8", "aa83f2e83f4630aef4395085fa5b241f19195ffdfea7b14c955764f09cdb4c56" },
+        { "wcdlc9", "0995c75937603864a63c1544b2796123c3aa23f6666779e6bbcfabdda6b0166c" },
 
-    public const string bakDirName = "bak";
-    public const string appDirName = ".syncfaction";
+    }.ToImmutableDictionary();
+
+    public const string BakDirName = "bak";
+    public const string AppDirName = ".syncfaction";
+    public const string CommunityPatchIdFile = "InstalledCommunityPatch.txt";
     public const string ApiUrl = @"https://autodl.factionfiles.com/rfg/v1/files-by-cat.php";
+    public const string FindMapUrl = @"https://autodl.factionfiles.com/findmap.php";
     public const string BrowserUrlTemplate = "https://www.factionfiles.com/ff.php?action=file&id={0}";
     public const string WikiPage = "https://www.redfactionwiki.com/wiki/RF:G_Game_Night_News";
 
@@ -136,3 +196,136 @@ public static class Constants
 ";
 
 }
+
+
+/*
+
+
+
+VPPs used by MP & SP:
+	misc.vpp_pc
+	table.vpp_pc
+	anims.vpp_pc
+	decals.vpp_pc
+	skybox.vpp_pc
+	sounds_r.vpp_pc
+	steam.vpp_pc
+
+VPPs only used by SP (includes DLC SP campaign in Extras > DLC):
+	effects.vpp_pc
+	humans.vpp_pc
+	interface.vpp_pc
+	items.vpp_pc
+	activities.vpp_pc
+	missions.vpp_pc
+	terr01_l0.vpp_pc
+	terr01_l1.vpp_pc
+	terr01_precache.vpp_pc
+	vehicles_r.vpp_pc
+	zonescript_terr01.vpp_pc
+	
+	DLC campaign only:
+		dlc01_l0.vpp_pc - DLC campaign only
+		dlc01_l1.vpp_pc - DLC campaign only
+		dlc01_precache.vpp_pc - DLC campaign only
+		dlcp01_activities.vpp_pc
+		dlcp01_anims.vpp_pc
+		dlcp01_cloth_sim.vpp_pc
+		dlcp01_effects.vpp_pc
+		dlcp01_humans.vpp_pc
+		dlcp01_interface.vpp_pc
+		dlcp01_items.vpp_pc
+		dlcp01_misc.vpp_pc
+		dlcp01_missions.vpp_pc
+		dlcp01_personas_en_us.vpp_pc
+		dlcp01_vehicles_r.vpp_pc
+		dlcp01_voices_en_us.vpp_pc
+		dlcp02_interface.vpp_pc
+		dlcp02_misc.vpp_pc
+		dlcp03_interface.vpp_pc
+		dlcp03_misc.vpp_pc
+		zonescript_dlc01.vpp_pc
+	
+
+VPPs only used by MP & wrecking crew:
+	effects_mp.vpp_pc
+	items_mp.vpp_pc
+    mpdlc_broadside.vpp_pc
+    mpdlc_division.vpp_pc
+    mpdlc_islands.vpp_pc
+    mpdlc_landbridge.vpp_pc
+    mpdlc_minibase.vpp_pc
+    mpdlc_overhang.vpp_pc
+    mpdlc_puncture.vpp_pc
+    mpdlc_ruins.vpp_pc
+    mp_common.vpp_pc
+    mp_cornered.vpp_pc
+    mp_crashsite.vpp_pc
+    mp_crescent.original.vpp_pc
+    mp_crescent.vpp_pc
+    mp_crevice.vpp_pc
+    mp_damage_control.bik
+    mp_deadzone.vpp_pc
+    mp_defensive_packs.bik
+    mp_demolition_mode.bik
+    mp_destructive_packs.bik
+    mp_downfall.vpp_pc
+    mp_excavation.vpp_pc
+    mp_fallfactor.vpp_pc
+    mp_framework.vpp_pc
+    mp_garrison.vpp_pc
+    mp_gauntlet.vpp_pc
+    mp_movement_packs.bik
+    mp_overpass.vpp_pc
+    mp_pcx_assembly.vpp_pc
+    mp_pcx_crossover.vpp_pc
+    mp_pinnacle.vpp_pc
+    mp_quarantine.vpp_pc
+    mp_radial.vpp_pc
+    mp_recon_packs.bik
+    mp_rift.vpp_pc
+    mp_sandpit.vpp_pc
+    mp_settlement.vpp_pc
+    mp_siege_mode.bik
+    mp_support_packs.bik
+    mp_warlords.vpp_pc
+    mp_wasteland.vpp_pc
+    mp_wreckage.vpp_pc
+	wc1.vpp_pc
+    wc10.vpp_pc
+    wc2.vpp_pc
+    wc3.vpp_pc
+    wc4.vpp_pc
+    wc5.vpp_pc
+    wc6.vpp_pc
+    wc7.vpp_pc
+    wc8.vpp_pc
+    wc9.vpp_pc
+    wcdlc1.vpp_pc
+    wcdlc2.vpp_pc
+    wcdlc3.vpp_pc
+    wcdlc4.vpp_pc
+    wcdlc5.vpp_pc
+    wcdlc6.vpp_pc
+    wcdlc7.vpp_pc
+    wcdlc8.vpp_pc
+    wcdlc9.vpp_pc
+
+Unknowns:
+	chunks.vpp_pc - I don't expect anyone to mod this file. It has a few files which as far as I can tell are placeholder buildings used by the game in error conditions. Unknown when/if MP/SP use it
+	cloth_sim.vpp_pc - I'd assume MP also uses this but not 100% sure. We don't have any tools to edit the .sim_pc files in these anyway. Likely won't for a very long time.
+	personas_de_de.vpp_pc - Not completely sure on these vpps. They have voice lines for characters, so they might be SP only. We don't have tools to edit the contents of these.
+    personas_en_us.vpp_pc
+    personas_es_es.vpp_pc
+    personas_fr_fr.vpp_pc
+    personas_it_it.vpp_pc
+    personas_ru_ru.vpp_pc
+	voices_de_de.vpp_pc - Same deal as the personas_xx_xx vpps. I know they're used in SP, but not sure about MP. No tools to edit the contents of these either.
+    voices_en_us.vpp_pc
+    voices_es_es.vpp_pc
+    voices_fr_fr.vpp_pc
+    voices_it_it.vpp_pc
+    voices_ru_ru.vpp_pc
+	
+
+*/

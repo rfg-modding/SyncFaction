@@ -46,7 +46,7 @@ public partial class MainWindow : Window
 
         cts = new CancellationTokenSource();
         token = cts.Token;
-        interactiveControls = new List<Control> {run, apply, connect, restore, remoteList};
+        interactiveControls = new List<Control> {run, apply, connect, restore, remoteList, update};
     }
 
     public void OnWindowClosing(object? sender, CancelEventArgs e)
@@ -56,7 +56,7 @@ public partial class MainWindow : Window
 
     private async void connect_Click(object sender, RoutedEventArgs e)
     {
-        await ExecuteSafeWithUiLock("Download map lists", async () =>
+        await ExecuteSafeWithUiLock("Download mod lists", async () =>
         {
             remoteList.UnselectAll();
             render.Clear();
@@ -74,8 +74,8 @@ public partial class MainWindow : Window
         await ExecuteSafeWithUiLock("Restore from backup", async () =>
         {
             remoteList.UnselectAll();
-            var dir = new DirectoryInfo(directory.Text);
-            await Task.Run(async () => { await uiTools.Restore(dir, token); }, token);
+            var filesystem = new Filesystem(directory.Text);
+            await Task.Run(async () => { await uiTools.Restore(filesystem, token); }, token);
         });
     }
 
@@ -87,42 +87,97 @@ public partial class MainWindow : Window
             await Task.Run(async () => { await uiTools.DisplayMod(selectedMod, token); }, token);
         });
     }
-
-    private async void run_Click(object sender, RoutedEventArgs e)
-    {
-        await ExecuteSafeWithUiLock("Apply selected mod and run game", async () =>
-        {
-            var dir = new DirectoryInfo(directory.Text);
-            var mod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () =>
-            {
-                var applied = await uiTools.ApplySelected(dir, mod, token);
-                if (!applied)
-                {
-                    return;
-                }
-
-                render.Append("> Launching game via Steam...");
-
-                Process.Start(new ProcessStartInfo()
-                {
-                    UseShellExecute = true,
-                    FileName = "steam://rungameid/667720"
-                });
-            }, token);
-        });
-    }
-
+    
     private async void apply_Click(object sender, RoutedEventArgs e)
     {
         await ExecuteSafeWithUiLock("Apply selected mod", async () =>
         {
-            var dir = new DirectoryInfo(directory.Text);
+            var filesystem = new Filesystem(directory.Text);
             var mod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () => { await uiTools.ApplySelected(dir, mod, token); }, token);
+            await Task.Run(async () => { await uiTools.ApplySelected(filesystem, mod, token); }, token);
         });
     }
 
+    private async void update_Click(object sender, RoutedEventArgs e)
+    {
+        var success = false;
+        await ExecuteSafeWithUiLock("Update to latest Community Patch", async () =>
+        {
+            var filesystem = new Filesystem(directory.Text);
+            await Task.Run(async () => { success = await uiTools.UpdateCommunityPatch(filesystem, uiTools.newCommunityPatch.Value, token); }, token);
+
+            if (success)
+            {
+                // same as "connect" action: get mod list and news page
+                remoteList.UnselectAll();
+                render.Clear();
+                await Task.Run(async () => { await uiTools.Connect(token); }, token);
+                remoteList.Items.Clear();
+                foreach (var x in uiTools.items)
+                {
+                    remoteList.Items.Add(x);
+                }    
+            }
+            
+        });
+        
+        if (!success)
+        {
+            // disable UI if update failed, we can't do anything
+            ToggleInteractiveControls(false);
+        }
+        else
+        {
+            ToggleUpdateButton(false);
+        }
+    }
+    
+    private async void run_Click(object sender, RoutedEventArgs e)
+    {
+        await ExecuteSafeWithUiLock("Apply selected mod and run game", async () =>
+        {
+            var filesystem = new Filesystem(directory.Text);
+            var mod = remoteList.SelectedItem as IMod;
+            await Task.Run(async () => { await uiTools.ApplySelectedAndRun(filesystem, mod, token); }, token);
+        });
+    }
+
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        var success = false;
+        await ExecuteSafeWithUiLock("Initialize", async () =>
+        {
+            render.Clear();
+            // populate game dir input automatically
+            var gamePath = await uiTools.Detect(token);
+            directory.Text = gamePath;
+            var filesystem = new Filesystem(gamePath);
+
+            remoteList.UnselectAll();
+            render.Clear();
+            await Task.Run(async () => { success = await uiTools.PopulateData(filesystem, token); }, token);
+            remoteList.Items.Clear();
+            foreach (var x in uiTools.items)
+            {
+                remoteList.Items.Add(x);
+            }
+        });
+        if (!success)
+        {
+            // disable UI if backup failed, we can't do anything
+            ToggleInteractiveControls(false);
+            return;
+        }
+        if (uiTools.newCommunityPatch != null)
+        {
+            // enforce update, disable other controls
+            ToggleUpdateButton(true);
+        }
+    }
+    
+    /// <summary>
+    /// Lock UI, filter duplicate button clicks, display exceptions
+    /// </summary>
     private async Task ExecuteSafeWithUiLock(string description, Func<Task> action)
     {
         if (busy)
@@ -131,10 +186,7 @@ public partial class MainWindow : Window
         }
 
         busy = true;
-        foreach (var control in interactiveControls)
-        {
-            control.IsEnabled = false;
-        }
+        ToggleInteractiveControls(false);
 
         try
         {
@@ -148,56 +200,38 @@ public partial class MainWindow : Window
         finally
         {
             busy = false;
-            foreach (var control in interactiveControls)
-            {
-                control.IsEnabled = true;
-            }
+            ToggleInteractiveControls(true);
         }
     }
 
-    private async void Window_Loaded(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Swap update button in place of Apply button, also hide others
+    /// </summary>
+    private void ToggleUpdateButton(bool enable)
     {
-        var fail = false;
-        await ExecuteSafeWithUiLock("Download map lists", async () =>
+        if (enable)
         {
-            render.Clear();
-
-            var gamePath = await uiTools.Detect(token);
-            directory.Text = gamePath;
-            var dir = new DirectoryInfo(gamePath);
-
-            remoteList.UnselectAll();
-            render.Clear();
-            await Task.Run(async () =>
-            {
-                var bakDir = uiTools.EnsureBackup(dir);
-                if (bakDir == null)
-                {
-                    fail = true;
-                    return;
-                }
-                await uiTools.Connect(token);
-            }, token);
-            remoteList.Items.Clear();
-            foreach (var x in uiTools.items)
-            {
-                remoteList.Items.Add(x);
-            }
-        });
-        if (fail)
-        {
-            // disable UI if backup failed, we can't do anything
-            foreach (var control in interactiveControls)
-            {
-                control.IsEnabled = false;
-            }
+            apply.Visibility = Visibility.Hidden;
+            run.Visibility = Visibility.Collapsed;
+            update.Visibility = Visibility.Visible;
+            restore.Visibility = Visibility.Hidden;
+            connect.Visibility = Visibility.Hidden;
         }
+        else
+        {
+            apply.Visibility = Visibility.Visible;
+            run.Visibility = Visibility.Visible;
+            update.Visibility = Visibility.Collapsed;
+            restore.Visibility = Visibility.Visible;
+            connect.Visibility = Visibility.Visible;
+        }
+    }
 
+    private void ToggleInteractiveControls(bool enable)
+    {
+        foreach (var control in interactiveControls)
+        {
+            control.IsEnabled = enable;
+        }
     }
 }
-
-/*
-TODO
-
-ensure stock maps on first launch and ask to restore files with Steam if smth is wrong
- */

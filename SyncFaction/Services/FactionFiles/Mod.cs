@@ -1,65 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Serialization;
 
 namespace SyncFaction.Services.FactionFiles;
 
-public enum Category
-{
-    Artwork=37,
-    MpMaps=44,
-    WcMaps=45,
-    MapPacks=46,
-    ModsClassic=16,
-    ModsRemaster=30,
-    ModsScriptLoader=29,
-    ModsStandalone=4,
-    Patches=11,
-    Tools=3
-}
-
-public class CategoryPage
-{
-    public long TotalPages { get; set; }
-    public long CurrentPage { get; set; }
-    public long ResultsThisPage { get; set; }
-    public long ResultsTotal { get; set; }
-    public Dictionary<string, Item> Results { get; set; }
-}
-
-public interface IMod
-{
-    public string IdString { get; }
-    public string BrowserUrl { get; }
-    public string ImageUrl { get; }
-    public string ImagePath { get; }
-    public string DownloadUrl { get; }
-    public DateTime CreatedAt { get; }
-    public string Markdown { get; }
-}
-
-public class SeparatorItem : IMod
-{
-    private readonly string value;
-
-    public SeparatorItem(string value)
-    {
-        this.value = value;
-    }
-
-    public string IdString => string.Empty;
-    public string BrowserUrl { get; }
-    public string ImageUrl { get; }
-    public string ImagePath { get; }
-    public string DownloadUrl { get; }
-    public DateTime CreatedAt { get; }
-    public string Markdown { get; }
-
-    public override string ToString() => value;
-}
-
-public class Item : IMod
+public class Mod : IMod
 {
     public long Id { get; init; }
     public string Name { get; init; }

@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using MdXaml;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 public class MarkdownRender
 {
