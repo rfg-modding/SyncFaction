@@ -1,8 +1,6 @@
-using System;
-using System.IO;
 using System.Text.Json.Serialization;
 
-namespace SyncFaction.Services.FactionFiles;
+namespace SyncFaction.Core.Services.FactionFiles;
 
 public class Mod : IMod
 {

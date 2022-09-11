@@ -1,7 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.IO.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Windows;
 using MdXaml;
+using SyncFaction.Core.Services;
+using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Services.Files;
 using SyncFaction.Services;
 
 namespace SyncFaction;
@@ -21,12 +25,19 @@ public partial class App : Application
     {
         services.AddHttpClient();
         services.AddSingleton<MainWindow>();
-        services.AddSingleton<Tools>();
-        services.AddSingleton<UiTools>();
+        services.AddSingleton<FileManager>();
+        services.AddSingleton<UiCommands>();
         services.AddSingleton<MarkdownRender>();
         services.AddSingleton<Markdown>();
         services.AddSingleton<FfClient>();
-        services.AddLogging(x => x.ClearProviders());
+        services.AddSingleton<StateProvider>();
+        services.AddSingleton<IFileSystem, FileSystem>();
+        services.AddLogging(x =>
+        {
+            x.ClearProviders();
+            x.SetMinimumLevel(LogLevel.Trace);
+            x.Services.AddSingleton<ILoggerProvider, UiLogBridgeProvider>();
+        });
     }
 
     private void OnStartup(object sender, StartupEventArgs e)

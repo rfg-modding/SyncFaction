@@ -1,4 +1,4 @@
-namespace SyncFaction.Services.FactionFiles;
+namespace SyncFaction.Core.Services.FactionFiles;
 
 public enum Category
 {

@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace SyncFaction.Services.FactionFiles;
+namespace SyncFaction.Core.Services.FactionFiles;
 
 public class CategoryPage
 {

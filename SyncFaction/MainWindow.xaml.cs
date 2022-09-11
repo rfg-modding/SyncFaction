@@ -3,30 +3,37 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SyncFaction.Core.Services;
+using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Services.Files;
 using SyncFaction.Services;
-using SyncFaction.Services.FactionFiles;
 
 namespace SyncFaction;
 
 public partial class MainWindow : Window
 {
-    private readonly UiTools uiTools;
+    private readonly UiCommands uiCommands;
     private readonly MarkdownRender render;
+    private readonly StateProvider stateProvider;
+    private readonly IFileSystem fileSystem;
     private readonly CancellationTokenSource cts;
     private readonly CancellationToken token;
     private bool busy;
     private readonly IReadOnlyList<Control> interactiveControls;
 
-    public MainWindow(UiTools uiTools, MarkdownRender markdownRender)
+    public MainWindow(UiCommands uiCommands, MarkdownRender markdownRender, StateProvider stateProvider, IFileSystem fileSystem)
     {
-        this.uiTools = uiTools;
+        this.uiCommands = uiCommands;
         render = markdownRender;
+        this.stateProvider = stateProvider;
+        this.fileSystem = fileSystem;
 
         InitializeComponent();
         Closing += OnWindowClosing;
@@ -37,6 +44,8 @@ public partial class MainWindow : Window
             NavigationCommands.GoToPage,
             (sender, e) =>
             {
+
+
                 var proc = new Process();
                 proc.StartInfo.UseShellExecute = true;
                 proc.StartInfo.FileName = (string)e.Parameter;
@@ -46,7 +55,7 @@ public partial class MainWindow : Window
 
         cts = new CancellationTokenSource();
         token = cts.Token;
-        interactiveControls = new List<Control> {run, apply, connect, restore, remoteList, update};
+        interactiveControls = new List<Control> {run, apply, connect, restore, remoteList, update, restore_vanilla};
     }
 
     public void OnWindowClosing(object? sender, CancelEventArgs e)
@@ -60,9 +69,9 @@ public partial class MainWindow : Window
         {
             remoteList.UnselectAll();
             render.Clear();
-            await Task.Run(async () => { await uiTools.Connect(token); }, token);
+            await Task.Run(async () => { await uiCommands.Connect(token); }, token);
             remoteList.Items.Clear();
-            foreach (var x in uiTools.items)
+            foreach (var x in uiCommands.items)
             {
                 remoteList.Items.Add(x);
             }
@@ -74,8 +83,18 @@ public partial class MainWindow : Window
         await ExecuteSafeWithUiLock("Restore from backup", async () =>
         {
             remoteList.UnselectAll();
-            var filesystem = new Filesystem(directory.Text);
-            await Task.Run(async () => { await uiTools.Restore(filesystem, token); }, token);
+            var filesystem = new Storage(directory.Text, fileSystem);
+            await Task.Run(async () => { await uiCommands.Restore(filesystem, false, token); }, token);
+        });
+    }
+
+    private async void restore_vanilla_Click(object sender, RoutedEventArgs e)
+    {
+        await ExecuteSafeWithUiLock("Restore from vanilla backup", async () =>
+        {
+            remoteList.UnselectAll();
+            var filesystem = new Storage(directory.Text, fileSystem);
+            await Task.Run(async () => { await uiCommands.Restore(filesystem, true, token); }, token);
         });
     }
 
@@ -84,17 +103,17 @@ public partial class MainWindow : Window
         await ExecuteSafeWithUiLock("Display info", async () =>
         {
             var selectedMod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () => { await uiTools.DisplayMod(selectedMod, token); }, token);
+            await Task.Run(async () => { await uiCommands.DisplayMod(selectedMod, token); }, token);
         });
     }
-    
+
     private async void apply_Click(object sender, RoutedEventArgs e)
     {
         await ExecuteSafeWithUiLock("Apply selected mod", async () =>
         {
-            var filesystem = new Filesystem(directory.Text);
+            var filesystem = new Storage(directory.Text, fileSystem);
             var mod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () => { await uiTools.ApplySelected(filesystem, mod, token); }, token);
+            await Task.Run(async () => { await uiCommands.ApplySelected(filesystem, mod, token); }, token);
         });
     }
 
@@ -103,24 +122,24 @@ public partial class MainWindow : Window
         var success = false;
         await ExecuteSafeWithUiLock("Update to latest Community Patch", async () =>
         {
-            var filesystem = new Filesystem(directory.Text);
-            await Task.Run(async () => { success = await uiTools.UpdateCommunityPatch(filesystem, uiTools.newCommunityPatch.Value, token); }, token);
+            var filesystem = new Storage(directory.Text, fileSystem);
+            await Task.Run(async () => { success = await uiCommands.UpdateCommunityPatch(filesystem, token); }, token);
 
             if (success)
             {
                 // same as "connect" action: get mod list and news page
                 remoteList.UnselectAll();
                 render.Clear();
-                await Task.Run(async () => { await uiTools.Connect(token); }, token);
+                await Task.Run(async () => { await uiCommands.Connect(token); }, token);
                 remoteList.Items.Clear();
-                foreach (var x in uiTools.items)
+                foreach (var x in uiCommands.items)
                 {
                     remoteList.Items.Add(x);
-                }    
+                }
             }
-            
+
         });
-        
+
         if (!success)
         {
             // disable UI if update failed, we can't do anything
@@ -131,15 +150,36 @@ public partial class MainWindow : Window
             ToggleUpdateButton(false);
         }
     }
-    
+
     private async void run_Click(object sender, RoutedEventArgs e)
     {
         await ExecuteSafeWithUiLock("Apply selected mod and run game", async () =>
         {
-            var filesystem = new Filesystem(directory.Text);
+            var filesystem = new Storage(directory.Text, fileSystem);
             var mod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () => { await uiTools.ApplySelectedAndRun(filesystem, mod, token); }, token);
+            await Task.Run(async () => { await uiCommands.ApplySelectedAndRun(filesystem, mod, token); }, token);
         });
+    }
+
+    private async void devMode_Checked(object sender, RoutedEventArgs e)
+    {
+        await ExecuteSafeWithUiLock("ToggleDevMode", async () =>
+        {
+            var filesystem = new Storage(directory.Text, fileSystem);
+            uiCommands.ToggleDevMode(filesystem, devMode.IsChecked ?? false);
+        });
+        if (stateProvider.State.DevMode)
+        {
+            // if dev mode enabled, unlock normal UI even if there were errors before or if patch is not installed
+            ToggleUpdateButton(false);
+            ToggleInteractiveControls(true);
+            ToggleRestoreVanillaButton(true);
+        }
+        else
+        {
+            ToggleRestoreVanillaButton(false);
+            ToggleUpdateButton(false);
+        }
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -149,18 +189,20 @@ public partial class MainWindow : Window
         {
             render.Clear();
             // populate game dir input automatically
-            var gamePath = await uiTools.Detect(token);
+            var gamePath = await uiCommands.Detect(token);
             directory.Text = gamePath;
-            var filesystem = new Filesystem(gamePath);
+            var filesystem = new Storage(gamePath, fileSystem);
 
             remoteList.UnselectAll();
             render.Clear();
-            await Task.Run(async () => { success = await uiTools.PopulateData(filesystem, token); }, token);
+            await Task.Run(async () => { success = await uiCommands.PopulateData(filesystem, token); }, token);
             remoteList.Items.Clear();
-            foreach (var x in uiTools.items)
+            foreach (var x in uiCommands.items)
             {
                 remoteList.Items.Add(x);
             }
+
+            devMode.IsChecked = stateProvider.State.DevMode;
         });
         if (!success)
         {
@@ -168,13 +210,13 @@ public partial class MainWindow : Window
             ToggleInteractiveControls(false);
             return;
         }
-        if (uiTools.newCommunityPatch != null)
+        if (uiCommands.newCommunityVersion)
         {
             // enforce update, disable other controls
             ToggleUpdateButton(true);
         }
     }
-    
+
     /// <summary>
     /// Lock UI, filter duplicate button clicks, display exceptions
     /// </summary>
@@ -195,6 +237,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             var exceptionText = string.Join("\n", ex.ToString().Split('\n').Select(x => $"`` {x} ``"));
+            render.Append("---");
             render.Append(string.Format(Constants.ErrorFormat, description, exceptionText), false);
         }
         finally
@@ -209,6 +252,16 @@ public partial class MainWindow : Window
     /// </summary>
     private void ToggleUpdateButton(bool enable)
     {
+        if (stateProvider.State.DevMode)
+        {
+            // dont hide anything
+            apply.Visibility = Visibility.Visible;
+            run.Visibility = Visibility.Visible;
+            update.Visibility = Visibility.Visible;
+            restore.Visibility = Visibility.Visible;
+            connect.Visibility = Visibility.Visible;
+            return;
+        }
         if (enable)
         {
             apply.Visibility = Visibility.Hidden;
@@ -233,5 +286,10 @@ public partial class MainWindow : Window
         {
             control.IsEnabled = enable;
         }
+    }
+
+    private void ToggleRestoreVanillaButton(bool enable)
+    {
+        restore_vanilla.Visibility = enable ? Visibility.Visible : Visibility.Collapsed;
     }
 }

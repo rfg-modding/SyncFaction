@@ -1,6 +1,4 @@
-using System;
-
-namespace SyncFaction.Services.FactionFiles;
+namespace SyncFaction.Core.Services.FactionFiles;
 
 public class SeparatorItem : IMod
 {

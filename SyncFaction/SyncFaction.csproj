@@ -3,6 +3,10 @@
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net6.0-windows</TargetFramework>
+		<PublishSingleFile>true</PublishSingleFile>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>false</SelfContained>
+		<DebugType>embedded</DebugType>
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
         <ApplicationIcon>icon.ico</ApplicationIcon>
@@ -18,21 +22,15 @@
     </ItemGroup>
     
 	<ItemGroup>
-      <PackageReference Include="HtmlToXamlConverter" Version="1.0.5727.24510" />
-      <PackageReference Include="JorgeSerrano.Json.JsonSnakeCaseNamingPolicy" Version="0.9.0" />
       <PackageReference Include="MdXaml" Version="1.15.0" />
-	  <PackageReference Include="AngleSharp" Version="0.17.1" />
-      <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-      <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-      <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
-      <PackageReference Include="PleOps.XdeltaSharp" Version="1.3.0" />
-      <PackageReference Include="SharpCompress" Version="0.32.2" />
-      <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     </ItemGroup>
     
 	<ItemGroup>
 	  <Resource Include="icon.png" />
 	  <Resource Include="lego.png" />
+	</ItemGroup>
+    
+	<ItemGroup>
+	  <ProjectReference Include="..\SyncFaction.Core\SyncFaction.Core.csproj" />
 	</ItemGroup>
 </Project>
