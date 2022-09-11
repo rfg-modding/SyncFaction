@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using MdXaml;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 public class MarkdownRender
 {
@@ -51,12 +51,12 @@ public class MarkdownRender
         }
     }
 
-    public void Append(string value, bool autoScroll=true)
+    public void Append(string value, bool autoScroll = true)
     {
         progress.Report(new Update(value, autoScroll));
     }
 
-    public void AppendXaml(string value, string xaml, bool autoScroll=true)
+    public void AppendXaml(string value, string xaml, bool autoScroll = true)
     {
         progress.Report(new Update(value, autoScroll, xaml));
     }
@@ -66,6 +66,6 @@ public class MarkdownRender
         progress.Report(new Update("", false));
     }
 
-    private record Update(string Value, bool Scroll, string? xaml=null);
+    private record Update(string Value, bool Scroll, string? xaml = null);
 
 }
