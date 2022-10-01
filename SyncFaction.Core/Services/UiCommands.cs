@@ -229,7 +229,7 @@ SyncFaction can't work until you restore all files to their default state.
         return true;
     }
 
-    private async Task<bool> UpdateInternal(Mod patch, IEnumerable<Mod> updates, IStorage storage, CancellationToken token)
+    private async Task<bool> UpdateInternal(Mod patch, IEnumerable<Mod> allUpdates, IStorage storage, CancellationToken token)
     {
         if (stateProvider.State.CommunityPatch != patch.Id)
         {
@@ -247,10 +247,10 @@ SyncFaction can't work until you restore all files to their default state.
             stateProvider.State.CommunityUpdates.Clear();
         }
 
-        if (!updateIds.SequenceEqual(stateProvider.State.CommunityUpdates))
+        if (!updateIds!.SequenceEqual(stateProvider.State.CommunityUpdates))
         {
             var installed = stateProvider.State.CommunityUpdates.ToList();
-            var pendingUpdates = updates.ToList();
+            var pendingUpdates = allUpdates.ToList();
             while (installed.Any())
             {
                 var current = installed.First();
