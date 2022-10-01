@@ -284,6 +284,8 @@ public class FfClient
                 result.Add(id.Value);
                 log.LogInformation($"Community update {i} id: **{id}**");
             }
+
+            i++;
         } while (id != null);
 
         return result;
