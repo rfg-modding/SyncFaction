@@ -6,7 +6,7 @@ namespace SyncFaction.Core.Services.Files;
 
 public class GameFile
 {
-    public GameFile(IStorage storage, string relativePath, IFileSystem fileSystem)
+    public GameFile(IGameStorage storage, string relativePath, IFileSystem fileSystem)
     {
         var path = Path.Combine(storage.Game.FullName, relativePath);
         FileInfo = fileSystem.FileInfo.FromFileName(path);
@@ -16,7 +16,7 @@ public class GameFile
     /// <summary>
     /// Map mod files to target files. Mod files can be "rfg.exe", "foo.vpp_pc", "data/foo.vpp_pc", "foo.xdelta", "foo.rfgpatch" and so on
     /// </summary>
-    public static GameFile GuessTargetByModFile(IStorage storage, IFileInfo modFile)
+    public static GameFile GuessTargetByModFile(IGameStorage storage, IFileInfo modFile)
     {
         var relativePath = GuessRelativePath(storage, modFile);
         return new GameFile(storage, relativePath, modFile.FileSystem);
@@ -143,9 +143,9 @@ public class GameFile
 
     private IFileInfo FileInfo { get; }
 
-    private IStorage Storage { get; }
+    private IGameStorage Storage { get; }
 
-    private static string GuessRelativePath(IStorage storage, IFileInfo modFile)
+    private static string GuessRelativePath(IGameStorage storage, IFileInfo modFile)
     {
         var modNameNoExt = Path.GetFileNameWithoutExtension(modFile.Name);
         if (storage.RootFiles.TryGetValue(modNameNoExt, out var rootPath))
@@ -175,14 +175,14 @@ public class GameFile
 
     private bool Skip(IFileInfo modFile, ILogger log)
     {
-        log.LogInformation($"* Skipped unsupported mod file `{modFile.Name}`");
+        log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
         return false;
     }
 
     private bool ApplyNewFile(IFileInfo modFile, ILogger log)
     {
         modFile.CopyTo(FileInfo.FullName, true);
-        log.LogInformation($"* Copied `{modFile.Name}`");
+        log.LogInformation($"+ Copied `{modFile.Name}`");
         return true;
     }
 
@@ -201,7 +201,7 @@ public class GameFile
         using var decoder = new Decoder(srcStream, patchStream, dstStream);
         decoder.Run();
 
-        log.LogInformation($"* **Patched** `{modFile.Name}`");
+        log.LogInformation($"+ **Patched** `{modFile.Name}`");
         return true;
     }
 }

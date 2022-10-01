@@ -23,6 +23,7 @@
     
 	<ItemGroup>
       <PackageReference Include="MdXaml" Version="1.15.0" />
+      <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
     </ItemGroup>
     
 	<ItemGroup>

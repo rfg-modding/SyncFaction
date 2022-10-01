@@ -15,70 +15,10 @@ public class FileManager
         this.log = log;
     }
 
-    public bool DoFirstLaunchCheck(IStorage storage)
-    {
-        var firstLaunch = InitializeDicrectories();
-        if (firstLaunch)
-        {
-            var success = CheckAllFiles();
-            return success;
-        }
-
-        return true;
-
-        bool InitializeDicrectories()
-        {
-            var createdAppDir = false;
-            if (!storage.App.Exists)
-            {
-                storage.App.Create();
-                createdAppDir = true;
-            }
-
-            if (!storage.Bak.Exists)
-            {
-                storage.Bak.Create();
-            }
-
-            if (!storage.CommunityBak.Exists)
-            {
-                storage.CommunityBak.Create();
-            }
-
-            return createdAppDir;
-        }
-
-        bool CheckAllFiles()
-        {
-            log.LogWarning($"Validating game contents. This is one-time thing, but going to take a while");
-            foreach (var kv in storage.VanillaHashes.OrderBy(x => x.Key))
-            {
-                log.LogInformation($"* *Checking* {kv.Key}");
-                var file = new GameFile(storage, kv.Key, fileSystem);
-                if (!file.IsVanilla())
-                {
-                    log.LogError(@$"Action needed:
-
-Found modified game file: {file.RelativePath}
-
-Looks like you've installed some mods before. SyncFaction can't work until you restore all files to their default state.
-
-**Use Steam to verify integrity of game files and let it download original data. Then run SyncFaction again.**
-
-*See you later miner!*
-");
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
-
     /// <summary>
     /// Applies mod. Files are reset to community (if present) or vanilla state before installing.
     /// </summary>
-    public async Task<bool> InstallModExclusive(IStorage storage, IMod mod, CancellationToken token)
+    public async Task<bool> InstallModExclusive(IGameStorage storage, IMod mod, CancellationToken token)
     {
         var modDir = storage.GetModDir(mod);
         var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod"));
@@ -113,7 +53,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
     /// <summary>
     /// Applies community patch. Files are reset to vanilla first. Updates community backup.
     /// </summary>
-    public async Task<bool> InstallCommunityPatchBase(IStorage storage, Mod patch, CancellationToken token)
+    public async Task<bool> InstallCommunityPatchBase(IGameStorage storage, Mod patch, CancellationToken token)
     {
         // won't be needing this anymore
         storage.CommunityBak.Delete(true);
@@ -162,7 +102,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
     /// <summary>
     /// Applies community update on top of patch. Files are reset to community (if present) or vanilla state before installing. Updates community backup.
     /// </summary>
-    public async Task<bool> InstallCommunityUpdateIncremental(IStorage storage, List<Mod> pendingUpdates, CancellationToken token)
+    public async Task<bool> InstallCommunityUpdateIncremental(IGameStorage storage, List<Mod> pendingUpdates, CancellationToken token)
     {
         foreach (var pendingUpdate in pendingUpdates)
         {
@@ -216,7 +156,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
     /// <summary>
     /// Restores original files, from vanilla or community backup
     /// </summary>
-    public async Task Restore(IStorage storage, bool toVanilla, CancellationToken token)
+    public async Task Restore(IGameStorage storage, bool toVanilla, CancellationToken token)
     {
         log.LogInformation("> Restoring files (to vanilla = {toVanilla})...", toVanilla);
         foreach (var knownFile in storage.VanillaHashes.Keys)
@@ -227,11 +167,11 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
             if (src.Exists)
             {
                 src.CopyTo(gameFile.AbsolutePath, true);
-                log.LogInformation("* `{file}`: copied from `{src}`", gameFile.RelativePath, src.Directory.Name);
+                log.LogInformation("+ `{file}`: copied from `{src}`", gameFile.RelativePath, src.Directory.Name);
             }
             else
             {
-                log.LogInformation("* `{file}`: skipped", gameFile.RelativePath);
+                log.LogInformation("+ `{file}`: skipped", gameFile.RelativePath);
             }
         }
         log.LogInformation($"**Success!**");

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using HTMLConverter;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 
@@ -26,14 +27,17 @@ public class UiCommands
         this.stateProvider = stateProvider;
     }
 
-    public async Task<bool> PopulateData(IStorage storage, CancellationToken token)
+    public async Task<bool> PopulateData(IGameStorage storage, CancellationToken token)
     {
         // create dirs and validate files if required
-        var success = fileManager.DoFirstLaunchCheck(storage);
-        if (success == false)
+        storage.InitBakDirectories();
+        if (stateProvider.State.IsVerified != true && !storage.CheckGameFiles(log))
         {
             return false;
         }
+
+        stateProvider.State.IsVerified = true;
+        storage.WriteState(stateProvider.State);
 
         // populate community patch info
         await CheckCommunityUpdates(storage, token);
@@ -48,7 +52,7 @@ public class UiCommands
         return true;
     }
 
-    public async Task ApplySelectedAndRun(IStorage storage, IMod? mod, CancellationToken token)
+    public async Task ApplySelectedAndRun(IGameStorage storage, IMod? mod, CancellationToken token)
     {
         var applied = await ApplySelected(storage, mod, token);
         if (!applied)
@@ -56,15 +60,28 @@ public class UiCommands
             return;
         }
 
-        log.LogInformation("Launching game via Steam...");
-        Process.Start(new ProcessStartInfo()
+        if (stateProvider.State.IsGog!.Value)
         {
-            UseShellExecute = true,
-            FileName = "steam://rungameid/667720"
-        });
+            log.LogInformation("Launching game via exe...");
+            var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
+            Process.Start(new ProcessStartInfo()
+            {
+                UseShellExecute = true,
+                FileName = exe.FullName
+            });
+        }
+        else
+        {
+            log.LogInformation("Launching game via Steam...");
+            Process.Start(new ProcessStartInfo()
+            {
+                UseShellExecute = true,
+                FileName = "steam://rungameid/667720"
+            });
+        }
     }
 
-    public async Task<bool> ApplySelected(IStorage storage, IMod? mod, CancellationToken token)
+    public async Task<bool> ApplySelected(IGameStorage storage, IMod? mod, CancellationToken token)
     {
         log.Clear();
         log.LogDebug($"Applying: {mod}...");
@@ -97,10 +114,8 @@ public class UiCommands
         log.LogInformation(new EventId(0, "log_false"), mod.Markdown);
     }
 
-    public async Task CheckCommunityUpdates(IStorage storage, CancellationToken token)
+    public async Task CheckCommunityUpdates(IGameStorage storage, CancellationToken token)
     {
-        log.LogInformation("Reading current state...");
-        stateProvider.State = storage.LoadState() ?? new State();
         log.LogInformation($"Installed community patch and updates: **{stateProvider.State.GetHumanReadableCommunityVersion()}**");
         patchId = await ffClient.GetCommunityPatchId(token);
         updateIds = await ffClient.GetCommunityUpdateIds(token);
@@ -120,11 +135,11 @@ Mod management will be available after updating.
 
 Changelogs and info:
 ");
-            log.LogInformation($"* [Community patch base (id {patchId})]({FormatUrl(patchId)})");
+            log.LogInformation($"+ [Community patch base (id {patchId})]({FormatUrl(patchId)})");
             var i = 1;
             foreach (var update in updateIds)
             {
-                log.LogInformation($"* [Community patch update {i} (id {update})]({FormatUrl(update)})");
+                log.LogInformation($"+ [Community patch update {i} (id {update})]({FormatUrl(update)})");
                 i++;
             }
             newCommunityVersion = true;
@@ -136,7 +151,7 @@ Changelogs and info:
         string FormatUrl(long x) => string.Format(Constants.BrowserUrlTemplate, x);
     }
 
-    public async Task Restore(IStorage storage, bool toVanilla, CancellationToken token)
+    public async Task Restore(IGameStorage storage, bool toVanilla, CancellationToken token)
     {
         log.Clear();
         await fileManager.Restore(storage, toVanilla, token);
@@ -156,8 +171,8 @@ Changelogs and info:
 
         // upd list
         await AddNonEmptyCategoryItems(Category.MapPacks, "▷ Map Packs ◁", token);
-        await AddNonEmptyCategoryItems(Category.MpMaps, "▷ MP Maps ◁", token);
-        await AddNonEmptyCategoryItems(Category.WcMaps, "▷ WC Maps ◁", token);
+        await AddNonEmptyCategoryItems(Category.MapsStandalone, "▷ Maps/standalone ◁", token);
+        await AddNonEmptyCategoryItems(Category.MapsPatches, "▷ Maps/patches ◁", token);
 
         items.Add(new SeparatorItem("▷ Mods ◁"));
         items.Add(new SeparatorItem("(not yet)"));
@@ -183,18 +198,18 @@ Changelogs and info:
         }
     }
 
-    public async Task<string> Detect(CancellationToken token)
+    public async Task<string> DetectGame(CancellationToken token)
     {
         log.LogDebug("Looking for game install path...");
-        var result = await Storage.DetectGameLocation(log, token);
-        if (result == string.Empty)
+        var result = await AppStorage.DetectGameLocation(log, token);
+        if (stateProvider.State.MockMode || result == string.Empty)
         {
             log.LogError("Unable to autodetect game location! Is it GOG version?");
         }
         return result;
     }
 
-    public async Task<bool> UpdateCommunityPatch(IStorage storage, CancellationToken token)
+    public async Task<bool> UpdateCommunityPatch(IGameStorage storage, CancellationToken token)
     {
         if (!newCommunityVersion || patchId == 0 || updateIds == null)
         {
@@ -215,7 +230,10 @@ Failed to update game to latest community patch.
 
 SyncFaction can't work until you restore all files to their default state.
 
-**Use Steam to verify integrity of game files and let it download original data. Then run SyncFaction again.**
++ **Steam**: verify integrity of game files and let it download original data
++ **GOG**: reinstall game
+
+Then run SyncFaction again.
 
 *See you later miner!*
 ");
@@ -229,7 +247,7 @@ SyncFaction can't work until you restore all files to their default state.
         return true;
     }
 
-    private async Task<bool> UpdateInternal(Mod patch, List<Mod> updates, IStorage storage, CancellationToken token)
+    private async Task<bool> UpdateInternal(Mod patch, List<Mod> updates, IGameStorage storage, CancellationToken token)
     {
         if (stateProvider.State.CommunityPatch != patch.Id)
         {
@@ -290,7 +308,7 @@ SyncFaction can't work until you restore all files to their default state.
     /// <summary>
     /// Returns list of relative paths to modified files, eg. "data/foo.vpp_pc"
     /// </summary>
-    private async Task<bool> InstallMod(IStorage storage, IMod mod, CancellationToken token)
+    private async Task<bool> InstallMod(IGameStorage storage, IMod mod, CancellationToken token)
     {
         var modDir = storage.GetModDir(mod);
         await ffClient.DownloadAndUnpackMod(modDir, mod, token);
@@ -310,7 +328,7 @@ SyncFaction can't work until you restore all files to their default state.
         return success;
     }
 
-    public void ToggleDevMode(IStorage filesystem, bool devModeIsChecked)
+    public void ToggleDevMode(IGameStorage filesystem, bool devModeIsChecked)
     {
         stateProvider.State.DevMode = devModeIsChecked;
         filesystem.WriteState(stateProvider.State);

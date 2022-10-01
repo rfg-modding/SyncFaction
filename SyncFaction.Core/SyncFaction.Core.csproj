@@ -20,4 +20,8 @@
         <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
         <PackageReference Include="System.IO.Abstractions" Version="17.2.1" />
     </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\SyncFaction.Packer\SyncFaction.Packer.csproj" />
+    </ItemGroup>
 </Project>

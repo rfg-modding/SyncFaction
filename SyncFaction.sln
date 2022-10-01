@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFactionTests", "tests\S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Core", "SyncFaction.Core\SyncFaction.Core.csproj", "{0F79F38A-34A5-4F4F-A34E-DCA5E4C1B57D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Packer", "SyncFaction.Packer\SyncFaction.Packer.csproj", "{A0B7A163-29E1-428C-9C18-B16548048785}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{0F79F38A-34A5-4F4F-A34E-DCA5E4C1B57D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0F79F38A-34A5-4F4F-A34E-DCA5E4C1B57D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0F79F38A-34A5-4F4F-A34E-DCA5E4C1B57D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0B7A163-29E1-428C-9C18-B16548048785}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0B7A163-29E1-428C-9C18-B16548048785}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0B7A163-29E1-428C-9C18-B16548048785}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0B7A163-29E1-428C-9C18-B16548048785}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8AD4F5F6-9B3F-47EC-8698-5031FA41FFA9} = {7508381C-935E-4E20-A310-1C550289A13C}

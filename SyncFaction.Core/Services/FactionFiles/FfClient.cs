@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
+using SyncFaction.Core.Data;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -58,7 +59,7 @@ public class FfClient
 
         if (data.ResultsTotal != data.Results.Count)
         {
-            throw new InvalidOperationException("FffactionFiles API returned partial data, app update required to support this!");
+            throw new InvalidOperationException("FactionFiles API returned partial data, app update required to support this!");
         }
 
         foreach (var item in data.Results.Values)
@@ -97,22 +98,20 @@ public class FfClient
 
     public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
     {
-        log.LogDebug($"Downloading mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
-        if (modDir.Exists)
+        log.LogDebug($"Installing mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
+        var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        if (modDir.Exists && !incompleteDataFile.Exists)
         {
-            // clear directory except for original downloaded file
-            foreach (var file in modDir.EnumerateFiles().Where(x => !x.Name.StartsWith(".mod")))
-            {
-                file.Delete();
-            }
-
-            foreach (var dir in modDir.EnumerateDirectories())
-            {
-                dir.Delete(true);
-            }
+            // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
+            log.LogInformation("Found existing data, skip downloading and extraction");
+            return true;
         }
 
         modDir.Create();
+        incompleteDataFile.Create();
+        incompleteDataFile.Refresh();
+
+
         var request = new HttpRequestMessage(HttpMethod.Head, mod.DownloadUrl);
         var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         var originalName = response.Content.Headers.ContentDisposition?.FileName ?? response.Content.Headers.ContentDisposition?.FileNameStar ?? string.Empty;
@@ -128,13 +127,20 @@ public class FfClient
 
         var dstFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, fileName));
 
-        var result = await DownloadWithResume(dstFile, contentSize.Value, mod.DownloadUrl, token);
-        if (result == false)
+        var downloadResult = await DownloadWithResume(dstFile, contentSize.Value, mod.DownloadUrl, token);
+        if (downloadResult == false)
         {
             return false;
         }
 
-        return await ExtractArchive(dstFile, modDir, token);
+        var extractResult = await ExtractArchive(dstFile, modDir, incompleteDataFile, token);
+        if (extractResult == false)
+        {
+            return false;
+        }
+
+        incompleteDataFile.Delete();
+        return true;
     }
 
     public async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, string modDownloadUrl, CancellationToken token)
@@ -148,6 +154,8 @@ public class FfClient
 
         if (dstFile.Exists && dstFile.Length == contentLength)
         {
+            // skip only if fully downloaded before
+            log.LogInformation("Found existing data, skip downloading");
             return true;
         }
 
@@ -190,10 +198,18 @@ public class FfClient
         return dstFile.Length == contentLength;
     }
 
-    private async Task<bool> ExtractArchive(IFileInfo downloadedFile, IDirectoryInfo modDir, CancellationToken token)
+    private async Task<bool> ExtractArchive(IFileInfo downloadedFile, IDirectoryInfo modDir, IFileInfo incompleteDataFile, CancellationToken token)
     {
-        log.LogInformation("Extracting `{url}`", downloadedFile.FullName);
-        var options = new ExtractionOptions {ExtractFullPath = true, Overwrite = false};
+        log.LogInformation("Extracting `{file}`", downloadedFile.FullName);
+        // if everything was successfully extracted before, dont touch anything: this allows user to fiddle with files
+        incompleteDataFile.Refresh();
+        if (!incompleteDataFile.Exists)
+        {
+            log.LogInformation("Found existing data, skip extraction");
+            return true;
+        }
+
+        var options = new ExtractionOptions {ExtractFullPath = true, Overwrite = true};
         try
         {
             await using var f = downloadedFile.OpenRead();
@@ -212,6 +228,7 @@ public class FfClient
         catch (InvalidOperationException e)
         {
             // SharpCompress doesnt support streaming 7zip, fall back to slow method
+            log.LogWarning("This is a `.7z` archive. Falling back to slow extraction method. Sorry!");
             var archive = ArchiveFactory.Open(downloadedFile.FullName);
             foreach (var entry in archive.Entries)
             {
@@ -267,6 +284,7 @@ public class FfClient
                 result.Add(id.Value);
                 log.LogInformation($"Community update {i} id: **{id}**");
             }
+            i++;
         } while (id != null);
 
         return result;
@@ -352,7 +370,7 @@ public class FfClient
                     continue;
                 }
                 lastReported = current;
-                log.LogInformation($"* {readMiB:F0} / {totalMb:F0} MiB");
+                log.LogInformation($"+ {readMiB:F0} / {totalMb:F0} MiB");
             }
         }
     }

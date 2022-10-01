@@ -1,150 +1,21 @@
 using System.Collections.Immutable;
-using System.IO.Abstractions;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
-using SyncFaction.Core.Services.FactionFiles;
+using System.Collections.ObjectModel;
 
-namespace SyncFaction.Core.Services.Files;
+namespace SyncFaction.Core.Data;
 
-public class Storage : IStorage
+public static class Hashes
 {
-	public Storage(string gameDir, IFileSystem fileSystem, IDictionary<string, string>? overrideFileHashes = null)
+	public static ImmutableSortedDictionary<string, string> Get(bool isGog)
 	{
-		Game = fileSystem.DirectoryInfo.FromDirectoryName(gameDir);
-		if (!Game.Exists)
-		{
-			throw new ArgumentException($"Specified game directory does not exist! [{Game.FullName}]");
-		}
-
-		Data = Game.GetDirectories().Single(x => x.Name == "data");
-		App = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(Data.FullName, Constants.AppDirName));
-		Bak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.BakDirName));
-		CommunityBak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.CommunityBakDirName));
-		vanillaHashes = overrideFileHashes?.OrderBy(x => x.Key).ToImmutableSortedDictionary() ?? RealVanillaHashes;
-		rootFiles = VanillaHashes.Keys
-			.Where(x => x.Split('/').Length == 1)
-			.ToDictionary(x => Path.GetFileNameWithoutExtension(x), x => x)
-			.OrderBy(x => x.Key)
-			.ToImmutableSortedDictionary();
-		dataFiles = VanillaHashes.Keys
-			.Where(x => x.Split('/').Length == 2)
-			.ToDictionary(x => Path.GetFileNameWithoutExtension(x.Split('/').Last()), x => x)
-			.OrderBy(x => x.Key)
-			.ToImmutableSortedDictionary();
+		return isGog ? AllGog.Value : AllSteam.Value;
 	}
 
-	public IDirectoryInfo Game { get; }
+	private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllSteam = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Steam).OrderBy(x => x.Key).ToImmutableSortedDictionary());
 
-	public IDirectoryInfo Data { get; }
+	private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllGog = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Gog).OrderBy(x => x.Key).ToImmutableSortedDictionary());
 
-	public IDirectoryInfo App { get; }
-
-	public IDirectoryInfo Bak { get; }
-
-	public IDirectoryInfo CommunityBak { get; }
-
-	/// <summary>
-	/// Filenames with extensions for all files in game. Relatve paths!
-	/// </summary>
-	public ImmutableSortedDictionary<string, string> VanillaHashes => vanillaHashes;
-
-	/// <summary>
-	/// Filenames without extension for files in /
-	/// </summary>
-	public ImmutableSortedDictionary<string, string> RootFiles => rootFiles;
-
-	/// <summary>
-	/// Filenames without extension for files in /data
-	/// </summary>
-	public ImmutableSortedDictionary<string, string> DataFiles => dataFiles;
-
-	private ImmutableSortedDictionary <string, string> vanillaHashes;
-	private ImmutableSortedDictionary <string, string> rootFiles;
-	private ImmutableSortedDictionary <string, string> dataFiles;
-
-	public IDirectoryInfo GetModDir(IMod mod)
+	private static readonly ImmutableDictionary<string, string> Vpp = new Dictionary<string, string>()
 	{
-		return Game.FileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, mod.IdString));
-	}
-
-	public State? LoadState()
-	{
-		var file = new FileInfo(Path.Combine(App.FullName, Constants.StateFile));
-		if (!file.Exists)
-		{
-			return null;
-		}
-
-		var content = File.ReadAllText(file.FullName).Trim();
-		return JsonSerializer.Deserialize<State>(content);
-	}
-
-	public void WriteState(State state)
-	{
-		var file = new FileInfo(Path.Combine(App.FullName, Constants.StateFile));
-		if (file.Exists)
-		{
-			file.Delete();
-		}
-
-		var data = JsonSerializer.Serialize(state, new JsonSerializerOptions() {WriteIndented = true});
-		File.WriteAllText(file.FullName, data);
-	}
-
-	public string ComputeHash(IFileInfo file)
-	{
-		using var sha = SHA256.Create();
-		using var fileStream = file.Open(FileMode.Open);
-		fileStream.Position = 0;
-		var hashValue = sha.ComputeHash(fileStream);
-		var hash = BitConverter.ToString(hashValue).Replace("-", "");
-		return hash;
-	}
-
-	public static async Task<string> DetectGameLocation(ILogger log, CancellationToken token)
-	{
-		try
-		{
-			// TODO detect GOG version?
-			using var key = Registry.LocalMachine.OpenSubKey(@"Software\Wow6432Node\Valve\Steam", false);
-			var steamLocation = key.GetValue(@"InstallPath") as string;
-			if (string.IsNullOrEmpty(steamLocation))
-			{
-				log.LogInformation("Is Steam installed?");
-				return string.Empty;
-			}
-
-			var config = await File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
-			var regex = new Regex(@"""path""\s+""(.+?)""");
-			var locations = regex.Matches(config).Select(x => x.Groups).Select(x => x[1].Value)
-				.Select(x => x.Replace(@"\\", @"\").TrimEnd('\\'));
-			var gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
-			foreach (var location in locations)
-			{
-				log.LogDebug($"Trying library at `{location}`...");
-				var gameDir = Path.Combine(location, gamePath);
-				if (Directory.Exists(gameDir))
-				{
-					return gameDir;
-				}
-			}
-
-			log.LogInformation("Game not installed in any of Steam libraries!");
-			return string.Empty;
-		}
-		catch (Exception ex)
-		{
-			log.LogDebug($"Could not detect game: {ex.Message}");
-			return string.Empty;
-		}
-	}
-
-	private static readonly ImmutableSortedDictionary<string, string> RealVanillaHashes = new Dictionary<string, string>()
-	{
-		// VPP_PC
 		{"data/activities.vpp_pc", "99eb018c1b0032d30788f80a49e3998caf03cb937dd3c9a67dd0f6b2816faf0f"},
 		{"data/anims.vpp_pc", "97ed7f3937f8f15e1a7781a869133509ab4ee8b65fd3e6a822aad843142beaa5"},
 		{"data/chunks.vpp_pc", "9c748006b1304bae4a834d3a4360bd25c59a34d0ba0827ad5588df20eaadfa51"},
@@ -250,7 +121,10 @@ public class Storage : IStorage
 		{"data/wcdlc9.vpp_pc", "0995c75937603864a63c1544b2796123c3aa23f6666779e6bbcfabdda6b0166c"},
 		{"data/zonescript_dlc01.vpp_pc", "ed70213870eb81e0fc12c658b3934642e78e407560f143536eb46db98f0c0d2b"},
 		{"data/zonescript_terr01.vpp_pc", "04b9db2005d1d621d4acda7ba7438fde39864c7986d90c063acd8f2487343c79"},
-		// other files in /data
+	}.ToImmutableDictionary();
+
+	private static readonly ImmutableDictionary<string, string> Videos = new Dictionary<string, string>()
+	{
 		{"data/ants_vs_magnifying_glass.bik", "b9ddd28cff61a7b528570d7ed7cd2552b69432664abf7aa66ed1fe4711ae51b9"},
 		{"data/assault_the_edf_central_command.bik", "42d55c3d219eb4eed75b8b132225d306a7f2400dd7acdfbcd0e15765332cc347"},
 		{"data/control.bik", "07bb32ee34f2668d3b9630a96ea0aab757f901705c4856cbfbaf9fa3fda7108a"},
@@ -303,21 +177,177 @@ public class Storage : IStorage
 		{"data/traffic_jam.bik", "5994b7e8f269f3755d64256d7e92f18dab5f4b758f04095ff74c2048a0ddd4a7"},
 		{"data/walker_martian_ranger.bik", "b5ae538bc465285526d4254701e64b88ac9b81ccbfc2be33c7d5406a6a82632b"},
 		{"data/we_know_where_you_are.bik", "1efaa2d4ec0fd4495ccade09de8928853f7c18365dd406c4250163fe4ba52788"},
-		// files in root game dir
+	}.ToImmutableDictionary();
+
+	private static readonly ImmutableDictionary<string, string> Common = new Dictionary<string, string>()
+	{
 		{"GfeSDK.dll", "fffaf72a3d5adbaa7df849afdb5af8c10fe3a42800786096f41dde1cc5847e14"},
 		{"binkw32.dll", "36810b3318acd07a5b4e78fe72db163ed63880ab2eb2d9b5bda0331ded32a9c3"},
 		{"discord-rpc.dll", "3ade46bd17d6cd114b0e7f79f8a1e985b9221b92d897c28d32d659f032991bb1"},
 		{"dualshock4.padcfg", "fb551911de7edcd98b22dbfc4d6b6e5bf3327e560b03e51f74197a27cf6b3175"},
 		{"libeay32.dll", "3dc13114435872a72a26b16e67c3cda764d44aa20a44105835e28a4ea6021679"},
-		{"rfg.exe", "0d52039e7f2d3f25a4be52a2aba83919456fb3f00e52e75051726247471a2df4"},
-		//{"rfg.pdb", "8ecbdf5c89bc705b97b4184932da45817f06b512507acebe1083342c25b1f6df"},
 		{"ssleay32.dll", "e05800580e4f8bba4c965734d1231f0b80897f826326c52bbdce41d81c452c3c"},
+		{"switchprocon.padcfg", "794cc295d29cb4667b77f84a371e5ee3a612806095f1a3a457e0de21cc924fcd"},
+	}.ToImmutableDictionary();
+
+	public static readonly ImmutableDictionary<string, string> Steam = new Dictionary<string, string>()
+	{
+		{"rfg.exe", "0d52039e7f2d3f25a4be52a2aba83919456fb3f00e52e75051726247471a2df4"},
 		{"steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d"},
 		{"sw_api.dll", "6f813445ff757f70164c0103833478240e339d5e81dcbc5c4be238264380c89d"},
-		{"switchprocon.padcfg", "794cc295d29cb4667b77f84a371e5ee3a612806095f1a3a457e0de21cc924fcd"},
 		{"thqnocfg_steam.dat", "8357f2c8b9c3be4bcaf780271a1f3b76f9f4cad8dbf1b410fb4cd70cc4851186"},
+		//{"rfg.pdb", "8ecbdf5c89bc705b97b4184932da45817f06b512507acebe1083342c25b1f6df"},
+	}.ToImmutableDictionary();
 
-	}
-		.OrderBy(x => x.Key)
-		.ToImmutableSortedDictionary();
+	public static readonly ImmutableDictionary<string, string> Gog = new Dictionary<string, string>()
+	{
+		{"Galaxy.dll", "bafeb03ca094e95226b4992314b15118c54f582da3c4b0401c59c92c3f472191"},
+		{"GalaxyPeer.dll", "9bfd8835020ef832001c7893df070af1f110d5beebf86e87b6133665c5329590"},
+		{"rfg.exe", "7a82d2d0f425af5e75d8ffbce12fac53eb5ca9cd812731ccf5a29697e906af0e"},
+		{"sw_api.dll", "3d5b41308c20dc9df779f8e35ceaa303fab0de8d6304b6d7346105fd95d8a24f"},
+		{"thqnocfg_gog.dat", "6f0427b331306c823afdc21347366c822645a6eea4c64d241bbe9e29de7e0c1d"},
+		//{"gog.ico", "f6a71321521ba89713f0bd38b21f809e87e8a789cb172e8e4693f9479e30b1e4"},
+		//{"goggame-2029222893.hashdb", "15fa43afe01eabd14e282c6bca512006a1c2003a4c493556315820980cbd2049"},
+		//{"goggame-2029222893.ico", "405ef739021f1b807a8e4085331aabeb3070c65e9de0aaabd8f69643262cb51b"},
+		//{"goggame-2029222893.info", "e4054017952615bb6e104a91136dad4962a412548ec2424e7bc22b09b9fb0f8e"},
+		//{"goggame-galaxyFileList.ini", "100bc8cdda0fc9e6c5234f09eda38a8f724f649c1ee3b989c0705be6d6e113de"},
+		//{"rfg.pdb", "aebb037679f7420ebb105739dee5dec796ac337f5bf3e16a05c4131b302c4ab2"},
+		//{"support.ico", "05fe749ef47d1ec862d6c55be78e66d1011226bf1f78409acf57cb79cec5eb20"},
+		//{"unins000.dat", "ddab49ab4ed1810012622a506b4e6e2ecafbe92f651eb4f06ea271876732b933"},
+		//{"unins000.exe", "5761e7789d813626cd68ee1e62429cfeb92bdd814cd29ef12fc4ae9ec1dbaff3"},
+		//{"unins000.ini", "5517cc7f1579c2735ec4a88177e0b180a8e323f96ec1bbbe77d9ec5a75f09d42"},
+		//{"unins000.msg", "e43d06ec2b3dbe3d81bcd6b7880d28d074dac54b38646a605cfc5c809939da16"},
+	}.ToImmutableDictionary();
 }
+
+/*
+
+
+
+VPPs used by MP & SP:
+	misc.vpp_pc
+	table.vpp_pc
+	anims.vpp_pc
+	decals.vpp_pc
+	skybox.vpp_pc
+	sounds_r.vpp_pc
+	steam.vpp_pc
+
+VPPs only used by SP (includes DLC SP campaign in Extras > DLC):
+	effects.vpp_pc
+	humans.vpp_pc
+	interface.vpp_pc
+	items.vpp_pc
+	activities.vpp_pc
+	missions.vpp_pc
+	terr01_l0.vpp_pc
+	terr01_l1.vpp_pc
+	terr01_precache.vpp_pc
+	vehicles_r.vpp_pc
+	zonescript_terr01.vpp_pc
+
+	DLC campaign only:
+		dlc01_l0.vpp_pc - DLC campaign only
+		dlc01_l1.vpp_pc - DLC campaign only
+		dlc01_precache.vpp_pc - DLC campaign only
+		dlcp01_activities.vpp_pc
+		dlcp01_anims.vpp_pc
+		dlcp01_cloth_sim.vpp_pc
+		dlcp01_effects.vpp_pc
+		dlcp01_humans.vpp_pc
+		dlcp01_interface.vpp_pc
+		dlcp01_items.vpp_pc
+		dlcp01_misc.vpp_pc
+		dlcp01_missions.vpp_pc
+		dlcp01_personas_en_us.vpp_pc
+		dlcp01_vehicles_r.vpp_pc
+		dlcp01_voices_en_us.vpp_pc
+		dlcp02_interface.vpp_pc
+		dlcp02_misc.vpp_pc
+		dlcp03_interface.vpp_pc
+		dlcp03_misc.vpp_pc
+		zonescript_dlc01.vpp_pc
+
+
+VPPs only used by MP & wrecking crew:
+	effects_mp.vpp_pc
+	items_mp.vpp_pc
+    mpdlc_broadside.vpp_pc
+    mpdlc_division.vpp_pc
+    mpdlc_islands.vpp_pc
+    mpdlc_landbridge.vpp_pc
+    mpdlc_minibase.vpp_pc
+    mpdlc_overhang.vpp_pc
+    mpdlc_puncture.vpp_pc
+    mpdlc_ruins.vpp_pc
+    mp_common.vpp_pc
+    mp_cornered.vpp_pc
+    mp_crashsite.vpp_pc
+    mp_crescent.original.vpp_pc
+    mp_crescent.vpp_pc
+    mp_crevice.vpp_pc
+    mp_damage_control.bik
+    mp_deadzone.vpp_pc
+    mp_defensive_packs.bik
+    mp_demolition_mode.bik
+    mp_destructive_packs.bik
+    mp_downfall.vpp_pc
+    mp_excavation.vpp_pc
+    mp_fallfactor.vpp_pc
+    mp_framework.vpp_pc
+    mp_garrison.vpp_pc
+    mp_gauntlet.vpp_pc
+    mp_movement_packs.bik
+    mp_overpass.vpp_pc
+    mp_pcx_assembly.vpp_pc
+    mp_pcx_crossover.vpp_pc
+    mp_pinnacle.vpp_pc
+    mp_quarantine.vpp_pc
+    mp_radial.vpp_pc
+    mp_recon_packs.bik
+    mp_rift.vpp_pc
+    mp_sandpit.vpp_pc
+    mp_settlement.vpp_pc
+    mp_siege_mode.bik
+    mp_support_packs.bik
+    mp_warlords.vpp_pc
+    mp_wasteland.vpp_pc
+    mp_wreckage.vpp_pc
+	wc1.vpp_pc
+    wc10.vpp_pc
+    wc2.vpp_pc
+    wc3.vpp_pc
+    wc4.vpp_pc
+    wc5.vpp_pc
+    wc6.vpp_pc
+    wc7.vpp_pc
+    wc8.vpp_pc
+    wc9.vpp_pc
+    wcdlc1.vpp_pc
+    wcdlc2.vpp_pc
+    wcdlc3.vpp_pc
+    wcdlc4.vpp_pc
+    wcdlc5.vpp_pc
+    wcdlc6.vpp_pc
+    wcdlc7.vpp_pc
+    wcdlc8.vpp_pc
+    wcdlc9.vpp_pc
+
+Unknowns:
+	chunks.vpp_pc - I don't expect anyone to mod this file. It has a few files which as far as I can tell are placeholder buildings used by the game in error conditions. Unknown when/if MP/SP use it
+	cloth_sim.vpp_pc - I'd assume MP also uses this but not 100% sure. We don't have any tools to edit the .sim_pc files in these anyway. Likely won't for a very long time.
+	personas_de_de.vpp_pc - Not completely sure on these vpps. They have voice lines for characters, so they might be SP only. We don't have tools to edit the contents of these.
+    personas_en_us.vpp_pc
+    personas_es_es.vpp_pc
+    personas_fr_fr.vpp_pc
+    personas_it_it.vpp_pc
+    personas_ru_ru.vpp_pc
+	voices_de_de.vpp_pc - Same deal as the personas_xx_xx vpps. I know they're used in SP, but not sure about MP. No tools to edit the contents of these either.
+    voices_en_us.vpp_pc
+    voices_es_es.vpp_pc
+    voices_fr_fr.vpp_pc
+    voices_it_it.vpp_pc
+    voices_ru_ru.vpp_pc
+
+
+*/

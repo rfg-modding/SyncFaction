@@ -3,8 +3,8 @@ namespace SyncFaction.Core.Services.FactionFiles;
 public enum Category
 {
     Artwork=37,
-    MpMaps=44,
-    WcMaps=45,
+    MapsStandalone=44,
+    MapsPatches=45,
     MapPacks=46,
     ModsClassic=16,
     ModsRemaster=30,

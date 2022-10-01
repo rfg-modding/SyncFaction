@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.Logging;
+using Microsoft.WindowsAPICodePack.Dialogs;
+using SyncFaction.Core.Data;
 using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
@@ -23,17 +26,21 @@ public partial class MainWindow : Window
     private readonly MarkdownRender render;
     private readonly StateProvider stateProvider;
     private readonly IFileSystem fileSystem;
+    private readonly ILogger<MainWindow> log;
     private readonly CancellationTokenSource cts;
     private readonly CancellationToken token;
     private bool busy;
+    private GameStorage gameStorage;
     private readonly IReadOnlyList<Control> interactiveControls;
 
-    public MainWindow(UiCommands uiCommands, MarkdownRender markdownRender, StateProvider stateProvider, IFileSystem fileSystem)
+
+    public MainWindow(UiCommands uiCommands, MarkdownRender markdownRender, StateProvider stateProvider, IFileSystem fileSystem, ILogger<MainWindow> log)
     {
         this.uiCommands = uiCommands;
         render = markdownRender;
         this.stateProvider = stateProvider;
         this.fileSystem = fileSystem;
+        this.log = log;
 
         InitializeComponent();
         Closing += OnWindowClosing;
@@ -83,8 +90,7 @@ public partial class MainWindow : Window
         await ExecuteSafeWithUiLock("Restore from backup", async () =>
         {
             remoteList.UnselectAll();
-            var filesystem = new Storage(directory.Text, fileSystem);
-            await Task.Run(async () => { await uiCommands.Restore(filesystem, false, token); }, token);
+            await Task.Run(async () => { await uiCommands.Restore(gameStorage, false, token); }, token);
         });
     }
 
@@ -93,8 +99,7 @@ public partial class MainWindow : Window
         await ExecuteSafeWithUiLock("Restore from vanilla backup", async () =>
         {
             remoteList.UnselectAll();
-            var filesystem = new Storage(directory.Text, fileSystem);
-            await Task.Run(async () => { await uiCommands.Restore(filesystem, true, token); }, token);
+            await Task.Run(async () => { await uiCommands.Restore(gameStorage, true, token); }, token);
         });
     }
 
@@ -111,9 +116,8 @@ public partial class MainWindow : Window
     {
         await ExecuteSafeWithUiLock("Apply selected mod", async () =>
         {
-            var filesystem = new Storage(directory.Text, fileSystem);
             var mod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () => { await uiCommands.ApplySelected(filesystem, mod, token); }, token);
+            await Task.Run(async () => { await uiCommands.ApplySelected(gameStorage, mod, token); }, token);
         });
     }
 
@@ -122,8 +126,7 @@ public partial class MainWindow : Window
         var success = false;
         await ExecuteSafeWithUiLock("Update to latest Community Patch", async () =>
         {
-            var filesystem = new Storage(directory.Text, fileSystem);
-            await Task.Run(async () => { success = await uiCommands.UpdateCommunityPatch(filesystem, token); }, token);
+            await Task.Run(async () => { success = await uiCommands.UpdateCommunityPatch(gameStorage, token); }, token);
 
             if (success)
             {
@@ -155,9 +158,8 @@ public partial class MainWindow : Window
     {
         await ExecuteSafeWithUiLock("Apply selected mod and run game", async () =>
         {
-            var filesystem = new Storage(directory.Text, fileSystem);
             var mod = remoteList.SelectedItem as IMod;
-            await Task.Run(async () => { await uiCommands.ApplySelectedAndRun(filesystem, mod, token); }, token);
+            await Task.Run(async () => { await uiCommands.ApplySelectedAndRun(gameStorage, mod, token); }, token);
         });
     }
 
@@ -165,8 +167,7 @@ public partial class MainWindow : Window
     {
         await ExecuteSafeWithUiLock("ToggleDevMode", async () =>
         {
-            var filesystem = new Storage(directory.Text, fileSystem);
-            uiCommands.ToggleDevMode(filesystem, devMode.IsChecked ?? false);
+            uiCommands.ToggleDevMode(gameStorage, devMode.IsChecked ?? false);
         });
         if (stateProvider.State.DevMode)
         {
@@ -188,14 +189,75 @@ public partial class MainWindow : Window
         await ExecuteSafeWithUiLock("Initialize", async () =>
         {
             render.Clear();
-            // populate game dir input automatically
-            var gamePath = await uiCommands.Detect(token);
-            directory.Text = gamePath;
-            var filesystem = new Storage(gamePath, fileSystem);
+            // try populate game dir input automatically
+            var gamePath = await uiCommands.DetectGame(token);
+            if (stateProvider.State.MockMode || string.IsNullOrWhiteSpace(gamePath))
+            {
+                log.LogWarning("Please locate game manually");
+                // force user to locate game
+                var dialog = new CommonOpenFileDialog();
+                dialog.InitialDirectory = Directory.GetCurrentDirectory();
+                dialog.IsFolderPicker = true;
+                dialog.EnsurePathExists = true;
+                dialog.Title = "Where is the game?";
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    gamePath = dialog.FileName;
+                }
+                else
+                {
+                    log.LogError("Game path unknown. Restart app to try again");
+                    return;
+                }
+                grid.RowDefinitions[3].Height = GridLength.Auto;
+            }
 
+            directory.Text = gamePath;
             remoteList.UnselectAll();
             render.Clear();
-            await Task.Run(async () => { success = await uiCommands.PopulateData(filesystem, token); }, token);
+
+
+            var appStorage = new AppStorage(gamePath, fileSystem);
+            var firstLaunch = appStorage.InitAppDirectory();
+            log.LogInformation("Reading current state...");
+            stateProvider.State = appStorage.LoadState() ?? new State();
+            if (firstLaunch)
+            {
+                stateProvider.State.IsVerified = false;
+            }
+            else
+            {
+                // SF did not have this flag before but it is guaranteed that game was verified before
+                stateProvider.State.IsVerified = true;
+            }
+            if (firstLaunch || stateProvider.State.IsGog is null)
+            {
+                log.LogWarning($"Determining if it's Steam or GOG version");
+                if (appStorage.CheckFileHashes(false, log))
+                {
+                    stateProvider.State.IsGog = false;
+                    log.LogInformation($"+ **Steam** version");
+                }
+                else if (appStorage.CheckFileHashes(true, log))
+                {
+                    stateProvider.State.IsGog = true;
+                    log.LogInformation($"+ **GOG** version");
+                }
+                else
+                {
+                    log.LogInformation($"+ **Unknown** version");
+                }
+            }
+
+            if (stateProvider.State.IsGog is null)
+            {
+                throw new InvalidOperationException("Game version is not recognized as Steam or GOG. Validate your installation and try again.");
+            }
+
+            appStorage.WriteState(stateProvider.State);
+            gameStorage = new GameStorage(gamePath, fileSystem, Hashes.Get(stateProvider.State.IsGog!.Value));
+            await Task.Run(async () => { success = await uiCommands.PopulateData(gameStorage, token); }, token);
+
             remoteList.Items.Clear();
             foreach (var x in uiCommands.items)
             {
@@ -292,4 +354,5 @@ public partial class MainWindow : Window
     {
         restore_vanilla.Visibility = enable ? Visibility.Visible : Visibility.Collapsed;
     }
+
 }

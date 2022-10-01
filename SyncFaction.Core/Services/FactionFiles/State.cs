@@ -7,6 +7,8 @@ public class State
     public long CommunityPatch { get; set; }
     public List<long> CommunityUpdates { get; set; } = new();
     public bool DevMode { get; set; }
+    public bool? IsGog { get; set; }
+    public bool? IsVerified { get; set; }
     public bool MockMode => false; // used only for testing
 
     public string GetHumanReadableCommunityVersion()

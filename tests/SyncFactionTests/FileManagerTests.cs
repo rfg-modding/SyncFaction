@@ -24,7 +24,7 @@ public class FileManagerTests
         var dirMock = new Mock<IDirectoryInfo>();
         dirMock.Setup(x => x.EnumerateFiles(It.IsAny<string>(), It.IsAny<SearchOption>()))
             .Returns(Enumerable.Empty<IFileInfo>());
-        var storageMock = new Mock<IStorage>();
+        var storageMock = new Mock<IGameStorage>();
         storageMock.Setup(x => x.GetModDir(It.IsAny<IMod>()))
             .Returns(dirMock.Object);
 
@@ -53,7 +53,7 @@ public class FileManagerTests
             {"test.exe", "123"}
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var mod = new Mod()
         {
@@ -82,7 +82,7 @@ public class FileManagerTests
             {"test.exe", "123"}
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var mod = new Mod()
         {
@@ -116,7 +116,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"}
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var mod = new Mod()
         {
@@ -154,7 +154,7 @@ public class FileManagerTests
             {"test.exe", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var mod = new Mod()
         {
@@ -196,7 +196,7 @@ public class FileManagerTests
             {"test.exe", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var mod = new Mod()
         {
@@ -232,7 +232,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {
@@ -273,7 +273,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var mod = new Mod()
@@ -322,7 +322,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -375,7 +375,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {
@@ -416,7 +416,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var mod = new Mod()
@@ -465,7 +465,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -520,7 +520,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -577,7 +577,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -648,7 +648,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -719,7 +719,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -792,7 +792,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -879,7 +879,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -966,7 +966,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
         var patch1 = new Mod()
@@ -1048,7 +1048,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {
@@ -1096,7 +1096,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {
@@ -1158,7 +1158,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {
@@ -1232,7 +1232,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {
@@ -1308,7 +1308,7 @@ public class FileManagerTests
             {"data/test2.vpp_pc", "123"},
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
-        var storage = new Storage(gameDir, fs, hashes);
+        var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
         var patch = new Mod()
         {

@@ -14,6 +14,7 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 ## Features
 
+* Both Steam and GOG versions are supported
 * Community patch auto-update
   * Incremental updates supported
   * Patch is not released officially as of September 2022, sort of alpha version is used by community
@@ -25,7 +26,7 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 ## Non-features
 
-* Saving storage space is not a priority. Backups are created only when files are modified for the first time, but after extensive modding game filder can be 2x heavier (or more!) because every game file is stored twice
+* Saving storage space is not a priority. Backups are created only when files are modified for the first time, but after extensive modding game folder can be 2x heavier (or more!) because every game file is stored twice
 * Unpacking game archives and internal file formats for modding is done by Nanoforge and other tools
 
 ## Getting help
@@ -43,12 +44,14 @@ A lot of functionality is not implemented yet!
 * Support mods that modify files inside vpp_pc archives as ModManager did
 * Support installing several mods at same time if they don't conflict with multiplayer
   * Allow to "void warranty" and install custom mix of multiplayer mods
+  * Better UI: need some sort of ordered multi select with checkboxes and numbers (or something better)
 * Extend dev mode to aid mod developers in their crusades
   * Fast switch between different game versions, mod builds, etc
   * Allow installing local patch/update/mod manually to help with testing (add file picker)
   * Button to clear caches
   * Button to open game directory
   * ???
+* Check discord for feature requests
 * Better logging: now it's a mess of important stuff, trash and bad-formatted information
 
 ## Tech info

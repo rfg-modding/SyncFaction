@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SyncFaction.Core.Data;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -35,7 +36,7 @@ public class Mod : IMod
 {DescriptionMd}
 ";
 
-    public override string ToString() => $"{Name}";
+    public override string ToString() => $"    {Name}";
 
     private string ImageMd => ImageThumb4By3Url != null ? $"![image]({ImagePath})" : string.Empty;
 }

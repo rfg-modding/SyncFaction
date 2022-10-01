@@ -1,14 +1,12 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
+using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Core.Services.Files;
 
-public interface IStorage
+public interface IGameStorage : IAppStorage
 {
-    IDirectoryInfo Game { get; }
-    IDirectoryInfo Data { get; }
-    IDirectoryInfo App { get; }
     IDirectoryInfo Bak { get; }
     IDirectoryInfo CommunityBak { get; }
 
@@ -28,7 +26,8 @@ public interface IStorage
     ImmutableSortedDictionary<string, string> DataFiles { get; }
 
     IDirectoryInfo GetModDir(IMod mod);
-    State? LoadState();
-    void WriteState(State state);
-    string ComputeHash(IFileInfo file);
+
+    void InitBakDirectories();
+
+    bool CheckGameFiles(ILogger log);
 }
