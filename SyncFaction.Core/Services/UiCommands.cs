@@ -247,40 +247,9 @@ SyncFaction can't work until you restore all files to their default state.
             stateProvider.State.CommunityUpdates.Clear();
         }
 
-        if (!updateIds!.SequenceEqual(stateProvider.State.CommunityUpdates))
+        if (!updateIds.SequenceEqual(stateProvider.State.CommunityUpdates))
         {
-            var installed = stateProvider.State.CommunityUpdates.ToList();
-            var pendingUpdates = allUpdates.ToList();
-            while (installed.Any())
-            {
-                var current = installed.First();
-                var apiUpdate = pendingUpdates.First();
-                if (current != apiUpdate.Id)
-                {
-                    log.LogError($"Updates are mixed up, please contact developer");
-                    log.LogInformation($"`state={JsonSerializer.Serialize(stateProvider.State.CommunityUpdates)} updates={JsonSerializer.Serialize(updateIds)}`");
-                    return false;
-                }
-                installed.RemoveAt(0);
-                pendingUpdates.RemoveAt(0);
-            }
-            log.LogDebug($"Updates to install: {JsonSerializer.Serialize(pendingUpdates.Select(x => x.Id))}");
-            foreach (var update in pendingUpdates)
-            {
-                var updDir = storage.GetModDir(update);
-                var success = await ffClient.DownloadAndUnpackMod(updDir, update, token);
-                if (!success)
-                {
-                    return false;
-                }
-            }
-            var result = await fileManager.InstallCommunityUpdateIncremental(storage, pendingUpdates, token);
-            if (!result)
-            {
-                log.LogError($"Update community patch failed. please contact developer. `newCommunityVersion=[{newCommunityVersion}], patch=[{patchId}], update count=[{updateIds?.Count}]`");
-            }
-
-            return result;
+            return await FilterAndInstallUpdates(allUpdates, storage, token);
         }
 
         return true;
@@ -308,6 +277,50 @@ SyncFaction can't work until you restore all files to their default state.
         }
 
         return success;
+    }
+
+    private async Task<bool> FilterAndInstallUpdates(IEnumerable<Mod> allUpdates, IStorage storage, CancellationToken token)
+    {
+        var installed = stateProvider.State.CommunityUpdates.ToList();
+        var pendingUpdates = allUpdates.ToList();
+        while (installed.Any())
+        {
+            var current = installed.First();
+            var apiUpdate = pendingUpdates.First();
+            if (current != apiUpdate.Id)
+            {
+                log.LogError($"Updates are mixed up, please contact developer");
+                log.LogInformation($"`state={JsonSerializer.Serialize(stateProvider.State.CommunityUpdates)} updates={JsonSerializer.Serialize(updateIds)}`");
+                return false;
+            }
+
+            installed.RemoveAt(0);
+            pendingUpdates.RemoveAt(0);
+        }
+
+        return await InstallPendingUpdates(storage, token, pendingUpdates);
+    }
+
+    private async Task<bool> InstallPendingUpdates(IStorage storage, CancellationToken token, List<Mod> pendingUpdates)
+    {
+        log.LogDebug($"Updates to install: {JsonSerializer.Serialize(pendingUpdates.Select(x => x.Id))}");
+        foreach (var update in pendingUpdates)
+        {
+            var updDir = storage.GetModDir(update);
+            var success = await ffClient.DownloadAndUnpackMod(updDir, update, token);
+            if (!success)
+            {
+                return false;
+            }
+        }
+
+        var result = await fileManager.InstallCommunityUpdateIncremental(storage, pendingUpdates, token);
+        if (!result)
+        {
+            log.LogError($"Update community patch failed. please contact developer. `newCommunityVersion=[{newCommunityVersion}], patch=[{patchId}], update count=[{updateIds?.Count}]`");
+        }
+
+        return result;
     }
 
     public void ToggleDevMode(IStorage filesystem, bool devModeIsChecked)
