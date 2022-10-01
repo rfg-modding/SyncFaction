@@ -229,7 +229,7 @@ SyncFaction can't work until you restore all files to their default state.
         return true;
     }
 
-    private async Task<bool> UpdateInternal(Mod patch, List<Mod> updates, IStorage storage, CancellationToken token)
+    private async Task<bool> UpdateInternal(Mod patch, IEnumerable<Mod> updates, IStorage storage, CancellationToken token)
     {
         if (stateProvider.State.CommunityPatch != patch.Id)
         {
@@ -264,8 +264,8 @@ SyncFaction can't work until you restore all files to their default state.
                 installed.RemoveAt(0);
                 pendingUpdates.RemoveAt(0);
             }
-            log.LogDebug($"Updates to install: {JsonSerializer.Serialize(updates.Select(x => x.Id))}");
-            foreach (var update in updates)
+            log.LogDebug($"Updates to install: {JsonSerializer.Serialize(pendingUpdates.Select(x => x.Id))}");
+            foreach (var update in pendingUpdates)
             {
                 var updDir = storage.GetModDir(update);
                 var success = await ffClient.DownloadAndUnpackMod(updDir, update, token);
@@ -274,7 +274,7 @@ SyncFaction can't work until you restore all files to their default state.
                     return false;
                 }
             }
-            var result = await fileManager.InstallCommunityUpdateIncremental(storage, updates, token);
+            var result = await fileManager.InstallCommunityUpdateIncremental(storage, pendingUpdates, token);
             if (!result)
             {
                 log.LogError($"Update community patch failed. please contact developer. `newCommunityVersion=[{newCommunityVersion}], patch=[{patchId}], update count=[{updateIds?.Count}]`");
