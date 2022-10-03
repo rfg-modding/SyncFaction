@@ -82,18 +82,14 @@ public class UnpackTests
         vpp.BlockEntryData.Value.Count.Should().Be((int) vpp.Header.NumEntries);
 
         // check that offsets are valid
-        RfgVpp.EntryData? prev = null;
-        var i = 0;
+        uint readingOffset = 0;
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
-            if (prev != null)
+            if (entryData.XDataOffset != readingOffset)
             {
-                long delta = entryData.XDataOffset - prev.XDataOffset;
-                delta.Should().Be(prev.PadSize + prev.DataSize, $"i = {i}");
+                Assert.Warn($"Offset for entry {entryData.I} is invalid: expected {readingOffset}, got {entryData.XDataOffset}. delta = {entryData.XDataOffset-readingOffset}");
             }
-
-            prev = entryData;
-            i++;
+            readingOffset += entryData.DataSize + (uint) entryData.PadSize;
         }
     }
 }
