@@ -38,7 +38,7 @@ public class TestUtils
     private static void CheckHash(RfgVpp.EntryData entryData)
     {
         var hash = CircularHash(entryData.XName);
-        var s = $"{entryData.XName} {RfgVpp.Tools.HexString(entryData.XNameHash)} {RfgVpp.Tools.HexString(entryData.XNameHash)}\n";
+        var s = $"{entryData.XName} {Tools.HexString(entryData.XNameHash)} {Tools.HexString(entryData.XNameHash)}\n";
         hash.Should().BeEquivalentTo(entryData.XNameHash, entryData.ToString(), s);
     }
 
