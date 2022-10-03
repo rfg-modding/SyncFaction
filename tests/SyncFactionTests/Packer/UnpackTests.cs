@@ -1,12 +1,7 @@
-using System.Collections;
-using System.Text;
-using System.Text.Json;
 using FluentAssertions;
-using Force.Crc32;
 using Kaitai;
-using Microsoft.VisualBasic;
 
-namespace SyncFactionTests;
+namespace SyncFactionTests.Packer;
 
 public class UnpackTests
 {
@@ -33,46 +28,6 @@ public class UnpackTests
         {
             vpp.Header.LenFileTotal.Should().Be((uint) fileInfo.Length);
         }
-
-        /*
-
-        // read all data and check
-        var vppStream = vpp.M_Io;
-        var dataSize = vpp.Header.Flags.Compressed ? vpp.Header.LenCompressedData : vpp.Header.LenData;
-        var dataBlockOffset = vpp.Header.LenFileTotal - dataSize;
-        vppStream.Seek(dataBlockOffset);
-        long unpackedOffset = 0;
-        foreach (var entryData in vpp.EntryDataBlock.Value)
-        {
-            entryData.XName.Should().NotBeEmpty();
-            CheckHash(entryData);
-
-            var data = vppStream.ReadBytes(entryData.DataSize);
-            var pad = vppStream.ReadBytes(entryData.PadSize);
-            (data.Length + pad.Length).Should().Be(entryData.TotalSize);
-
-            unpackedOffset += CheckOffset(entryData, unpackedOffset, description);
-
-            if (entryData.IsLast || entryData.PadSize == 0)
-            {
-                pad.Should().BeEmpty();
-            }
-            else
-            {
-                pad.Should().OnlyContain(x => x == 0, description);
-            }
-
-            if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
-            {
-                Assert.Fail("TODO more checks for this case");
-            }
-            else if (vpp.Header.Flags.Compressed)
-            {
-                // check decompression
-                var decompData = Decompress(data);
-                ((uint) decompData.Length).Should().Be(entryData.XLenData);
-            }
-        }*/
     }
 
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]

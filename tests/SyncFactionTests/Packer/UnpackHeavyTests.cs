@@ -2,7 +2,7 @@ using System.Text;
 using FluentAssertions;
 using Kaitai;
 
-namespace SyncFactionTests;
+namespace SyncFactionTests.Packer;
 
 public class UnpackHeavyTests
 {
