@@ -14,7 +14,7 @@ public static class Hashes
 
 	private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllGog = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Gog).OrderBy(x => x.Key).ToImmutableSortedDictionary());
 
-	private static readonly ImmutableDictionary<string, string> Vpp = new Dictionary<string, string>()
+	public static readonly ImmutableDictionary<string, string> Vpp = new Dictionary<string, string>()
 	{
 		{"data/activities.vpp_pc", "99eb018c1b0032d30788f80a49e3998caf03cb937dd3c9a67dd0f6b2816faf0f"},
 		{"data/anims.vpp_pc", "97ed7f3937f8f15e1a7781a869133509ab4ee8b65fd3e6a822aad843142beaa5"},

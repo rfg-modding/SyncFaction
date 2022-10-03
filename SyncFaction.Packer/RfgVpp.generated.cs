@@ -22,6 +22,9 @@ namespace Kaitai
         {
             m_parent = p__parent;
             m_root = p__root ?? this;
+            f_blockOffset = false;
+            f_blockEntryData = false;
+            f_blockCompactData = false;
             _read();
         }
         private void _read()
@@ -42,52 +45,9 @@ namespace Kaitai
             if (Header.NumEntries > 0) {
                 _padBeforeData = new Align(m_io, this, m_root);
             }
-            if ( ((M_Root.Header.Flags.Condensed == false) || (M_Root.Header.Flags.Compressed == false)) ) {
-                __raw_entryDataBlock = m_io.ReadBytes((Header.Flags.Compressed == true ? Header.LenCompressedData : Header.LenData));
-                var io___raw_entryDataBlock = new KaitaiStream(__raw_entryDataBlock);
-                _entryDataBlock = new EntryDataHolder(io___raw_entryDataBlock, this, m_root);
+            if (BlockOffset > 0) {
+                __unnamed6 = m_io.ReadBytes(0);
             }
-            if ( ((M_Root.Header.Flags.Condensed == true) && (M_Root.Header.Flags.Compressed == true)) ) {
-                __raw_compactData = m_io.ReadBytes(Header.LenCompressedData);
-                var io___raw_compactData = new KaitaiStream(__raw_compactData);
-                _compactData = new CompressedDataHolder(io___raw_compactData, this, m_root);
-            }
-        }
-        public partial class SumReduce : KaitaiStruct
-        {
-            public SumReduce(int p_stepItem, int p_accumulator, KaitaiStream p__io, KaitaiStruct p__parent = null, RfgVpp p__root = null) : base(p__io)
-            {
-                m_parent = p__parent;
-                m_root = p__root;
-                _stepItem = p_stepItem;
-                _accumulator = p_accumulator;
-                f_result = false;
-                _read();
-            }
-            private void _read()
-            {
-            }
-            private bool f_result;
-            private int _result;
-            public int Result
-            {
-                get
-                {
-                    if (f_result)
-                        return _result;
-                    _result = (int) ((StepItem + Accumulator));
-                    f_result = true;
-                    return _result;
-                }
-            }
-            private int _stepItem;
-            private int _accumulator;
-            private RfgVpp m_root;
-            private KaitaiStruct m_parent;
-            public int StepItem { get { return _stepItem; } }
-            public int Accumulator { get { return _accumulator; } }
-            public RfgVpp M_Root { get { return m_root; } }
-            public KaitaiStruct M_Parent { get { return m_parent; } }
         }
         public partial class Align : KaitaiStruct
         {
@@ -145,7 +105,7 @@ namespace Kaitai
                 _nameOffset = m_io.ReadU4le();
                 __unnamed1 = m_io.ReadBytes(4);
                 _dataOffset = m_io.ReadU4le();
-                _nameHash = m_io.ReadU4le();
+                _nameHash = m_io.ReadBytes(4);
                 _lenData = m_io.ReadU4le();
                 _lenCompressedData = m_io.ReadU4le();
                 __unnamed6 = m_io.ReadBytes(4);
@@ -153,7 +113,7 @@ namespace Kaitai
             private uint _nameOffset;
             private byte[] __unnamed1;
             private uint _dataOffset;
-            private uint _nameHash;
+            private byte[] _nameHash;
             private uint _lenData;
             private uint _lenCompressedData;
             private byte[] __unnamed6;
@@ -174,7 +134,7 @@ namespace Kaitai
             /// <summary>
             /// Entry name CRC32 hash
             /// </summary>
-            public uint NameHash { get { return _nameHash; } }
+            public byte[] NameHash { get { return _nameHash; } }
 
             /// <summary>
             /// Entry data size in bytes
@@ -200,6 +160,7 @@ namespace Kaitai
             {
                 m_parent = p__parent;
                 m_root = p__root;
+                f_isLarge = false;
                 _read();
             }
             private void _read()
@@ -268,6 +229,23 @@ namespace Kaitai
                 public byte[] UnknownFlags { get { return _unknownFlags; } }
                 public RfgVpp M_Root { get { return m_root; } }
                 public RfgVpp.HeaderBlock M_Parent { get { return m_parent; } }
+            }
+            private bool f_isLarge;
+            private bool _isLarge;
+
+            /// <summary>
+            /// file length is set to 0xFFFFFF for very large archives
+            /// </summary>
+            public bool IsLarge
+            {
+                get
+                {
+                    if (f_isLarge)
+                        return _isLarge;
+                    _isLarge = (bool) (LenFileTotal == 4294967295);
+                    f_isLarge = true;
+                    return _isLarge;
+                }
             }
             private byte[] _magic;
             private byte[] _version;
@@ -422,6 +400,7 @@ namespace Kaitai
                 f_xLenData = false;
                 f_dataSize = false;
                 f_totalSize = false;
+                f_value = false;
                 f_xName = false;
                 _read();
             }
@@ -455,14 +434,14 @@ namespace Kaitai
                 }
             }
             private bool f_xNameHash;
-            private uint _xNameHash;
-            public uint XNameHash
+            private byte[] _xNameHash;
+            public byte[] XNameHash
             {
                 get
                 {
                     if (f_xNameHash)
                         return _xNameHash;
-                    _xNameHash = (uint) (M_Root.Entries[I].NameHash);
+                    _xNameHash = (byte[]) (M_Root.Entries[I].NameHash);
                     f_xNameHash = true;
                     return _xNameHash;
                 }
@@ -532,6 +511,22 @@ namespace Kaitai
                     return _totalSize;
                 }
             }
+            private bool f_value;
+            private EntryContent _value;
+            public EntryContent Value
+            {
+                get
+                {
+                    if (f_value)
+                        return _value;
+                    KaitaiStream io = M_Root.BlockEntryData.M_Io;
+                    __raw_value = io.ReadBytes(TotalSize);
+                    var io___raw_value = new KaitaiStream(__raw_value);
+                    _value = new EntryContent(io___raw_value, this, m_root);
+                    f_value = true;
+                    return _value;
+                }
+            }
             private bool f_xName;
             private string _xName;
             public string XName
@@ -548,9 +543,11 @@ namespace Kaitai
             private int _i;
             private RfgVpp m_root;
             private RfgVpp.EntryDataHolder m_parent;
+            private byte[] __raw_value;
             public int I { get { return _i; } }
             public RfgVpp M_Root { get { return m_root; } }
             public RfgVpp.EntryDataHolder M_Parent { get { return m_parent; } }
+            public byte[] M_RawValue { get { return __raw_value; } }
         }
         public partial class CompressedDataHolder : KaitaiStruct
         {
@@ -626,31 +623,138 @@ namespace Kaitai
             public RfgVpp M_Root { get { return m_root; } }
             public RfgVpp M_Parent { get { return m_parent; } }
         }
+        public partial class EntryContent : KaitaiStruct
+        {
+            public static EntryContent FromFile(string fileName)
+            {
+                return new EntryContent(new KaitaiStream(fileName));
+            }
+
+            public EntryContent(KaitaiStream p__io, RfgVpp.EntryData p__parent = null, RfgVpp p__root = null) : base(p__io)
+            {
+                m_parent = p__parent;
+                m_root = p__root;
+                f_relativeOffsetAfter = false;
+                f_relativeOffsetBefore = false;
+                _read();
+            }
+            private void _read()
+            {
+                if (RelativeOffsetAfter > 0) {
+                    __unnamed0 = m_io.ReadBytes(0);
+                }
+                _file = m_io.ReadBytes(M_Parent.DataSize);
+                _padding = m_io.ReadBytes(M_Parent.PadSize);
+            }
+            private bool f_relativeOffsetAfter;
+            private int _relativeOffsetAfter;
+            public int RelativeOffsetAfter
+            {
+                get
+                {
+                    if (f_relativeOffsetAfter)
+                        return _relativeOffsetAfter;
+                    _relativeOffsetAfter = (int) (M_Parent.M_Io.Pos);
+                    f_relativeOffsetAfter = true;
+                    return _relativeOffsetAfter;
+                }
+            }
+            private bool f_relativeOffsetBefore;
+            private int _relativeOffsetBefore;
+            public int RelativeOffsetBefore
+            {
+                get
+                {
+                    if (f_relativeOffsetBefore)
+                        return _relativeOffsetBefore;
+                    _relativeOffsetBefore = (int) ((RelativeOffsetAfter - M_Parent.TotalSize));
+                    f_relativeOffsetBefore = true;
+                    return _relativeOffsetBefore;
+                }
+            }
+            private byte[] __unnamed0;
+            private byte[] _file;
+            private byte[] _padding;
+            private RfgVpp m_root;
+            private RfgVpp.EntryData m_parent;
+            public byte[] Unnamed_0 { get { return __unnamed0; } }
+            public byte[] File { get { return _file; } }
+            public byte[] Padding { get { return _padding; } }
+            public RfgVpp M_Root { get { return m_root; } }
+            public RfgVpp.EntryData M_Parent { get { return m_parent; } }
+        }
+        private bool f_blockOffset;
+        private int _blockOffset;
+        public int BlockOffset
+        {
+            get
+            {
+                if (f_blockOffset)
+                    return _blockOffset;
+                _blockOffset = (int) (M_Io.Pos);
+                f_blockOffset = true;
+                return _blockOffset;
+            }
+        }
+        private bool f_blockEntryData;
+        private EntryDataHolder _blockEntryData;
+        public EntryDataHolder BlockEntryData
+        {
+            get
+            {
+                if (f_blockEntryData)
+                    return _blockEntryData;
+                if ( ((Header.NumEntries > 0) && (!( ((M_Root.Header.Flags.Condensed == true) && (M_Root.Header.Flags.Compressed == true)) ))) ) {
+                    long _pos = m_io.Pos;
+                    m_io.Seek(BlockOffset);
+                    _blockEntryData = new EntryDataHolder(m_io, this, m_root);
+                    m_io.Seek(_pos);
+                    f_blockEntryData = true;
+                }
+                return _blockEntryData;
+            }
+        }
+        private bool f_blockCompactData;
+        private CompressedDataHolder _blockCompactData;
+        public CompressedDataHolder BlockCompactData
+        {
+            get
+            {
+                if (f_blockCompactData)
+                    return _blockCompactData;
+                if ( ((M_Root.Header.Flags.Condensed == true) && (M_Root.Header.Flags.Compressed == true)) ) {
+                    long _pos = m_io.Pos;
+                    m_io.Seek(BlockOffset);
+                    _blockCompactData = new CompressedDataHolder(m_io, this, m_root);
+                    m_io.Seek(_pos);
+                    f_blockCompactData = true;
+                }
+                return _blockCompactData;
+            }
+        }
         private HeaderBlock _header;
         private Align __unnamed1;
         private List<Entry> _entries;
         private Align __unnamed3;
         private EntryNamesHolder _entryNames;
         private Align _padBeforeData;
-        private EntryDataHolder _entryDataBlock;
-        private CompressedDataHolder _compactData;
+        private byte[] __unnamed6;
         private RfgVpp m_root;
         private KaitaiStruct m_parent;
         private byte[] __raw_entryNames;
-        private byte[] __raw_entryDataBlock;
-        private byte[] __raw_compactData;
         public HeaderBlock Header { get { return _header; } }
         public Align Unnamed_1 { get { return __unnamed1; } }
         public List<Entry> Entries { get { return _entries; } }
         public Align Unnamed_3 { get { return __unnamed3; } }
         public EntryNamesHolder EntryNames { get { return _entryNames; } }
         public Align PadBeforeData { get { return _padBeforeData; } }
-        public EntryDataHolder EntryDataBlock { get { return _entryDataBlock; } }
-        public CompressedDataHolder CompactData { get { return _compactData; } }
+
+        /// <summary>
+        /// hack to remember current position
+        /// </summary>
+        public byte[] Unnamed_6 { get { return __unnamed6; } }
         public RfgVpp M_Root { get { return m_root; } }
         public KaitaiStruct M_Parent { get { return m_parent; } }
         public byte[] M_RawEntryNames { get { return __raw_entryNames; } }
-        public byte[] M_RawEntryDataBlock { get { return __raw_entryDataBlock; } }
-        public byte[] M_RawCompactData { get { return __raw_compactData; } }
     }
 }

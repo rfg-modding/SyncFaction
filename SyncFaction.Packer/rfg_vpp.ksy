@@ -22,16 +22,26 @@ seq:
   - id: entry_names
     size: header.len_names
     type: entry_names_holder
-    # align is used inside too
   - id: pad_before_data
     type: align
     if: header.num_entries > 0
-  - id: entry_data_block
-    size: header.flags.compressed == true ? header.len_compressed_data : header.len_data
+  - doc: hack to remember current position
+    size: 0
+    if: block_offset > 0
+
+instances:
+  block_offset:
+    value: _io.pos
+
+  block_entry_data:
+    #size: header.flags.compressed == true ? header.len_compressed_data : header.len_data
+    pos: block_offset
     type: entry_data_holder
-    if:  _root.header.flags.condensed == false or _root.header.flags.compressed == false
-  - id: compact_data
-    size: header.len_compressed_data
+    if:  header.num_entries > 0 and not (_root.header.flags.condensed == true and _root.header.flags.compressed == true)
+
+  block_compact_data:
+    #size: header.len_compressed_data
+    pos: block_offset
     type: compressed_data_holder
     if: _root.header.flags.condensed == true and _root.header.flags.compressed == true
 
@@ -86,6 +96,10 @@ types:
     - id: len_compressed_data
       type: u4
       doc: Size of compressed entry data in bytes. Includes padding bytes between entry data
+    instances:
+      is_large:
+        value: len_file_total == 4294967295
+        doc: file length is set to 0xFFFFFF for very large archives
 
     types:
       header_flags:
@@ -109,7 +123,7 @@ types:
         type: u4
         doc: Entry data byte offset inside entry data block
       - id: name_hash
-        type: u4
+        size: 4
         doc: Entry name CRC32 hash
       - id: len_data
         type: u4
@@ -150,6 +164,11 @@ types:
     params:
       - id: i
         type: s4
+    #seq:
+    #  - id: wtf
+    #    doc: hack to remember current data position
+    #    size: 0
+    #    if: wtf_offset > 0
     instances:
       # copy stuff from other places for convenience
       x_name:
@@ -171,26 +190,21 @@ types:
         value: _root.header.flags.condensed ? 0 : is_last ? 0 : (data_size % 2048) > 0 ? 2048 - (data_size % 2048) : 0
       total_size:
         value: data_size + pad_size
-      #adder:
-      #  # https://github.com/kaitai-io/kaitai_struct/issues/291#issuecomment-997447273
-      #  # this hack does not work in C# (stack overflow)
-      #  type: sum_reduce( _parent.value[_index].total_size, (_index == 0) ? 0 : adder[_index-1].result )
-      #  repeat: expr
-      #  repeat-expr: i
-      #data:
-      #  pos: (i == 0 ? 0 : adder.last.result)
-      #  size: data_size
-      #padding:
-      #  pos: (i == 0 ? 0 : adder.last.result) + data_size
-      #  size: pad_size
-
-  sum_reduce:
-    params:
-      - id: step_item
-        type: s4
-      - id: accumulator
-        type: s4
-
+      # relative lazy read. works only if called seqientially!
+      value:
+        io: _root.block_entry_data._io
+        size: total_size
+        type: entry_content
+  entry_content:
+    seq:
+      - size: 0
+        if: relative_offset_after > 0
+      - id: file
+        size: _parent.data_size
+      - id: padding
+        size: _parent.pad_size
     instances:
-      result:
-        value: step_item + accumulator
+      relative_offset_after:
+        value: _parent._io.pos
+      relative_offset_before:
+        value: relative_offset_after - _parent.total_size
