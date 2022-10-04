@@ -1,18 +1,19 @@
 using FluentAssertions;
 using Kaitai;
+using SyncFaction.Packer;
 
 namespace SyncFactionTests.Packer;
 
 public class UnpackTests
 {
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadHeader(FileInfo fileInfo)
     {
         var header = RfgVpp.HeaderBlock.FromFile(fileInfo.FullName);
         header.Should().NotBeNull();
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadBasics(FileInfo fileInfo)
     {
         var header = RfgVpp.HeaderBlock.FromFile(fileInfo.FullName);
@@ -30,7 +31,7 @@ public class UnpackTests
         }
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadMetadata(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -52,7 +53,7 @@ public class UnpackTests
         }
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestHashNames(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -66,7 +67,7 @@ public class UnpackTests
         }
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadDataOffsets(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -97,4 +98,21 @@ public class UnpackTests
             readingOffset += entryData.DataSize + (uint) entryData.PadSize;
         }
     }
+
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllFiles))]
+    public void TestReadFileSignatures(FileInfo fileInfo)
+    {
+        var ext = fileInfo.Extension.ToLower();
+        if (!TestUtils.Signatures.TryGetValue(ext, out var signature))
+        {
+            Assert.Ignore($"No known signature for {ext}");
+        }
+
+        using var s = fileInfo.OpenRead();
+        var buffer = new byte[signature.Length];
+        s.Read(buffer, 0, buffer.Length);
+        buffer.Should().BeEquivalentTo(signature);
+    }
+
+
 }

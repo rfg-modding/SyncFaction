@@ -2,12 +2,13 @@ using System.Text;
 using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
+using SyncFaction.Packer;
 
 namespace SyncFactionTests.Packer;
 
 public class UnpackHeavyTests
 {
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadData(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -33,7 +34,7 @@ public class UnpackHeavyTests
         }
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestDataContents(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -69,7 +70,7 @@ public class UnpackHeavyTests
         }
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestDataDecompress(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -98,7 +99,7 @@ public class UnpackHeavyTests
         }
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestCompactDataDecompressBlob(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -205,7 +206,7 @@ public class UnpackHeavyTests
         return pad;
     }
 
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestCompactDataDecompressOneByOne(FileInfo fileInfo)
     {
         var vpp  = RfgVpp.FromFile(fileInfo.FullName);
@@ -272,7 +273,7 @@ public class UnpackHeavyTests
     }
 
     [Explicit("Generates 30gb of files from original vpp archives")]
-    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void UnpackNested(FileInfo fileInfo)
     {
         var dir = new DirectoryInfo(TestUtils.ExtractionDir);
