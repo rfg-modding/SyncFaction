@@ -3,6 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction", "SyncFaction\SyncFaction.csproj", "{C059C175-2740-41A3-A652-9D2A7530B974}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7508381C-935E-4E20-A310-1C550289A13C}"
+	ProjectSection(SolutionItems) = preProject
+		tests\README.md = tests\README.md
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFactionTests", "tests\SyncFactionTests\SyncFactionTests.csproj", "{8AD4F5F6-9B3F-47EC-8698-5031FA41FFA9}"
 EndProject
