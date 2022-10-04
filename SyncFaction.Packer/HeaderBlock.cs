@@ -21,7 +21,23 @@ public partial class RfgVpp
         }
     }
 
+    /// <summary>
+    /// Detect pad size. Works only if DataOffsets are valid (use for compacted archives)
+    /// </summary>
+    public int DetectPadSize()
+    {
+        var pad = 256;
+        while (Entries.All(x => x.DataOffset % pad == 0) == false)
+        {
+            pad /= 2;
+            if (pad < 16)
+            {
+                throw new InvalidOperationException("Can't detect padding between entries data based on DataOffsets");
+            }
+        }
 
+        return pad;
+    }
 
     public partial class HeaderBlock
     {
@@ -32,6 +48,37 @@ public partial class RfgVpp
                 _compressed = false;
                 _condensed = false;
             }
+
+            public Mode Mode
+            {
+                get
+                {
+                    if (Compressed && Condensed)
+                    {
+                        return Mode.Compacted;
+                    }
+
+                    if (Compressed && !Condensed)
+                    {
+                        return Mode.Compressed;
+                    }
+
+                    if (!Compressed && Condensed)
+                    {
+                        return Mode.Condensed;
+                    }
+
+                    return Mode.Normal;
+                }
+            }
+        }
+
+        public enum Mode
+        {
+            Normal,
+            Compressed,
+            Condensed,
+            Compacted
         }
 
         public override string ToString()
@@ -71,7 +118,7 @@ comp data sz: [{LenCompressedData}]
 
         public void OverridePadSize(int padTo)
         {
-            _padSize = Tools.GetPadSize((int)DataSize, padTo, IsLast);
+            _padSize = padTo == 0 ? 0 : Tools.GetPadSize((int)DataSize, padTo, IsLast);
             f_padSize = true;
         }
 
@@ -109,6 +156,34 @@ data offset: [{DataOffset}] (may be broken)
 
 public static class Tools
 {
+    public static IEnumerable<LogicalFile> UnpackVpp(Stream source, string name)
+    {
+        var s = new KaitaiStream(source);
+        var vpp = new RfgVpp(s);
+        if (vpp.Header.Flags.Mode == RfgVpp.HeaderBlock.Mode.Compacted)
+        {
+            var pad = vpp.DetectPadSize();
+            vpp.ReadCompactData(pad);
+        }
+
+        if (!vpp.Entries.Any())
+        {
+            yield break;
+        }
+
+        foreach (var entryData in vpp.BlockEntryData.Value)
+        {
+            yield return new LogicalFile()
+            {
+                Content = entryData.Value.File,
+                Order = entryData.I,
+                Name = entryData.XName,
+                ParentName = name
+            };
+            entryData.DisposeAndFreeMemory();
+        }
+    }
+
     public static int GetPadSize(int dataSize, int padTo, bool isLast)
     {
         return isLast ? 0 : KaitaiStream.Mod(dataSize, padTo) > 0 ? padTo - KaitaiStream.Mod(dataSize, padTo) : 0;
@@ -149,4 +224,12 @@ public static class Tools
     }
 
     public static string HexString(byte[] bytes, string separator="") => BitConverter.ToString(bytes).Replace("-", separator);
+}
+
+public class LogicalFile
+{
+    public byte[] Content { get; set; }
+    public string Name { get; set; }
+    public string ParentName { get; set; }
+    public int Order { get; set; }
 }

@@ -2,7 +2,6 @@ using System.Text;
 using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
-using PleOps.XdeltaSharp.Vcdiff;
 
 namespace SyncFactionTests.Packer;
 
@@ -115,17 +114,7 @@ public class UnpackHeavyTests
         vpp.BlockEntryData.Should().BeNull();
         vpp.BlockCompactData.Should().NotBeNull();
 
-        // detect pad size. let's assume we trust entry.DataOffset for compacted archives
-        var pad = 256;
-        while (vpp.Entries.All(x => x.DataOffset % pad == 0) == false)
-        {
-            pad /= 2;
-        }
-
-        if (pad != 16)
-        {
-            Assert.Warn($"Detected unisual padding size: {pad}");
-        }
+        var pad = DetectPadSize(vpp);
 
         vpp.ReadCompactData(pad);
         foreach (var entryData in vpp.BlockEntryData.Value)
@@ -155,12 +144,65 @@ public class UnpackHeavyTests
             var message = $"{entryData}\n=== file ===\n{fileContent}\n=== padding ===\n{padContent}";
 
             // data chunks are expected to have something useful
-            file.All(x => x == 0).Should().BeFalse(message);
+            if (file.All(x => x == 0) == true)
+            {
+                Assert.Warn($"Data contains only zeroes! {entryData}");
+            }
             // padding should be empty
             padding.Length.Should().BeLessThan(64, message);
             padding.All(x => x == 0).Should().BeTrue(message);
-
         }
+    }
+
+    // detect pad size. let's assume we trust entry.DataOffset for compacted archives
+    private static int DetectPadSize(RfgVpp vpp)
+    {
+        if (vpp.Entries.Count <= 1)
+        {
+            return 0;
+        }
+
+        var readingOffset = 0u;
+        var zeroPad = true;
+        foreach (var entry in vpp.Entries)
+        {
+            if (readingOffset != entry.DataOffset)
+            {
+                zeroPad = false;
+                break;
+            }
+
+            readingOffset += entry.LenData;
+        }
+
+        if (zeroPad)
+        {
+            return 0;
+        }
+
+
+        var pad = 8192;
+        while (vpp.Entries.All(x => x.DataOffset % pad == 0) == false)
+        {
+            pad /= 2;
+            if (pad < 16)
+            {
+                Assert.Warn($"Is there no padding at all?");
+                return 0;
+            }
+        }
+
+        if (pad == 8192)
+        {
+            Assert.Fail($"Failed to detect padding size. pad = {pad}");
+        }
+
+        if (pad != 16)
+        {
+            Assert.Warn($"Detected unusual padding size: {pad}");
+        }
+
+        return pad;
     }
 
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
@@ -185,6 +227,8 @@ public class UnpackHeavyTests
 
         var i = 0;
         uint readingOffset = 0;
+        bool suppressNoisyWarning = false;
+        var padSize = DetectPadSize(vpp);
         foreach (var entry in vpp.Entries)
         {
             var description = $"{i} {entry}";
@@ -193,11 +237,17 @@ public class UnpackHeavyTests
             entry.LenCompressedData.Should().BeGreaterThan(0, description);
             entry.LenCompressedData.Should().BeLessOrEqualTo(entry.LenData, description);
 
+
             if (readingOffset < entry.DataOffset)
             {
                 // table.vpp_pc is aligned to 64 bytes for some reason
                 var delta = entry.DataOffset - readingOffset;
-                Assert.Warn($"WARN: reading extra {delta} bytes before entry {i}");
+                if (!suppressNoisyWarning)
+                {
+                    Assert.Warn($"Reading extra {delta} bytes before entry {i} (further warnings suppressed)");
+                    suppressNoisyWarning = true;
+                }
+
                 var extraPad = Tools.ReadBytes(inputStream, (int)delta);
                 extraPad.Length.Should().Be((int)delta, description);
                 extraPad.All(x => x == 0).Should().BeTrue(description);
@@ -207,10 +257,10 @@ public class UnpackHeavyTests
             Func<byte[]> readDataAction = () => Tools.ReadBytes(inputStream, (int)entry.LenData);
             var data = readDataAction.Should().NotThrow(description).Subject;
             data.Length.Should().Be((int)entry.LenData, description);
-            var padSize = Tools.GetPadSize(data.Length, 16, isLast);
-            Func<byte[]> readPadAction = () => Tools.ReadBytes(inputStream, padSize);
+            var padLength = padSize == 0 ? 0 : Tools.GetPadSize(data.Length, 16, isLast);
+            Func<byte[]> readPadAction = () => Tools.ReadBytes(inputStream, padLength);
             var pad = readPadAction.Should().NotThrow(description).Subject;
-            pad.Length.Should().Be(padSize, description);
+            pad.Length.Should().Be(padLength, description);
             readingOffset.Should().Be(entry.DataOffset, description);
             readingOffset += (uint)data.Length + (uint)pad.Length;
             pad.All(x => x == 0).Should().BeTrue(description);
@@ -219,5 +269,28 @@ public class UnpackHeavyTests
         }
 
         readingOffset.Should().Be(vpp.Header.LenData);
+    }
+
+    [Explicit("Generates 30gb of files from original vpp archives")]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    public void UnpackNested(FileInfo fileInfo)
+    {
+        var dir = new DirectoryInfo(TestUtils.ExtractionDir);
+            dir.Create();
+
+        using var stream = fileInfo.OpenRead();
+        var files = Tools.UnpackVpp(stream, fileInfo.Name);
+        var subdir = dir.CreateSubdirectory("_" + fileInfo.Name);
+        foreach (var logicalFile in files)
+        {
+            var dstFile = Path.Combine(subdir.FullName, $"{logicalFile.Order:D5}_" + logicalFile.Name);
+            File.WriteAllBytes(dstFile, logicalFile.Content);
+
+            if (logicalFile.Name.ToLower().EndsWith(".str2_pc"))
+            {
+                // we need to go deeper
+            }
+        }
+        Assert.Pass();
     }
 }

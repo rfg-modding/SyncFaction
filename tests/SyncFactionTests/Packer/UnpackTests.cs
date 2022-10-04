@@ -24,9 +24,9 @@ public class UnpackTests
         vpp.EntryNames.Should().NotBeNull();
         Console.WriteLine(vpp.Header);
 
-        if (!vpp.Header.IsLarge)
+        if (vpp.Header.LenFileTotal != fileInfo.Length)
         {
-            vpp.Header.LenFileTotal.Should().Be((uint) fileInfo.Length);
+            Assert.Warn($"Header filesize {vpp.Header.LenFileTotal} does not match actual filesize {fileInfo.Length}. IsLarge={vpp.Header.IsLarge}");
         }
     }
 
@@ -83,11 +83,16 @@ public class UnpackTests
 
         // check that offsets are valid
         uint readingOffset = 0;
+        bool suppressNoisyWarning = false;
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             if (entryData.XDataOffset != readingOffset)
             {
-                Assert.Warn($"Offset for entry {entryData.I} is invalid: expected {readingOffset}, got {entryData.XDataOffset}. delta = {entryData.XDataOffset-readingOffset}");
+                if (!suppressNoisyWarning)
+                {
+                    Assert.Warn($"Offset for entry {entryData.I} is invalid: expected {readingOffset}, got {entryData.XDataOffset}. delta = {entryData.XDataOffset - readingOffset} (further warnings suppressed)");
+                    suppressNoisyWarning = true;
+                }
             }
             readingOffset += entryData.DataSize + (uint) entryData.PadSize;
         }

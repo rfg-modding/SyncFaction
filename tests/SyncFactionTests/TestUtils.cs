@@ -1,6 +1,4 @@
 using FluentAssertions;
-using ICSharpCode.SharpZipLib.Zip.Compression;
-using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
 using SyncFaction.Core.Data;
 
@@ -8,15 +6,26 @@ namespace SyncFactionTests;
 
 public class TestUtils
 {
-    public static IEnumerable<TestCaseData> AllVppFiles()
+    public static IEnumerable<TestCaseData>  AllVppFiles()
     {
-        /*var path = @"C:\Program Files (x86)\Steam\steamapps\common\Red Faction Guerrilla Re-MARS-tered\data";
-        var dir = new DirectoryInfo(path);
-        return dir.EnumerateFiles("*.vpp_pc").OrderBy(x => x.Name).Select(x => new TestCaseData(x).SetName(x.Name));*/
-        return AllVppFilesOnce;
+        return AllVppFilesOnce.Concat(AllExtractedStr2Once);
     }
 
-    private const string  DefaultPath = @"C:\Program Files (x86)\Steam\steamapps\common\Red Faction Guerrilla Re-MARS-tered";
+    public const string  DefaultPath = @"C:\Program Files (x86)\Steam\steamapps\common\Red Faction Guerrilla Re-MARS-tered";
+    public const string  ExtractionDir = DefaultPath + @"\data\.syncfaction\packer_tests";
+
+    private static List<TestCaseData> AllExtractedStr2Once = InitAllExtractedStr2Once();
+
+    private static List<TestCaseData> InitAllExtractedStr2Once()
+    {
+        var dir = new DirectoryInfo(ExtractionDir);
+        dir.Create();
+        return dir.EnumerateFiles("*.str2_pc", SearchOption.AllDirectories)
+            .OrderBy(x => x.FullName)
+            .Select(x => new TestCaseData(x).SetArgDisplayNames(x.FullName.Substring(ExtractionDir.Length+1)))
+            .ToList();
+    }
+
 
     private static readonly IEnumerable<TestCaseData> AllVppFilesOnce = Hashes.Vpp
         .Select(x => x.Key)
