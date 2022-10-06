@@ -42,6 +42,8 @@ Red Faction Guerrilla mod manager with focus on user experience
 A lot of functionality is not implemented yet!
 
 * version or build date in window header
+* button to report current state, collect log and probably list files/hashes
+* test how app behaves when resetting to vanilla and removing state.txt. should work with existing cache
 * Support mods that modify files inside vpp_pc archives as ModManager did
 * Support installing several mods at same time if they don't conflict with multiplayer
   * Allow to "void warranty" and install custom mix of multiplayer mods
