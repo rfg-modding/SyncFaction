@@ -5,7 +5,7 @@ public static class Constants
     public const string BakDirName = ".bak_vanilla";
     public const string CommunityBakDirName = ".bak_community";
     public const string AppDirName = ".syncfaction";
-    public const string StateFile = ".state.txt";
+    public const string StateFile = "state.txt";
 
     /// <summary>
     /// This file is written to mod dir as a marker of ongoing downloading and unpacking.
