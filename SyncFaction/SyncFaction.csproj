@@ -20,17 +20,17 @@
     <ItemGroup>
       <Content Include="icon.ico" />
     </ItemGroup>
-    
+
 	<ItemGroup>
       <PackageReference Include="MdXaml" Version="1.15.0" />
       <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
     </ItemGroup>
-    
+
 	<ItemGroup>
 	  <Resource Include="icon.png" />
 	  <Resource Include="lego.png" />
 	</ItemGroup>
-    
+
 	<ItemGroup>
 	  <ProjectReference Include="..\SyncFaction.Core\SyncFaction.Core.csproj" />
 	</ItemGroup>

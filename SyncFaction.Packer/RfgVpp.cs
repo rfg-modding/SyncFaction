@@ -1,11 +1,73 @@
+using System.Runtime.CompilerServices;
 using SyncFaction.Packer;
 
 namespace Kaitai;
 
 public partial class RfgVpp
 {
-    public void ReadCompactData(int padTo)
+    /// <summary>
+    /// Detect alignment size
+    /// </summary>
+    public int DetectAlignmentSize()
     {
+        if (Entries.Count <= 1)
+        {
+            return 0;
+        }
+
+        if (Header.Flags.Mode == HeaderBlock.Mode.Compacted)
+        {
+            // assume we trust entry.DataOffset for compacted archives
+            var readingOffset = 0u;
+            var noAlignment = true;
+            foreach (var entry in Entries)
+            {
+                if (readingOffset != entry.DataOffset)
+                {
+                    noAlignment = false;
+                    break;
+                }
+
+                readingOffset += entry.LenData;
+            }
+
+            if (noAlignment)
+            {
+                return 0;
+            }
+
+            // compacted archive has non-zero alignment, that's ok
+        }
+
+        // start with absurdly big value
+        var alignment = 8192;
+        while (Entries.All(x => x.DataOffset % alignment == 0) == false)
+        {
+            alignment /= 2;
+            if (alignment < 16)
+            {
+                throw new InvalidOperationException($"Failed to detect alignment size. {alignment} is less than 16");
+            }
+        }
+
+        if (alignment == 8192)
+        {
+            throw new InvalidOperationException($"Failed to detect alignment size. {alignment} did not decrease from initial value");
+        }
+
+        if (alignment != 16)
+        {
+            // vanilla table.vpp_pc has alignment = 64
+            //throw new InvalidOperationException($"Detected unusual alignment size: {alignment}");
+            return alignment;
+        }
+
+        return alignment;
+    }
+
+    public void ReadCompactedData()
+    {
+        var alignment = DetectAlignmentSize();
         var data = Tools.DecompressZlib(BlockCompactData.Value, (int) Header.LenData);
         var stream = new KaitaiStream(data);
         Header.Flags.OverrideFlagsNone();
@@ -16,27 +78,64 @@ public partial class RfgVpp
 
         foreach (var entryData in BlockEntryData.Value)
         {
-            entryData.OverridePadSize(padTo);
+            entryData.OverrideAlignmentSize(alignment);
         }
+    }
+
+    public void ReadCompressedData()
+    {
+        foreach (var entryData in BlockEntryData.Value)
+        {
+            var data = Tools.DecompressZlib(entryData.Value.File, (int)entryData.XLenData);
+            // alignment size is used when creating data, ignoring it
+            entryData.OverrideAlignmentSize(0);
+            entryData.OverrideDataSize(entryData.XLenData);
+            entryData.OverrideData(data);
+        }
+        Header.Flags.OverrideFlagsNone();
     }
 
     /// <summary>
-    /// Detect pad size. Works only if DataOffsets are valid (use for compacted archives)
+    /// Readz zlib header if entries are compacted or compressed
     /// </summary>
-    public int DetectPadSize()
+    public int DetectCompressionLevel()
     {
-        var pad = 256;
-        while (Entries.All(x => x.DataOffset % pad == 0) == false)
+        return Header.Flags.Mode switch
         {
-            pad /= 2;
-            if (pad < 16)
-            {
-                throw new InvalidOperationException("Can't detect padding between entries data based on DataOffsets");
-            }
-        }
+            HeaderBlock.Mode.Compacted => (int)BlockCompactData.ZlibHeader.Flevel,
+            HeaderBlock.Mode.Compressed => DetectEntriesCompressionLevel(),
+            _ => -1,
+        };
 
-        return pad;
+        int DetectEntriesCompressionLevel()
+        {
+            if (Header.NumEntries == 0)
+            {
+                return -1;
+            }
+
+            var level = BlockEntryData.Value.First().Value.ZlibHeader.Flevel;
+            foreach (var entryData in BlockEntryData.Value)
+            {
+                var current = entryData.Value.ZlibHeader.Flevel;
+                if (current != level)
+                {
+                    throw new InvalidOperationException($"Detected different compression ratios between entries. Expected [{level}] but entry {entryData.I} has {current}");
+                }
+            }
+
+            return (int)level;
+        }
     }
+
+    public partial class Zlib
+    {
+        public override string ToString()
+        {
+            return $"{HeaderInt:X}/{IsValid}";
+        }
+    }
+
 
     public partial class HeaderBlock
     {
@@ -115,10 +214,22 @@ comp data sz: [{LenCompressedData}]
             }
         }
 
-        public void OverridePadSize(int padTo)
+        public void OverrideAlignmentSize(int alignment)
         {
-            _padSize = padTo == 0 ? 0 : Tools.GetPadSize((int)DataSize, padTo, IsLast);
+            _padSize = alignment == 0 ? 0 : Tools.GetPadSize((int)DataSize, alignment, IsLast);
             f_padSize = true;
+        }
+
+        public void OverrideDataSize(uint size)
+        {
+            _dataSize = size;
+            f_dataSize = true;
+        }
+
+        public void OverrideData(byte[] data)
+        {
+            _value = new EntryContent(new KaitaiStream(data), this);
+            f_value = true;
         }
 
         public override string ToString()
@@ -126,7 +237,7 @@ comp data sz: [{LenCompressedData}]
             return $@"EntryData:
 index:       [{I}]
 name:        [{XName}]
-hash:        [{Tools.HexString(XNameHash)}]
+hash:        [{Tools.ToHexString(XNameHash)}]
 data length: [{XLenData}]
 comp length: [{XLenCompressedData}]
 data offset: [{XDataOffset}] (may be broken)
@@ -143,7 +254,7 @@ is last: [{IsLast}]
         public override string ToString()
         {
             return $@"Entry:
-hash:        [{Tools.HexString(NameHash)}]
+hash:        [{Tools.ToHexString(NameHash)}]
 data length: [{LenData}]
 comp length: [{LenCompressedData}]
 data offset: [{DataOffset}] (may be broken)

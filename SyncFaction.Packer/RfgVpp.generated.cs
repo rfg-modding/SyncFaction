@@ -561,6 +561,7 @@ namespace Kaitai
                 m_parent = p__parent;
                 m_root = p__root;
                 f_value = false;
+                f_zlibHeader = false;
                 _read();
             }
             private void _read()
@@ -579,10 +580,117 @@ namespace Kaitai
                     return _value;
                 }
             }
+            private bool f_zlibHeader;
+            private Zlib _zlibHeader;
+            public Zlib ZlibHeader
+            {
+                get
+                {
+                    if (f_zlibHeader)
+                        return _zlibHeader;
+                    long _pos = m_io.Pos;
+                    m_io.Seek(M_Root.BlockOffset);
+                    __raw_zlibHeader = m_io.ReadBytes(4);
+                    var io___raw_zlibHeader = new KaitaiStream(__raw_zlibHeader);
+                    _zlibHeader = new Zlib(io___raw_zlibHeader, this, m_root);
+                    m_io.Seek(_pos);
+                    f_zlibHeader = true;
+                    return _zlibHeader;
+                }
+            }
             private RfgVpp m_root;
             private RfgVpp m_parent;
+            private byte[] __raw_zlibHeader;
             public RfgVpp M_Root { get { return m_root; } }
             public RfgVpp M_Parent { get { return m_parent; } }
+            public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
+        }
+        public partial class Zlib : KaitaiStruct
+        {
+            public static Zlib FromFile(string fileName)
+            {
+                return new Zlib(new KaitaiStream(fileName));
+            }
+
+            public Zlib(KaitaiStream p__io, KaitaiStruct p__parent = null, RfgVpp p__root = null) : base(p__io)
+            {
+                m_parent = p__parent;
+                m_root = p__root;
+                f_headerInt = false;
+                f_isValid = false;
+                _read();
+            }
+            private void _read()
+            {
+                _cm = m_io.ReadBitsIntLe(4);
+                _cinfo = m_io.ReadBitsIntLe(4);
+                _fcheck = m_io.ReadBitsIntLe(5);
+                _fdict = m_io.ReadBitsIntLe(1) != 0;
+                _flevel = m_io.ReadBitsIntLe(2);
+            }
+            private bool f_headerInt;
+            private ushort _headerInt;
+            public ushort HeaderInt
+            {
+                get
+                {
+                    if (f_headerInt)
+                        return _headerInt;
+                    long _pos = m_io.Pos;
+                    m_io.Seek(0);
+                    _headerInt = m_io.ReadU2be();
+                    m_io.Seek(_pos);
+                    f_headerInt = true;
+                    return _headerInt;
+                }
+            }
+            private bool f_isValid;
+            private bool _isValid;
+            public bool IsValid
+            {
+                get
+                {
+                    if (f_isValid)
+                        return _isValid;
+                    _isValid = (bool) ( ((Cm == 8) && (Cinfo == 7) && (KaitaiStream.Mod(HeaderInt, 31) == 0)) );
+                    f_isValid = true;
+                    return _isValid;
+                }
+            }
+            private ulong _cm;
+            private ulong _cinfo;
+            private ulong _fcheck;
+            private bool _fdict;
+            private ulong _flevel;
+            private RfgVpp m_root;
+            private KaitaiStruct m_parent;
+
+            /// <summary>
+            /// Compression method. Should be 0x8
+            /// </summary>
+            public ulong Cm { get { return _cm; } }
+
+            /// <summary>
+            /// Compression info. Should be 0x7
+            /// </summary>
+            public ulong Cinfo { get { return _cinfo; } }
+
+            /// <summary>
+            /// Check bits for CMF and FLG. Should be a multiple of 31
+            /// </summary>
+            public ulong Fcheck { get { return _fcheck; } }
+
+            /// <summary>
+            /// Preset dictionary
+            /// </summary>
+            public bool Fdict { get { return _fdict; } }
+
+            /// <summary>
+            /// Compression level
+            /// </summary>
+            public ulong Flevel { get { return _flevel; } }
+            public RfgVpp M_Root { get { return m_root; } }
+            public KaitaiStruct M_Parent { get { return m_parent; } }
         }
         public partial class EntryDataHolder : KaitaiStruct
         {
@@ -636,6 +744,7 @@ namespace Kaitai
                 m_root = p__root;
                 f_relativeOffsetAfter = false;
                 f_relativeOffsetBefore = false;
+                f_zlibHeader = false;
                 _read();
             }
             private void _read()
@@ -672,16 +781,38 @@ namespace Kaitai
                     return _relativeOffsetBefore;
                 }
             }
+            private bool f_zlibHeader;
+            private Zlib _zlibHeader;
+            public Zlib ZlibHeader
+            {
+                get
+                {
+                    if (f_zlibHeader)
+                        return _zlibHeader;
+                    if ( ((M_Root.Header.Flags.Compressed) && (M_Root.Header.Flags.Condensed == false)) ) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(0);
+                        __raw_zlibHeader = m_io.ReadBytes(4);
+                        var io___raw_zlibHeader = new KaitaiStream(__raw_zlibHeader);
+                        _zlibHeader = new Zlib(io___raw_zlibHeader, this, m_root);
+                        m_io.Seek(_pos);
+                        f_zlibHeader = true;
+                    }
+                    return _zlibHeader;
+                }
+            }
             private byte[] __unnamed0;
             private byte[] _file;
             private byte[] _padding;
             private RfgVpp m_root;
             private RfgVpp.EntryData m_parent;
+            private byte[] __raw_zlibHeader;
             public byte[] Unnamed_0 { get { return __unnamed0; } }
             public byte[] File { get { return _file; } }
             public byte[] Padding { get { return _padding; } }
             public RfgVpp M_Root { get { return m_root; } }
             public RfgVpp.EntryData M_Parent { get { return m_parent; } }
+            public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
         }
         private bool f_blockOffset;
         private int _blockOffset;

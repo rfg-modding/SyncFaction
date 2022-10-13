@@ -46,6 +46,29 @@ instances:
     if: _root.header.flags.condensed == true and _root.header.flags.compressed == true
 
 types:
+  zlib:
+    seq:
+      - id: cm
+        type: b4
+        doc: Compression method. Should be 0x8
+      - id: cinfo
+        type: b4
+        doc: Compression info. Should be 0x7
+      - id: fcheck
+        type: b5
+        doc: Check bits for CMF and FLG. Should be a multiple of 31
+      - id: fdict
+        type: b1
+        doc: Preset dictionary
+      - id: flevel
+        type: b2
+        doc: Compression level
+    instances:
+      header_int:
+        pos: 0
+        type: u2be
+      is_valid:
+        value: cm == 0x8 and cinfo == 0x7 and header_int % 31 == 0
   align:
     seq:
       - size: pad_size
@@ -57,6 +80,10 @@ types:
     instances:
       value:
         size-eos: true
+      zlib_header:
+        type: zlib
+        pos: _root.block_offset
+        size: 4
 
   header_block:
     seq:
@@ -208,3 +235,8 @@ types:
         value: _parent._io.pos
       relative_offset_before:
         value: relative_offset_after - _parent.total_size
+      zlib_header:
+        if: _root.header.flags.compressed and _root.header.flags.condensed == false
+        type: zlib
+        pos: 0
+        size: 4

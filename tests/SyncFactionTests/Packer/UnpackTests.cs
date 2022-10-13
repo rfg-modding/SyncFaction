@@ -62,7 +62,7 @@ public class UnpackTests
             .Zip(vpp.Entries.Select(x => x.NameHash));
         foreach (var pair in pairs)
         {
-            var hash = TestUtils.CircularHash(pair.First);
+            var hash = Tools.CircularHash(pair.First);
             hash.Should().BeEquivalentTo(pair.Second);
         }
     }

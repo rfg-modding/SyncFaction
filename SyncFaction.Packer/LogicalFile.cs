@@ -1,9 +1,15 @@
+using System.Text;
+using Kaitai;
+
 namespace SyncFaction.Packer;
 
-public class LogicalFile
+public record LogicalFile(byte[] Content, string Name, int Order)
 {
-    public byte[] Content { get; set; }
-    public string Name { get; set; }
-    public string ParentName { get; set; }
-    public int Order { get; set; }
+    public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
+
+    public uint CompressedSize { get; set; } = 0xFFFFFFFFu;
+
+    public uint Offset { get; set; }
 }
+
+public record LogicalArchive(IEnumerable<LogicalFile> LogicalFiles, RfgVpp.HeaderBlock.Mode Mode, string Name);

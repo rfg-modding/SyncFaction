@@ -23,4 +23,11 @@
       <ProjectReference Include="..\..\SyncFaction.Core\SyncFaction.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="hashes.json" />
+      <Content Include="hashes.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

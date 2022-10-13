@@ -16,6 +16,7 @@ using SyncFaction.Core.Data;
 using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.Extras;
 using SyncFaction.Services;
 
 namespace SyncFaction;
@@ -44,6 +45,7 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         Closing += OnWindowClosing;
+
         render.Init(text);
         render.Append("# Welcome. Press [connect] button");
 
@@ -51,8 +53,6 @@ public partial class MainWindow : Window
             NavigationCommands.GoToPage,
             (sender, e) =>
             {
-
-
                 var proc = new Process();
                 proc.StartInfo.UseShellExecute = true;
                 proc.StartInfo.FileName = (string)e.Parameter;
@@ -63,6 +63,7 @@ public partial class MainWindow : Window
         cts = new CancellationTokenSource();
         token = cts.Token;
         interactiveControls = new List<Control> {run, apply, connect, restore, remoteList, update, restore_vanilla};
+        Title = SyncFaction.Extras.Title.Value;
     }
 
     public void OnWindowClosing(object? sender, CancelEventArgs e)
