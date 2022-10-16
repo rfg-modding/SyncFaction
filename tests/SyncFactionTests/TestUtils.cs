@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using FluentAssertions;
 using Kaitai;
+using Newtonsoft.Json;
 using SyncFaction.Core.Data;
 using SyncFaction.Packer;
 
@@ -20,7 +22,7 @@ public static class TestUtils
     public static IEnumerable<TestCaseData> AllVppFiles()
     {
         return AllVppFilesOnce
-                .Where(x => ((FileInfo) x.OriginalArguments[0]).Name.Contains(@"chunks.vpp_pc"))
+                .Where(x => ((FileInfo) x.OriginalArguments[0]).Name.Contains(@"table.vpp_pc"))
                 //.OrderByDescending(x => ((FileInfo) x.OriginalArguments[0]).Length)
                 //.Skip(10)
             ;
@@ -29,6 +31,11 @@ public static class TestUtils
     public static IEnumerable<TestCaseData> AllFiles()
     {
         return AllVppFilesOnce.Concat(AllExtractedOnce);
+    }
+
+    public static IEnumerable<TestCaseData> AllModInfos()
+    {
+        return AllModInfosOnce;
     }
 
     public const string DefaultPath = @"C:\Program Files (x86)\Steam\steamapps\common\Red Faction Guerrilla Re-MARS-tered";
@@ -48,6 +55,8 @@ public static class TestUtils
 
     private static List<TestCaseData> AllExtractedStr2Once = InitAllExtractedStr2Once();
 
+    private static List<TestCaseData> AllModInfosOnce = InitAllModInfoOnce();
+
 
     private static List<TestCaseData> InitAllExtractedOnce()
     {
@@ -64,6 +73,16 @@ public static class TestUtils
         return UnpackDir.EnumerateFiles("*.str2_pc", SearchOption.AllDirectories)
             .OrderBy(x => x.FullName)
             .Select(x => new TestCaseData(x).SetArgDisplayNames(x.FullName.Substring(UnpackDir.FullName.Length + 1)))
+            .ToList();
+    }
+
+    private static List<TestCaseData> InitAllModInfoOnce()
+    {
+        var modsDir = new DirectoryInfo(Path.Combine(DefaultPath, "mods"));
+        return  modsDir.EnumerateFiles("*", SearchOption.AllDirectories)
+            .Where(x => x.Name.ToLower() == "modinfo.xml")
+            .OrderBy(x => x.FullName)
+            .Select(x => new TestCaseData(x).SetArgDisplayNames(x.FullName.Substring(modsDir.FullName.Length + 1)))
             .ToList();
     }
 
@@ -96,5 +115,13 @@ public static class TestUtils
         var hashValue = sha.ComputeHash(stream);
         var hash = BitConverter.ToString(hashValue).Replace("-", "");
         return hash;
+    }
+
+    public static void PrintJson(object value)
+    {
+        // STJ does not support polymorphic serialization!
+        //var json = JsonSerializer.Serialize(value, new JsonSerializerOptions(){WriteIndented = true});
+        var json = JsonConvert.SerializeObject(value, Formatting.Indented);
+        Console.WriteLine(json);
     }
 }

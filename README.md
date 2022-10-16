@@ -41,6 +41,7 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 A lot of functionality is not implemented yet!
 
+* need a good UI solution for mod management: mods can have settings but it's unknown until they are downloaded and unpacked
 * version or build date in window header
 * button to report current state, collect log and probably list files/hashes
 * sanity check for state management, eg when resetting to vanilla
@@ -57,6 +58,7 @@ A lot of functionality is not implemented yet!
   * ???
 * Check discord for feature requests
 * Better logging: now it's a mess of important stuff, trash and bad-formatted information
+* rickroll
 
 ## Tech info
 

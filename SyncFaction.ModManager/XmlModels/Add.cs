@@ -1,0 +1,1 @@
+namespace SyncFaction.ModManager.XmlModels;

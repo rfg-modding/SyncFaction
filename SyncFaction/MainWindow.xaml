@@ -46,7 +46,7 @@
                 <CheckBox x:Name="devMode" VerticalAlignment="Bottom" Checked="devMode_Checked" Unchecked="devMode_Checked" />
             </WrapPanel>
         </StackPanel>
-        <Button x:Name="connect" Grid.Column="3" Content="Connect" HorizontalAlignment="Center" Grid.Row="3" VerticalAlignment="Center" MinWidth="100" Click="connect_Click"/>
+        <Button x:Name="connect" Grid.Column="3" Content="Connect" HorizontalAlignment="Center" Grid.Row="4" VerticalAlignment="Center" MinWidth="100" Click="connect_Click"/>
         <mdxam:MarkdownScrollViewer xml:space="preserve" x:Name="text" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="0" Margin="10,10,10,10">
 		# sample title
 		* document1
