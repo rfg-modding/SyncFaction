@@ -22,6 +22,7 @@
     </ItemGroup>
 
 	<ItemGroup>
+      <PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
       <PackageReference Include="MdXaml" Version="1.15.0" />
       <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
     </ItemGroup>
@@ -33,5 +34,11 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\SyncFaction.Core\SyncFaction.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="Newtonsoft.Json">
+	    <HintPath>..\..\..\..\Users\rast\.nuget\packages\newtonsoft.json\9.0.1\lib\netstandard1.0\Newtonsoft.Json.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 </Project>
