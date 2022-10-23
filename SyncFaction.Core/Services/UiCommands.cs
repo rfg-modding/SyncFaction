@@ -43,9 +43,47 @@ public class UiCommands
             return true;
         }
 
+        // add local mods to list unconditionally
+        AddLocalMods(storage);
+
+
+        if (stateProvider.State.DevMode)
+        {
+            log.LogWarning($"Skipped reading mods and news from FactionFiles because DevMode is enabled");
+            return true;
+        }
+
         // populate mod list
-        await Connect(token);
+        await Connect(storage, token);
         return true;
+    }
+
+    private void AddLocalMods(IStorage storage)
+    {
+        items.Add(new SeparatorItem("▷ Local Mods ◁"));
+        List<IMod> mods = new ();
+        foreach (var dir in storage.App.EnumerateDirectories())
+        {
+            if (dir.Name.StartsWith("."))
+            {
+                continue;
+            }
+
+            if (dir.Name.StartsWith("Mod_") && dir.Name.Substring(4).All(char.IsDigit))
+            {
+                continue;
+            }
+
+            var mod = new LocalMod()
+            {
+                Name = dir.Name,
+                Size = 0,
+                DownloadUrl = null,
+                ImageUrl = null
+            };
+            mods.Add(mod);
+        }
+        items.AddRange(mods);
     }
 
     public async Task ApplySelectedAndRun(IStorage storage, IMod? mod, CancellationToken token)
@@ -102,6 +140,11 @@ public class UiCommands
         log.LogInformation("Reading current state...");
         stateProvider.State = storage.LoadState() ?? new State();
         log.LogInformation($"Installed community patch and updates: **{stateProvider.State.GetHumanReadableCommunityVersion()}**");
+        if (stateProvider.State.DevMode)
+        {
+            log.LogWarning($"Skipped online update check because DevMode is enabled");
+            return;
+        }
         patchId = await ffClient.GetCommunityPatchId(token);
         updateIds = await ffClient.GetCommunityUpdateIds(token);
         if (stateProvider.State.CommunityPatch != patchId || !stateProvider.State.CommunityUpdates.SequenceEqual(updateIds))
@@ -149,10 +192,12 @@ Changelogs and info:
         }
     }
 
-    public async Task Connect(CancellationToken token)
+    public async Task Connect(IStorage storage, CancellationToken token)
     {
         log.LogDebug($"Downloading map lists from FactionFiles...");
         items.Clear();
+
+        AddLocalMods(storage);
 
         // upd list
         await AddNonEmptyCategoryItems(Category.MapPacks, "▷ Map Packs ◁", token);
@@ -196,6 +241,30 @@ Changelogs and info:
 
     public async Task<bool> UpdateCommunityPatch(IStorage storage, CancellationToken token)
     {
+        if (!newCommunityVersion || patchId == 0 || updateIds == null)
+        {
+            patchId = await ffClient.GetCommunityPatchId(token);
+            updateIds = await ffClient.GetCommunityUpdateIds(token);
+            if (stateProvider.State.CommunityPatch != patchId || !stateProvider.State.CommunityUpdates.SequenceEqual(updateIds))
+            {
+                log.LogInformation($"* [Community patch base (id {patchId})]({FormatUrl(patchId)})");
+                var i = 1;
+                foreach (var update in updateIds)
+                {
+                    log.LogInformation($"* [Community patch update {i} (id {update})]({FormatUrl(update)})");
+                    i++;
+                }
+                newCommunityVersion = true;
+            }
+            else
+            {
+                newCommunityVersion = false;
+            }
+
+            string FormatUrl(long x) => string.Format(Constants.BrowserUrlTemplate, x);
+        }
+
+        // try again
         if (!newCommunityVersion || patchId == 0 || updateIds == null)
         {
             log.LogError($"Install community patch failed. please contact developer. `newCommunityVersion=[{newCommunityVersion}], patch=[{patchId}], update count=[{updateIds?.Count}]`");
@@ -262,7 +331,10 @@ SyncFaction can't work until you restore all files to their default state.
     private async Task<bool> InstallMod(IStorage storage, IMod mod, CancellationToken token)
     {
         var modDir = storage.GetModDir(mod);
-        await ffClient.DownloadAndUnpackMod(modDir, mod, token);
+        if (mod is not LocalMod)
+        {
+            await ffClient.DownloadAndUnpackMod(modDir, mod, token);
+        }
 
         var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
         log.LogDebug($"Mod contents: {files}");

@@ -69,7 +69,8 @@ public partial class MainWindow : Window
         {
             remoteList.UnselectAll();
             render.Clear();
-            await Task.Run(async () => { await uiCommands.Connect(token); }, token);
+            var storage = new Storage(directory.Text, fileSystem);
+            await Task.Run(async () => { await uiCommands.Connect(storage, token); }, token);
             remoteList.Items.Clear();
             foreach (var x in uiCommands.items)
             {
@@ -130,7 +131,7 @@ public partial class MainWindow : Window
                 // same as "connect" action: get mod list and news page
                 remoteList.UnselectAll();
                 render.Clear();
-                await Task.Run(async () => { await uiCommands.Connect(token); }, token);
+                await Task.Run(async () => { await uiCommands.Connect(filesystem, token); }, token);
                 remoteList.Items.Clear();
                 foreach (var x in uiCommands.items)
                 {

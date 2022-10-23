@@ -100,6 +100,12 @@ public class FfClient
         log.LogDebug($"Downloading mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
         if (modDir.Exists)
         {
+            if (modDir.EnumerateFiles().Any(x => !x.Name.StartsWith(".mod")))
+            {
+                // skip DL and unpack if something is upnacked. this does not account for previous failures but will be here until next version
+                return true;
+            }
+
             // clear directory except for original downloaded file
             foreach (var file in modDir.EnumerateFiles().Where(x => !x.Name.StartsWith(".mod")))
             {
