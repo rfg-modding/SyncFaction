@@ -34,6 +34,7 @@ If app does not start and leads you to Microsoft downloads page, you need the [x
 
 ![dotnet desktop runtime](https://user-images.githubusercontent.com/1562341/204090216-2d163e9c-b60e-4e45-88e2-bcd4f21aab69.png)
 
+Game and app related issues:
 
 * Use Steam to check integrity of game files
 * Check if game location is valid
