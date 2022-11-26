@@ -30,6 +30,11 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 ## Getting help
 
+If app does not start and leads you to Microsoft downloads page, you need the [x64 .NET 6.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/6.0/runtime) **FOR DESKTOP APPS**
+
+![dotnet desktop runtime](https://user-images.githubusercontent.com/1562341/204090216-2d163e9c-b60e-4e45-88e2-bcd4f21aab69.png)
+
+
 * Use Steam to check integrity of game files
 * Check if game location is valid
 * See if new versions of SyncFaction are available on Github
