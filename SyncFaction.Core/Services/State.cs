@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SyncFaction.Core.Services.FactionFiles;
+namespace SyncFaction.Core.Services;
 
 public class State
 {

@@ -11,5 +11,6 @@ public enum Category
     ModsScriptLoader=29,
     ModsStandalone=4,
     Patches=11,
-    Tools=3
+    Tools=3,
+    Local=-1
 }

@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -57,23 +60,6 @@ public partial class MainWindow : Window
     }
 
     private ViewModel ViewModel => (ViewModel) DataContext;
-
-
-    private void Refresh_OnClick(object sender, RoutedEventArgs e)
-    {
-        ViewModel.ShowJsonCommand.Execute(null);
-
-        var token = JToken.FromObject(ViewModel);
-        var children = new List<JToken>();
-        if (token != null)
-        {
-            children.Add(token);
-        }
-
-        Tree.ItemsSource = null;
-        Tree.Items.Clear();
-        Tree.ItemsSource = children;
-    }
 }
 
 /// <summary>
@@ -101,24 +87,85 @@ public sealed class MethodToValueConverter : IValueConverter
 [INotifyPropertyChanged]
 public partial class ViewModel
 {
+    // TODO: carefully load state from text file as fields may be missing (from older versions)
+
     public ViewModel()
     {
-        ShowJsonCommand = new RelayCommand(ShowJson);
+        this.PropertyChanged += (sender, args) =>
+        {
+            if (args.PropertyName == nameof(JsonView))
+            {
+                // avoid infinite loop
+                return;
+            }
+
+            // update json view for convenience
+            OnPropertyChanged(nameof(JsonView));
+        };
+
+
+        var mods = new List<IMod>
+        {
+            new Mod()
+            {
+                Category = Category.ModsRemaster,
+                Name = "tool 1"
+            },
+            new Mod()
+            {
+                Category = Category.ModsRemaster,
+                Name = "tool 2"
+            },
+            new Mod()
+            {
+                Category = Category.MapPacks,
+                Name = "mappack 3"
+            },
+            new Mod()
+            {
+                Category = Category.MapPacks,
+                Name = "mappack 1"
+            },
+            new Mod()
+            {
+                Category = Category.MapPacks,
+                Name = "mappack 2"
+            },
+            new Mod()
+            {
+                Category = Category.Local,
+                Name = "local 1"
+            },
+        };
+        OnlineMods = new ObservableCollection<IMod>(mods);
     }
 
-    [ObservableProperty] public string gameDirectory;
-    public State State { get; set; } = new State();
-    public List<CategoryViewModel> Categories { get; set; } = new();
-    [ObservableProperty] public string json;
+    [ObservableProperty] private string gameDirectory = string.Empty;
 
-    public ICommand ShowJsonCommand { get; }
+    [ObservableProperty] private bool devMode = false;
 
-    private void ShowJson()
+    [ObservableProperty] private bool mockMode = false; // used only for testing
+
+    [ObservableProperty] private bool? isGog = false;
+
+    [ObservableProperty] private bool? isVerified = false;
+
+    [ObservableProperty] private long communityPatch = 0;
+
+    public ObservableCollection<long> CommunityUpdates { get; } = new();
+
+    //public ReadOnlyObservableGroupedCollection<string, IMod> OnlineMods { get; } = new();
+    public ObservableCollection<IMod> OnlineMods { get; }
+
+    [JsonIgnore]
+    public string JsonView => JsonConvert.SerializeObject(this, Formatting.Indented);
+
+    [RelayCommand]
+    private void ClickMe()
     {
-        Json = null;
-        Json = JsonConvert.SerializeObject(this, Formatting.Indented);
     }
 }
+
 
 public class CategoryViewModel
 {
