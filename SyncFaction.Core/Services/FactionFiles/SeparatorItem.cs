@@ -18,7 +18,7 @@ public class SeparatorItem : IMod
     public string DownloadUrl { get; }
     public DateTime CreatedAt { get; }
     public string Markdown { get; }
-    public Category Category { get; init; }
+    public Category Category { get; set; }
 
     public override string ToString() => value;
 }

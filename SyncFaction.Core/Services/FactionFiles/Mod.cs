@@ -14,7 +14,7 @@ public class Mod : IMod
     public long UploadTime { get; init; }
     public long DownloadCount { get; init; }
     public bool StaffFeatured { get; init; }
-    public Category Category { get; init; }
+    public Category Category { get; set; }
 
     public string? ImageUrl { get; set; }
 

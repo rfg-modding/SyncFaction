@@ -77,11 +77,10 @@
                 <Button x:Name="restore" Content="Restore game files" MinWidth="150" Margin="10,0,10,0" Height="20" Click="restore_Click"/>
                 <Button x:Name="restore_vanilla" Content="Restore to vanilla" MinWidth="150" Margin="10,0,10,0" Height="20" Click="restore_vanilla_Click" Visibility="Collapsed"/>
             </StackPanel>
-
-
         </StackPanel>
         <Label Content="Game directory" Grid.Column="1" HorizontalAlignment="Center" MinWidth="100" VerticalAlignment="Center" Grid.Row="2" VerticalContentAlignment="Top" HorizontalContentAlignment="Left"/>
-        <TextBox x:Name="directory" TextWrapping="NoWrap" Text="placeholder" HorizontalAlignment="Stretch" VerticalAlignment="Center" Grid.Row="2" Grid.Column="2" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="10,10,10,10" Padding="0,5,0,5" HorizontalScrollBarVisibility="Hidden" IsEnabled="False" />
+        <TextBox x:Name="directory" TextWrapping="NoWrap" Text="placeholder" HorizontalAlignment="Stretch"
+                 VerticalAlignment="Center" Grid.Row="2" Grid.Column="2" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="10,10,10,10" Padding="0,5,0,5" HorizontalScrollBarVisibility="Hidden" IsEnabled="False" />
         <Label Content="To avoid manually locating game every time, put app .exe inside game dir and run from there" Background="Gold" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" MinWidth="100" VerticalAlignment="Center" Grid.Row="3" VerticalContentAlignment="Top" HorizontalContentAlignment="Left"/>
         <StackPanel Orientation="Horizontal" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="1" Height="40" Grid.ColumnSpan="2">
             <TextBlock Margin="10,10,10,10">▷&#160;Join&#160;<Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://discord.gg/factionfiles">FactionFiles Discord</Hyperlink></TextBlock>
