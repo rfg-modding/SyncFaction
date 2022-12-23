@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 
@@ -78,7 +79,7 @@ public class Tests
         ILogger<FfClient> log = new NullLogger<FfClient>();
         var httpClient = new HttpClient();
         var fs = new FileSystem();
-        var client = new FfClient(new StateProvider(), httpClient, fs, log);
+        var client = new FfClient(httpClient, Mock.Of< IStateProvider>(), fs, log);
         var dstFile = fs.FileInfo.FromFileName("out.bin");
         dstFile.Delete();
         var url = "https://www.factionfiles.com/ffdownload.php?id=5843";

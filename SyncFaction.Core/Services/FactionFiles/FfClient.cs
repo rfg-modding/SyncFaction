@@ -9,32 +9,39 @@ using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using SyncFaction.Core.Data;
+using SyncFaction.Core.Services.Files;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
+public interface IStateProvider
+{
+    public State State { get; }
+    public bool Initialized { get; }
+}
+
 public class FfClient
 {
-    private readonly StateProvider stateProvider;
     private readonly HttpClient client;
+    private readonly IStateProvider stateProvider;
     private readonly IFileSystem fileSystem;
     private readonly ILogger log;
 
-    public FfClient(StateProvider stateProvider, HttpClient client, IFileSystem fileSystem, ILogger<FfClient> log)
+    public FfClient(HttpClient client, IStateProvider stateProvider, IFileSystem fileSystem, ILogger<FfClient> log)
     {
-        this.stateProvider = stateProvider;
         this.client = client;
+        this.stateProvider = stateProvider;
         this.fileSystem = fileSystem;
         this.log = log;
     }
 
-    public async Task<List<Mod>> GetMods(Category category, CancellationToken token)
+    public async Task<IReadOnlyList<IMod>> GetMods(Category category, IAppStorage appStorage, CancellationToken token)
     {
-        if (stateProvider.State.MockMode && category is Category.ModsStandalone)
+        if (stateProvider.State.MockMode is true && category is Category.ModsStandalone)
         {
             // use fake mod info for testing until community patch is uploaded to FF
-            return new List<Mod>()
+            return new List<Mod>
             {
-                new Mod()
+                new()
                 {
                     Id = 666,
                     Size = 108996431,
@@ -42,6 +49,13 @@ public class FfClient
                 }
             };
         }
+
+        if (category is Category.Local)
+        {
+            // this does not belong here really, but is very convenient to parallelize calls
+            return GetLocalMods(appStorage);
+        }
+
         // NOTE: pagination currently is not implemented, everything is returned on first page
         log.LogDebug($"Reading FactionFiles category: {category}");
         var builder = new UriBuilder(Constants.ApiUrl);
@@ -64,6 +78,7 @@ public class FfClient
 
         foreach (var item in data.Results.Values)
         {
+            item.Category = category;
             item.DescriptionMd = BbCodeToMarkdown(item.Description);
 
             if (string.IsNullOrEmpty(item.ImageThumb4By3Url))
@@ -79,6 +94,36 @@ public class FfClient
         }
 
         return data.Results.Values.OrderByDescending(x => x.CreatedAt).ToList();
+    }
+
+    private List<LocalMod> GetLocalMods(IAppStorage storage)
+    {
+        List<LocalMod> mods = new ();
+        foreach (var dir in storage.App.EnumerateDirectories())
+        {
+            if (dir.Name.StartsWith("."))
+            {
+                // skip unix-hidden files
+                continue;
+            }
+
+            if (dir.Name.StartsWith("Mod_") && dir.Name.Substring(4).All(char.IsDigit))
+            {
+                // skip downloaded mods
+                continue;
+            }
+
+            var mod = new LocalMod()
+            {
+                Name = dir.Name,
+                Size = 0,
+                DownloadUrl = null,
+                ImageUrl = null,
+            };
+            mods.Add(mod);
+        }
+
+        return mods;
     }
 
     private CategoryPage DeserializeData(Stream content)
@@ -146,7 +191,7 @@ public class FfClient
     public async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, string modDownloadUrl, CancellationToken token)
     {
         log.LogInformation("Downloading `{url}`", modDownloadUrl);
-        if (stateProvider.State.MockMode && dstFile.Exists)
+        if (stateProvider.State.MockMode is true && dstFile.Exists)
         {
             // allow replacing with any other file
             return true;
@@ -257,7 +302,7 @@ public class FfClient
     public async Task<long> GetCommunityPatchId(CancellationToken token)
     {
         long? id;
-        if (stateProvider.State.MockMode)
+        if (stateProvider.State.MockMode is true)
         {
             // use fake mod id for testing until community patch is uploaded to FF
             id = 666;

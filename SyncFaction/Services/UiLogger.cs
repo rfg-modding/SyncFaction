@@ -2,17 +2,17 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Services;
-using SyncFaction.Services;
+using SyncFaction.Core.Services.FactionFiles;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 public class UiLogger : ILogger
 {
     private readonly MarkdownRender render;
-    private readonly StateProvider stateProvider;
+    private readonly IStateProvider stateProvider;
     private readonly string category;
 
-    public UiLogger(MarkdownRender render, StateProvider stateProvider, string category)
+    public UiLogger(MarkdownRender render, IStateProvider stateProvider, string category)
     {
         this.render = render;
         this.stateProvider = stateProvider;
@@ -21,12 +21,15 @@ public class UiLogger : ILogger
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        if (!stateProvider.State.DevMode && logLevel is LogLevel.Debug or LogLevel.Trace)
+        // TODO get rid of this ugly hack somehow
+        var appState = stateProvider.Initialized ? stateProvider.State : new State();
+
+        if (appState.DevMode is not true && logLevel is LogLevel.Debug or LogLevel.Trace)
         {
             return;
         }
 
-        if (!category.StartsWith("SyncFaction") && !stateProvider.State.DevMode)
+        if (!category.StartsWith("SyncFaction") && appState.DevMode is not true)
         {
             return;
         }
@@ -41,7 +44,7 @@ public class UiLogger : ILogger
 
         if (eventId.Name == "clear")
         {
-            if (stateProvider.State.DevMode)
+            if (appState.DevMode is true)
             {
                 render.Append("---");
             }

@@ -9,7 +9,7 @@ using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Core.Services.Files;
 
-public class AppStorage: IAppStorage{
+public class AppStorage: IAppStorage {
 
 	internal readonly IFileSystem fileSystem;
 
@@ -32,7 +32,7 @@ public class AppStorage: IAppStorage{
 
 	public IDirectoryInfo Data { get; }
 
-	public State? LoadState()
+	public State? LoadStateFile()
 	{
 		var file = new FileInfo(Path.Combine(App.FullName, Constants.StateFile));
 		if (!file.Exists)
@@ -44,7 +44,7 @@ public class AppStorage: IAppStorage{
 		return JsonSerializer.Deserialize<State>(content);
 	}
 
-	public void WriteState(State state)
+	public void WriteStateFile(State state)
 	{
 		var file = new FileInfo(Path.Combine(App.FullName, Constants.StateFile));
 		if (file.Exists)
@@ -77,27 +77,32 @@ public class AppStorage: IAppStorage{
 		return false;
 	}
 
-	public bool CheckFileHashes(bool isGog, ILogger log)
+
+    public bool CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token)
 	{
 		var files = isGog ? Hashes.Gog : Hashes.Steam;
 		var versionName = isGog ? nameof(Hashes.Gog) : nameof(Hashes.Steam);
-		foreach (var kv in files.OrderBy(x => x.Key))
-		{
-			//var file = new GameFile(this, kv.Key, fileSystem);
-			var path = Path.Combine(Game.FullName, kv.Key);
-			var fileInfo = fileSystem.FileInfo.FromFileName(path);
-			var expected = kv.Value;
-			var hash = fileInfo.Exists ? ComputeHash(fileInfo) : null;
-			var isVanilla = (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
-			if (!isVanilla)
-			{
-				log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
-				return false;
-			}
-		}
+        var result = Parallel.ForEach(files.OrderBy(x => x.Key), new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = threadCount
+        }, (kv, loopState) =>
+        {
+            //var file = new GameFile(this, kv.Key, fileSystem);
+            var path = Path.Combine(Game.FullName, kv.Key);
+            var fileInfo = fileSystem.FileInfo.FromFileName(path);
+            var expected = kv.Value;
+            var hash = fileInfo.Exists ? ComputeHash(fileInfo) : null;
+            var isVanilla = (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
+            if (!isVanilla)
+            {
+                log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
+                loopState.Stop();
+            }
+        });
 
-		return true;
-	}
+        return result.IsCompleted;
+    }
 
 	public static async Task<string> DetectGameLocation(ILogger log, CancellationToken token)
 	{

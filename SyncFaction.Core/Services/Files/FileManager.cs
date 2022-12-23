@@ -53,7 +53,7 @@ public class FileManager
     /// <summary>
     /// Applies community patch. Files are reset to vanilla first. Updates community backup.
     /// </summary>
-    public async Task<bool> InstallCommunityPatchBase(IGameStorage storage, Mod patch, CancellationToken token)
+    public async Task<bool> InstallCommunityPatchBase(IGameStorage storage, IMod patch, CancellationToken token)
     {
         // won't be needing this anymore
         storage.CommunityBak.Delete(true);
@@ -102,7 +102,7 @@ public class FileManager
     /// <summary>
     /// Applies community update on top of patch. Files are reset to community (if present) or vanilla state before installing. Updates community backup.
     /// </summary>
-    public async Task<bool> InstallCommunityUpdateIncremental(IGameStorage storage, List<Mod> pendingUpdates, CancellationToken token)
+    public async Task<bool> InstallCommunityUpdateIncremental(IGameStorage storage, List<IMod> pendingUpdates, CancellationToken token)
     {
         foreach (var pendingUpdate in pendingUpdates)
         {

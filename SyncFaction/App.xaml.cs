@@ -25,13 +25,14 @@ public partial class App : Application
     {
         services.AddHttpClient();
         services.AddSingleton<MainWindow>();
+        //services.AddSingleton<TestWindow>();
         services.AddSingleton<FileManager>();
-        services.AddSingleton<UiCommands>();
         services.AddSingleton<MarkdownRender>();
         services.AddSingleton<Markdown>();
         services.AddSingleton<FfClient>();
-        services.AddSingleton<StateProvider>();
+        services.AddSingleton<IStateProvider, StateProvider>();
         services.AddSingleton<ViewModel>();
+        services.AddSingleton<AppInitializer>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddLogging(x =>
         {

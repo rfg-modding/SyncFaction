@@ -541,7 +541,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd}, token);
+        var result = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
         result.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
@@ -598,7 +598,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd1}, token);
+        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
         result1.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
@@ -612,7 +612,7 @@ public class FileManagerTests
             Id = 33
         };
 
-        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd2}, token);
+        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd2}, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd2");
@@ -669,7 +669,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd1}, token);
+        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
         result1.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
@@ -740,7 +740,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd1}, token);
+        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
         result1.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
@@ -813,7 +813,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd1}, token);
+        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
         result1.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
@@ -841,7 +841,7 @@ public class FileManagerTests
             Id = 44
         };
 
-        var result3 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd2}, token);
+        var result3 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd2}, token);
         result3.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd2");
@@ -900,7 +900,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd1}, token);
+        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
         result1.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
@@ -987,7 +987,7 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd1}, token);
+        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
         result1.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
@@ -1251,7 +1251,7 @@ public class FileManagerTests
         {
             Id = 33
         };
-        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd}, token);
+        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
@@ -1327,7 +1327,7 @@ public class FileManagerTests
         {
             Id = 33
         };
-        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<Mod>(){upd}, token);
+        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");

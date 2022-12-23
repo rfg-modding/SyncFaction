@@ -1,0 +1,48 @@
+﻿<Window Name="TheTestWindow" x:Class="SyncFaction.TestWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:SyncFaction" xmlns:mdxam="clr-namespace:MdXaml;assembly=MdXaml" xmlns:jsonLinq="clr-namespace:Newtonsoft.Json.Linq;assembly=Newtonsoft.Json" xmlns:factionFiles="clr-namespace:SyncFaction.Core.Services.FactionFiles;assembly=SyncFaction.Core" xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=WindowsBase" xmlns:fa="http://schemas.fontawesome.io/icons/"
+        xmlns:converters="clr-namespace:SyncFaction.Converters"
+        xmlns:system="clr-namespace:System;assembly=System.Runtime"
+        ContentRendered="MainWindow_OnContentRendered"
+        mc:Ignorable="d" Title="SyncFaction" Height="450" MinHeight="450" Width="1000" MinWidth="1000" Icon="/icon.png" d:DataContext="{d:DesignInstance Type=local:Foo, IsDesignTimeCreatable=True}" d:DesignHeight="700">
+    <Window.Resources>
+        <DataTemplate x:Key="OnlineModTemplate" DataType="{x:Type system:String}">
+            <TextBlock HorizontalAlignment="Stretch" Background="Aqua" Text="{Binding .}" />
+            <!--<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Background="Black">
+
+                <TextBlock HorizontalAlignment="Right" Background="Fuchsia" Text="flags" />
+            </StackPanel>-->
+        </DataTemplate>
+        <Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </Window.Resources>
+    <StackPanel Orientation="Vertical">
+        <ListView Name="OnlineModList"
+                  ItemTemplate="{StaticResource OnlineModTemplate}"
+                  ItemsSource="{Binding Values}" SelectionMode="Multiple"
+                  Grid.IsSharedSizeScope="True"
+                  >
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Downloaded" Width="20">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel x:Name="First" Orientation="Horizontal">
+                                    <TextBlock>
+                                        ✓
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Name"
+                                    Width="NaN"
+                                    CellTemplate="{StaticResource OnlineModTemplate}" >
+
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <Button Click="ButtonBase_OnClick" >123</Button>
+    </StackPanel>
+
+</Window>

@@ -9,9 +9,9 @@ public interface IAppStorage
     IDirectoryInfo App { get; }
     IDirectoryInfo Game { get; }
     IDirectoryInfo Data { get; }
-    State? LoadState();
-    void WriteState(State state);
+    State? LoadStateFile();
+    void WriteStateFile(State state);
     string ComputeHash(IFileInfo file);
     bool InitAppDirectory();
-    bool CheckFileHashes(bool isGog, ILogger log);
+    bool CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token);
 }

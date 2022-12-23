@@ -29,5 +29,5 @@ public interface IGameStorage : IAppStorage
 
     void InitBakDirectories();
 
-    bool CheckGameFiles(ILogger log);
+    Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token);
 }

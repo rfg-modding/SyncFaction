@@ -2,6 +2,7 @@ namespace SyncFaction.Core.Services.FactionFiles;
 
 public interface IMod
 {
+    public long Id { get; init; }
     public string Name { get; }
     public long Size { get; }
     public string IdString { get; }

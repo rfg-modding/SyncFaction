@@ -1,19 +1,28 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
 
 namespace SyncFaction;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IViewAccessor
 {
     private readonly ViewModel viewModel;
     private readonly ILogger<MainWindow> log;
 
 
+
     public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log)
     {
         this.viewModel = viewModel;
+        this.viewModel.ViewAccessor = this;
         this.log = log;
 
         Title = SyncFaction.Extras.Title.Value;
@@ -29,6 +38,17 @@ public partial class MainWindow : Window
             log.LogError(e.Exception, "Unhandled exception!");
             e.Handled = true;
         };
+
+        CommandBindings.Add(new CommandBinding(
+            NavigationCommands.GoToPage,
+            (sender, e) =>
+            {
+                var proc = new Process();
+                proc.StartInfo.UseShellExecute = true;
+                proc.StartInfo.FileName = (string)e.Parameter;
+
+                proc.Start();
+            }));
     }
 
     /// <summary>
@@ -63,6 +83,13 @@ public partial class MainWindow : Window
 
     private void MainWindow_OnClosing(object? sender, CancelEventArgs e)
     {
-        viewModel.CancelCommand.Execute(null);
+        viewModel.CloseCommand.Execute(null);
     }
+
+    private void MainWindow_OnContentRendered(object? sender, EventArgs e)
+    {
+        viewModel.InitCommand.Execute(null);
+    }
+
+    public ListView OnlineModListView => OnlineModList;
 }

@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace SyncFaction;
+namespace SyncFaction.Converters;
 
 /// <summary>
 /// For json tree conversion

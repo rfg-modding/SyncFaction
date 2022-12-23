@@ -67,10 +67,15 @@ public class GameStorage : AppStorage, IGameStorage
         }
     }
 
-    public bool CheckGameFiles(ILogger log)
+    public Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token)
     {
         log.LogWarning($"Validating game contents. This is one-time thing, but going to take a while");
-        foreach (var kv in VanillaHashes.OrderBy(x => x.Key))
+        // descending name order places bigger files earlier and this gives better check times
+        var result = Parallel.ForEach(VanillaHashes.OrderByDescending(x => x.Key), new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = threadCount
+        }, (kv, loopState) =>
         {
             log.LogInformation($"+ *Checking* {kv.Key}");
             var file = new GameFile(this, kv.Key, fileSystem);
@@ -89,10 +94,10 @@ Then run SyncFaction again.
 
 *See you later miner!*
 ");
-                return false;
+                loopState.Stop();
             }
-        }
+        });
 
-        return true;
+        return Task.FromResult(result.IsCompleted);
     }
 }
