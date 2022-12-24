@@ -13,7 +13,7 @@ public class StateProvider : IStateProvider
 
     public void Init(Model model)
     {
-        getter = model.SaveToState;
+        getter = model.ToState;
         Initialized = true;
     }
 

@@ -38,7 +38,7 @@ public class AppInitializer
         var appStorage = model.GetAppStorage(fileSystem);
         log.LogInformation("Reading current state...");
         var stateFromFile = appStorage.LoadStateFile();
-        model.LoadFromState(stateFromFile);
+        model.FromState(stateFromFile);
         var firstLaunch = appStorage.InitAppDirectory();
         OnFirstLaunch(firstLaunch);
         var threadCount = model.GetThreadCount();

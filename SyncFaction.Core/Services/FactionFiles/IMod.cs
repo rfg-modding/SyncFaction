@@ -13,4 +13,5 @@ public interface IMod
     public DateTime CreatedAt { get; }
     public string Markdown { get; }
     public Category Category { get; set; }
+    public ModStatus Status { get; set; }
 }

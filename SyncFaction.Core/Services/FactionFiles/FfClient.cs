@@ -34,7 +34,7 @@ public class FfClient
         this.log = log;
     }
 
-    public async Task<IReadOnlyList<IMod>> GetMods(Category category, IAppStorage appStorage, CancellationToken token)
+    public async Task<IReadOnlyList<IMod>> GetMods(Category category, IGameStorage storage, CancellationToken token)
     {
         if (stateProvider.State.MockMode is true && category is Category.ModsStandalone)
         {
@@ -53,7 +53,7 @@ public class FfClient
         if (category is Category.Local)
         {
             // this does not belong here really, but is very convenient to parallelize calls
-            return GetLocalMods(appStorage);
+            return GetLocalMods(storage);
         }
 
         // NOTE: pagination currently is not implemented, everything is returned on first page
@@ -91,9 +91,23 @@ public class FfClient
             await using var stream = await image.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
             await using var f = File.Open(item.ImagePath, FileMode.Create);
             await stream.CopyToAsync(f, token);
+
+            item.Status = GetModStatus(item, storage);
         }
 
         return data.Results.Values.OrderByDescending(x => x.CreatedAt).ToList();
+    }
+
+    public ModStatus GetModStatus(Mod item, IGameStorage storage)
+    {
+        var modDir = storage.GetModDir(item);
+        var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        if (modDir.Exists && !incompleteDataFile.Exists)
+        {
+            return ModStatus.Ready;
+        }
+
+        return ModStatus.None;
     }
 
     private List<LocalMod> GetLocalMods(IAppStorage storage)
@@ -119,6 +133,7 @@ public class FfClient
                 Size = 0,
                 DownloadUrl = null,
                 ImageUrl = null,
+                Status = ModStatus.Ready
             };
             mods.Add(mod);
         }
@@ -149,6 +164,7 @@ public class FfClient
         {
             // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
             log.LogInformation("Found existing data, skip downloading and extraction");
+            mod.Status = ModStatus.Ready;
             return true;
         }
 
@@ -167,6 +183,7 @@ public class FfClient
         if (contentSize == null)
         {
             log.LogInformation("FF server did not return content size. Can not download mod!");
+            mod.Status = ModStatus.Failed;
             return false;
         }
 
@@ -175,16 +192,19 @@ public class FfClient
         var downloadResult = await DownloadWithResume(dstFile, contentSize.Value, mod.DownloadUrl, token);
         if (downloadResult == false)
         {
+            mod.Status = ModStatus.Failed;
             return false;
         }
 
         var extractResult = await ExtractArchive(dstFile, modDir, incompleteDataFile, token);
         if (extractResult == false)
         {
+            mod.Status = ModStatus.Failed;
             return false;
         }
 
         incompleteDataFile.Delete();
+        mod.Status = ModStatus.Ready;
         return true;
     }
 

@@ -19,7 +19,7 @@ public partial class Model
 
     [ObservableProperty] private string gameDirectory = string.Empty;
 
-    [ObservableProperty] private bool devMode = true;
+    [ObservableProperty] private bool devMode;
 
     [ObservableProperty] private bool mockMode;
 
@@ -51,7 +51,7 @@ public partial class Model
 
     public ObservableCollection<long> NewCommunityUpdates { get; } = new();
 
-    public void LoadFromState(State? state)
+    public void FromState(State? state)
     {
         state ??= new State();
         DevMode = state.DevMode ?? false;
@@ -68,7 +68,7 @@ public partial class Model
         }
     }
 
-    public State SaveToState() =>
+    public State ToState() =>
         new()
         {
             CommunityPatch = CommunityPatch,

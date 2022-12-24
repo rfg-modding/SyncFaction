@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -43,8 +45,8 @@ public partial class ViewModel
         this.appInitializer = appInitializer;
         this.fileSystem = fileSystem;
         this.fileManager = fileManager;
-        OnlineMods.Clear();
-        SelectedCount = 0;
+
+        SetDesignTimeDefaults(false);
     }
 
     /// <summary>
@@ -80,11 +82,30 @@ public partial class ViewModel
         BindingOperations.EnableCollectionSynchronization(Model.CommunityUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.NewCommunityUpdates, collectionLock);
 
-        // override design-time default to start app without dev panel
-        Model.DevMode = true;
-        OnlineMods.Add(new ModViewModel(new Mod() {Name = "test_mod_name", Category = Category.Local}, true, _ => { }));
-        OnlineMods.Add(new ModViewModel(new Mod() {Name = "selected mod", Category = Category.Local}, false, _ => { }){Selected = true});
-        SelectedCount = 1;
+        SetDesignTimeDefaults(true);
+    }
+
+    private void SetDesignTimeDefaults(bool isDesignTime)
+    {
+        if (isDesignTime != true)
+        {
+            Model.DevMode = false;
+            OnlineMods.Clear();
+            SelectedCount = 0;
+            Failure = false;
+        }
+        else
+        {
+            // design-time defaults
+            Model.DevMode = true;
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "just a mod", Category = Category.Local}));
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "selected mod", Category = Category.Local}) {Selected = true});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "ready (dl+unp) mod", Category = Category.Local}) {Status = ModStatus.Ready});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod in progress", Category = Category.Local}) {Status = ModStatus.InProgress});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "failed mod", Category = Category.Local}) {Status = ModStatus.Failed});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod with a ridiculously long name so nobody will read it entirely unless they really want to", Category = Category.Local}));
+            SelectedCount = 1;
+        }
     }
 
     private readonly object collectionLock = new();
@@ -128,6 +149,9 @@ public partial class ViewModel
     private bool interactive = true;
 
     [ObservableProperty]
+    private bool failure = true;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UpdateNotRequired))]
     private bool updateRequired = false;
 
@@ -147,7 +171,7 @@ public partial class ViewModel
     /// <summary>
     /// UI-bound collection displayed as ListView
     /// </summary>
-    public ObservableCollection<ModViewModel> OnlineMods { get; } = new();
+    public ObservableCollection<OnlineModViewModel> OnlineMods { get; } = new();
 
     /// <summary>
     /// Commands to disable while running something
@@ -217,6 +241,18 @@ public partial class ViewModel
         await ExecuteAsyncSafeWithUiLock("Fetching FactionFiles data", RunInternal, token);
     }
 
+    [RelayCommand]
+    private async Task OpenDir(object x, CancellationToken token)
+    {
+        var arg = x as string ?? string.Empty;
+        var destination = Path.Combine(Model.GameDirectory, arg);
+        Process.Start(new ProcessStartInfo()
+        {
+            UseShellExecute = true,
+            FileName = destination
+        });
+    }
+
     private Task<bool> RunInternal(CancellationToken token)
     {
         if (Model.IsGog)
@@ -252,8 +288,8 @@ public partial class ViewModel
     [RelayCommand()]
     private async Task Display(object x, CancellationToken token)
     {
-        var mvm = (ModViewModel)x;
-        await ExecuteAsyncSafe($"Fetching info for {mvm.Mod.Id}", async t => await DisplayInternal(mvm, t), token);
+        var mvm = (OnlineModViewModel)x;
+        await ExecuteAsyncSafeWithUiLock($"Fetching info for {mvm.Mod.Id}", async t => await DisplayInternal(mvm, t), token, lockUi:false);
     }
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
@@ -281,23 +317,27 @@ public partial class ViewModel
             return;
         }
         var appStorage = new AppStorage(Model.GameDirectory, fileSystem);
-        appStorage.WriteStateFile(Model.SaveToState());
+        appStorage.WriteStateFile(Model.ToState());
     }
 
     /// <summary>
     /// Lock UI, filter duplicate button clicks, display exceptions. Return true if action succeeded
     /// </summary>
-    private async Task ExecuteAsyncSafeWithUiLock(string description, Func<CancellationToken, Task<bool>> action, CancellationToken token)
+    private async Task ExecuteAsyncSafeWithUiLock(string description, Func<CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi=true)
     {
-        if (!Interactive)
+        if (lockUi && !Interactive)
         {
-            log.LogWarning("Attempt to run command while not intercative, this should not happen normally");
+            log.LogWarning("Attempt to run UI-locking command while not intercative, this should not happen normally");
         }
 
-        // disables all clickable controls
-        Interactive = false;
-        CurrentOperation = description;
+        if (lockUi)
+        {
 
+            // disables all clickable controls
+            Interactive = false;
+        }
+
+        CurrentOperation = description;
         var success = false;
         try
         {
@@ -313,39 +353,19 @@ public partial class ViewModel
         }
         finally
         {
-            // if operation fails, we leave UI disabled
-            Interactive = success;
-            CurrentOperation = success ? string.Empty : $"FAILED: {CurrentOperation}";
-            // TODO: stop spinner and change icon to /!\
-        }
-    }
+            if (lockUi)
+            {
+                Interactive = true;
+            }
 
-    /// <summary>
-    /// Lock UI, filter duplicate button clicks, display exceptions. Return true if action succeeded
-    /// </summary>
-    private async Task ExecuteAsyncSafe(string description, Func<CancellationToken, Task<bool>> action, CancellationToken token)
-    {
-        try
-        {
-            // TODO what a mess with passing tokens...
-            await Task.Run(async () => await action(token), token);
-        }
-        catch (Exception ex)
-        {
-            log.LogError(ex, $"TODO better exception logging! \n\n{ex}");
-            //var exceptionText = string.Join("\n", ex.ToString().Split('\n').Select(x => $"`` {x} ``"));
-            //render.Append("---");
-            //render.Append(string.Format(Constants.ErrorFormat, description, exceptionText), false);
-        }
-        finally
-        {
-            CurrentOperation = string.Empty;
+            CurrentOperation = success ? string.Empty : $"FAILED: {CurrentOperation}";
+            Failure |= !success;  // stays forever until restart
         }
     }
 
     private async Task<bool> DownloadInternal(CancellationToken token)
     {
-        List<ModViewModel> mods;
+        List<OnlineModViewModel> mods;
         lock (collectionLock)
         {
             mods = OnlineMods.Where(x => x.Selected).ToList();
@@ -366,10 +386,13 @@ public partial class ViewModel
             MaxDegreeOfParallelism = Model.GetThreadCount()
         }, async (mvm, cancellationToken) =>
         {
+            // display "in progress" regardless of real mod status
+            mvm.Status = ModStatus.InProgress;
             var mod = mvm.Mod;
             var storage = Model.GetGameStorage(fileSystem);
             var modDir = storage.GetModDir(mod);
             var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
+            mvm.Status = mod.Status;  // status is changed by from ffClient
             if (!clientSuccess)
             {
                 log.LogError("Downloading mod failed");
@@ -383,9 +406,6 @@ public partial class ViewModel
         });
 
         return success;
-
-        // TODO work with "downloaded" status: initial set and update after DL
-        // TODO also detect unpacked and partial state
     }
 
     private async Task<bool> InitInternal(CancellationToken token)
@@ -435,6 +455,7 @@ public partial class ViewModel
 
     private async Task<bool> RefreshInternal(CancellationToken token)
     {
+        // always show mods from local directory
         var categories = new List<Category>()
         {
             Category.Local
@@ -445,6 +466,7 @@ public partial class ViewModel
         }
         else
         {
+            // add categories to query
             categories.Add(Category.MapPacks);
             categories.Add(Category.MapsStandalone);
             categories.Add(Category.MapsPatches);
@@ -472,10 +494,14 @@ public partial class ViewModel
             MaxDegreeOfParallelism = Model.GetThreadCount()
         }, async (category, cancellationToken) =>
         {
-            var mods = await ffClient.GetMods(category, Model.GetAppStorage(fileSystem), cancellationToken);
+            var mods = await ffClient.GetMods(category, Model.GetGameStorage(fileSystem), cancellationToken);
             AddModsWithViewResizeOnUiThread(mods);
         });
         return true;
+
+
+        // TODO work with "downloaded" status: initial set and update after DL
+        // TODO also detect unpacked and partial state
     }
 
     private async Task<bool> UpdateInternal(CancellationToken token)
@@ -517,7 +543,7 @@ Then run SyncFaction again.
                 Model.CommunityUpdates.Add(update.Id);
             }
         }
-        gameStorage.WriteStateFile(Model.SaveToState());
+        gameStorage.WriteStateFile(Model.ToState());
         log.LogWarning($"Successfully updated game to community patch: **{Model.GetHumanReadableCommunityVersion(collectionLock)}**");
         return await RefreshInternal(token);
     }
@@ -589,12 +615,12 @@ Then run SyncFaction again.
         return result;
     }
 
-    private Task<bool> DisplayInternal(ModViewModel modViewModel, CancellationToken token)
+    private Task<bool> DisplayInternal(OnlineModViewModel onlineModViewModel, CancellationToken token)
     {
         log.Clear();
-        if (modViewModel.Selected)
+        if (onlineModViewModel.Selected)
         {
-            log.LogInformation(new EventId(0, "log_false"), modViewModel.Mod.Markdown);
+            log.LogInformation(new EventId(0, "log_false"), onlineModViewModel.Mod.Markdown);
         }
 
         return Task.FromResult(true);
@@ -657,10 +683,11 @@ Changelogs and info:
             {
                 foreach (var mod in mods)
                 {
-                    var vm = new ModViewModel(mod, false, OnSelectedChanged)
+                    var vm = new OnlineModViewModel(mod)
                     {
                         Mod = mod,
                     };
+                    vm.PropertyChanged += ModDisplayAndUpdateCount;
                     OnlineMods.Add(vm);
                 }
 
@@ -680,9 +707,15 @@ Changelogs and info:
 
     }
 
-    private void OnSelectedChanged(ModViewModel target)
+    private void ModDisplayAndUpdateCount(object? sender, PropertyChangedEventArgs e)
     {
-        // ok for AsyncCommand, it's awaited inside Execute()
+        if (e.PropertyName != nameof(OnlineModViewModel.Selected))
+        {
+            return;
+        }
+
+        var target = sender as OnlineModViewModel;
+        // it's AsyncCommand, ok to call this way: awaited inside Execute()
         DisplayCommand.Execute(target);
         lock (collectionLock)
         {
@@ -694,7 +727,10 @@ Changelogs and info:
 /*
     install mod: fileManager.InstallModExclusive(storage, mod, token);
 
+
+
     restore:
+
     await Task.Run(async () => { await uiCommands.Restore(gameStorage, true, token); }, token);
     public async Task Restore(IGameStorage storage, bool toVanilla, CancellationToken token)
     {

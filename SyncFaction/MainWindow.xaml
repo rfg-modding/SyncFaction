@@ -3,7 +3,15 @@
         ContentRendered="MainWindow_OnContentRendered"
         mc:Ignorable="d" Title="SyncFaction" Height="450" MinHeight="450" Width="1000" MinWidth="1000" Icon="/icon.png" Closing="MainWindow_OnClosing" d:DataContext="{d:DesignInstance Type=local:ViewModel, IsDesignTimeCreatable=True}" d:DesignHeight="700">
     <Window.Resources>
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="150" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Margin" Value="10,10,10,10" />
+        </Style>
         <converters:MethodToValueConverter x:Key="MethodToValueConverter" />
+        <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
         <HierarchicalDataTemplate DataType="{x:Type jsonLinq:JArray}" ItemsSource="{Binding Converter={StaticResource MethodToValueConverter}, ConverterParameter='Children'}">
             <TextBlock Text="Array" />
         </HierarchicalDataTemplate>
@@ -33,11 +41,11 @@
                 <PropertyGroupDescription PropertyName="Category" >
                     <PropertyGroupDescription.GroupNames>
                         <!-- manually controlled categories, displayed even when empty, and in given order. no idea how to customize display text however. -->
+                        <factionFiles:Category>Local</factionFiles:Category>
                         <factionFiles:Category>MapPacks</factionFiles:Category>
                         <factionFiles:Category>MapsStandalone</factionFiles:Category>
                         <factionFiles:Category>MapsPatches</factionFiles:Category>
                         <factionFiles:Category>ModsRemaster</factionFiles:Category>
-                        <factionFiles:Category>Local</factionFiles:Category>
                     </PropertyGroupDescription.GroupNames>
                 </PropertyGroupDescription>
             </CollectionViewSource.GroupDescriptions>
@@ -60,7 +68,7 @@
                         <Expander IsExpanded="True">
                             <Expander.Header>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Text="{Binding Name, Converter={StaticResource CategoryConverter}}" />
                                     <TextBlock Text=" (" />
                                     <TextBlock Text="{Binding ItemCount}" />
                                     <TextBlock Text=")" />
@@ -102,7 +110,8 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:EmptyStringShowCollapseConverter x:Key="EmptyStrShowCollapse" />
         <converters:BoolShowHideConverter x:Key="BoolShowHide" />
-        <converters:BoolCheckEmptyConverter x:Key="BoolCheckEmpty" />
+        <converters:ModStatusConverter x:Key="ModStatusConverter" />
+
     </Window.Resources>
     <Grid x:Name="MainGrid"
           ShowGridLines="True"
@@ -144,7 +153,7 @@
             VerticalContentAlignment="Center"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"
-            Visibility="{Binding Model.DevMode, Converter={StaticResource BoolShowHide}}">
+            Visibility="{Binding Model.DevMode, Converter={StaticResource BoolShowHide}, ConverterParameter=true}">
             <TextBlock TextAlignment="Center" xml:space="preserve">Warranty
 void!</TextBlock>
         </Label>
@@ -154,10 +163,33 @@ void!</TextBlock>
             Width="25" Margin="10,5,10,5"
             HorizontalAlignment="Right"
             Icon="Gear" Spin="True"
-            SpinDuration="5" Visibility="{Binding NotInteractive, Converter={StaticResource BoolShowHide}}" />
+            SpinDuration="5" Visibility="{Binding Interactive, Converter={StaticResource BoolShowHide}, ConverterParameter=false}" />
+        <Grid
+            Name="Failure"
+            Visibility="{Binding Failure, Converter={StaticResource BoolShowHide}, ConverterParameter=true}"
+            Grid.Column="3" Grid.Row="3"
+            Width="25"
+            Height="25"
+            Margin="10,5,10,5"
+            HorizontalAlignment="Left">
+            <!--FontAwesome icons are just symbols with transparent background. Need a hack to fill background under ! sign-->
+            <fa:ImageAwesome
+                Icon="Exclamation"
+                Width="25"
+                Height="15"
+                Margin="0 2 0 0"
+                Foreground="Black"/>
+            <fa:ImageAwesome
+                Icon="ExclamationTriangle"
+                Foreground="#F59408"/>
+        </Grid>
+
         <Button Grid.Column="3" Grid.Row="3"
-                x:Name="Cancel" Content="Cancel" HorizontalContentAlignment="Center"
-                Width="100" Height="20" VerticalContentAlignment="Center" Margin="10,10,10,10" Command="{Binding CancelCommand}" />
+                x:Name="Cancel" Content="Cancel"
+                MinWidth="100"
+                Width="100"
+                Style="{StaticResource ButtonStyle}"
+                Command="{Binding CancelCommand}" />
 
         <Label Grid.Column="3" Grid.Row="2" Name="CurrentOperation"
                Content="{Binding CurrentOperation}"
@@ -167,25 +199,24 @@ void!</TextBlock>
                     Margin="3 0 0 0"
                     Name="Tabs" Template="{StaticResource TabControlTemplate}">
             <TabItem Header="Available">
-                <ListView Name="OnlineModList" ItemsSource="{Binding Source={StaticResource OnlineModViewSource}, Mode=OneWay}" SelectionMode="Multiple"
-                >
+                <ListView Name="OnlineModList" ItemsSource="{Binding Source={StaticResource OnlineModViewSource}, Mode=OneWay}" SelectionMode="Multiple">
                     <ListView.GroupStyle>
                         <GroupStyle ContainerStyle="{StaticResource ModListGroupCollapsibleHeader}" />
                     </ListView.GroupStyle>
                     <ListView.View>
                         <GridView ColumnHeaderContainerStyle="{StaticResource GridViewHeaderStyle}">
-                            <GridViewColumn Header="DL" Width="20">
+                            <GridViewColumn Header="" Width="20">
                                 <GridViewColumn.CellTemplate>
-                                    <DataTemplate DataType="{x:Type local:ModViewModel}">
+                                    <DataTemplate DataType="{x:Type local:OnlineModViewModel}">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Downloaded, Converter={StaticResource BoolCheckEmpty}}" />
+                                            <TextBlock Text="{Binding Status, Converter={StaticResource ModStatusConverter}}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Header="Name" Width="Auto">
                                 <GridViewColumn.CellTemplate>
-                                    <DataTemplate DataType="{x:Type local:ModViewModel}">
+                                    <DataTemplate DataType="{x:Type local:OnlineModViewModel}">
                                         <TextBlock HorizontalAlignment="Stretch" Text="{Binding Name}" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
@@ -200,18 +231,27 @@ void!</TextBlock>
         </TabControl>
         <Image Grid.Column="0" HorizontalAlignment="Center" Grid.RowSpan="3" Grid.Row="1" Stretch="Uniform" VerticalAlignment="Bottom" MaxHeight="135" Source="/lego.png" />
         <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="1" Height="60" Grid.ColumnSpan="2">
-            <Button x:Name="Run" Content="Run Game" HorizontalContentAlignment="Center" MinWidth="150" Height="20" VerticalContentAlignment="Center" Margin="10,10,10,10" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding RunCommand}" />
+            <Button x:Name="Run" Content="Run Game"
+                    Style="{StaticResource ButtonStyle}"
+                    Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding RunCommand}" />
             <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Button x:Name="Download" MinWidth="200" MinHeight="40" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding DownloadCommand}" >
+                <Button x:Name="Download"
+                        Style="{StaticResource ButtonStyle}"
+                        MinWidth="200" MinHeight="40" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding DownloadCommand}" >
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock>Download Selected (</TextBlock>
+                        <TextBlock>Download&#038;Unpack Selected (</TextBlock>
                         <TextBlock Text="{Binding SelectedCount}"></TextBlock>
                         <TextBlock>)</TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="Update" Content="Update to latest Community Patch" MinWidth="200" MinHeight="40" Visibility="{Binding UpdateRequired,Converter={StaticResource BoolToVis}}" Command="{Binding UpdateCommand}" />
+                <Button x:Name="Update" Content="Update to latest Community Patch"
+                        MinWidth="200" MinHeight="40"
+                        Style="{StaticResource ButtonStyle}"
+                        Visibility="{Binding UpdateRequired,Converter={StaticResource BoolToVis}}" Command="{Binding UpdateCommand}" />
             </StackPanel>
-                <Button x:Name="Refresh" Content="Refresh" MinWidth="150" Margin="10,0,10,0" Height="20" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding RefreshCommand}" />
+                <Button x:Name="Refresh" Content="Refresh"
+                        Style="{StaticResource ButtonStyle}"
+                        Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding RefreshCommand}" />
         </StackPanel>
         <Label VerticalAlignment="Center" Content="Game directory" Grid.Row="2" Grid.Column="1" />
 
@@ -278,7 +318,15 @@ void!</TextBlock>
                             <TextBlock>)</TextBlock>
                         </StackPanel>
                     </CheckBox>
-                <Button x:Name="Init" Content="Init" HorizontalContentAlignment="Center" MinWidth="150" Height="20" VerticalContentAlignment="Center" Margin="10,10,10,10" Command="{Binding InitCommand}" />
+                    <Button x:Name="Init" Content="Repeat app initialization"
+                            Style="{StaticResource ButtonStyle}"
+                            Command="{Binding InitCommand}" />
+                    <Label HorizontalAlignment="Center">Open directories:</Label>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="&lt;root&gt;" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Style="{StaticResource ButtonStyle}" Command="{Binding OpenDirCommand}" CommandParameter="" />
+                        <Button Content="/data" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Style="{StaticResource ButtonStyle}" Command="{Binding OpenDirCommand}" CommandParameter="data" />
+                        <Button Content="/.syncfaction" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Style="{StaticResource ButtonStyle}" Command="{Binding OpenDirCommand}" CommandParameter="data/.syncfaction" />
+                    </StackPanel>
 
             </StackPanel>
             <TextBox Grid.Row="0" Grid.Column="1" Background="LightGray"

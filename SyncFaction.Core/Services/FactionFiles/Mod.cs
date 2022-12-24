@@ -15,6 +15,7 @@ public class Mod : IMod
     public long DownloadCount { get; init; }
     public bool StaffFeatured { get; init; }
     public Category Category { get; set; }
+    public ModStatus Status { get; set; }
 
     public string? ImageUrl { get; set; }
 
@@ -57,5 +58,6 @@ public class LocalMod : IMod
 Local mod folder in `data/.syncfaction`";
 
     public Category Category { get; set; } = Category.Local;
+    public ModStatus Status { get; set; }
     public override string ToString() => $"{Name}";
 }
