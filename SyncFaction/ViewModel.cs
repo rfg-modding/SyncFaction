@@ -87,14 +87,7 @@ public partial class ViewModel
 
     private void SetDesignTimeDefaults(bool isDesignTime)
     {
-        if (isDesignTime != true)
-        {
-            Model.DevMode = false;
-            OnlineMods.Clear();
-            SelectedCount = 0;
-            Failure = false;
-        }
-        else
+        if (isDesignTime)
         {
             // design-time defaults
             Model.DevMode = true;
@@ -105,6 +98,15 @@ public partial class ViewModel
             OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "failed mod", Category = Category.Local}) {Status = ModStatus.Failed});
             OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod with a ridiculously long name so nobody will read it entirely unless they really want to", Category = Category.Local}));
             SelectedCount = 1;
+            GridLines = true;
+        }
+        else
+        {
+            Model.DevMode = false;
+            OnlineMods.Clear();
+            SelectedCount = 0;
+            Failure = false;
+            GridLines = false;
         }
     }
 
@@ -144,12 +146,23 @@ public partial class ViewModel
 
     [ObservableProperty] private string currentOperation = string.Empty;
 
+    // TODO save to state to remember last opened tab
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
+    private Tab selectedTab = Tab.Apply;
+
+    // TODO show this only when mod has modinfo.xml with inputs?
+    public bool DisplayModSettings => SelectedTab == Tab.Apply;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NotInteractive))]
     private bool interactive = true;
 
     [ObservableProperty]
     private bool failure = true;
+
+    [ObservableProperty]
+    private bool gridLines;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UpdateNotRequired))]
@@ -200,7 +213,8 @@ public partial class ViewModel
                     NotInteractive,
                     UpdateRequired,
                     UpdateNotRequired,
-
+                    SelectedCount,
+                    SelectedTab,
                 };
                 return JsonConvert.SerializeObject(tmp, Formatting.Indented);
             }

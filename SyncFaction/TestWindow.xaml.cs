@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -11,11 +10,6 @@ using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
 
 namespace SyncFaction;
-
-public class Foo
-{
-    public ObservableCollection<string> Values { get; } = new();
-}
 
 public partial class TestWindow : Window
 {

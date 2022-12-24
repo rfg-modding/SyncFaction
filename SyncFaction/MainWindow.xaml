@@ -11,6 +11,7 @@
             <Setter Property="Margin" Value="10,10,10,10" />
         </Style>
         <converters:MethodToValueConverter x:Key="MethodToValueConverter" />
+        <converters:BoolShowCollapseConverter x:Key="BoolShowCollapseConverter" />
         <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
         <HierarchicalDataTemplate DataType="{x:Type jsonLinq:JArray}" ItemsSource="{Binding Converter={StaticResource MethodToValueConverter}, ConverterParameter='Children'}">
             <TextBlock Text="Array" />
@@ -114,9 +115,7 @@
 
     </Window.Resources>
     <Grid x:Name="MainGrid"
-          ShowGridLines="True"
-          >
-        <!-- TODO remove ShowGridLines attribute -->
+          ShowGridLines="{Binding GridLines}">
         <Grid.RowDefinitions>
             <!-- resizable markdown -->
             <RowDefinition Height="*" />
@@ -139,12 +138,33 @@
             <!-- tabs lists -->
             <ColumnDefinition Width="40*" />
         </Grid.ColumnDefinitions>
-        <mdxam:MarkdownScrollViewer xml:space="preserve" x:Name="Markdown" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,0,5" VerticalScrollBarVisibility="Visible">
+        <Grid
+                   Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+        >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <mdxam:MarkdownScrollViewer
+                xml:space="preserve"
+                x:Name="Markdown"
+                Margin="5,0,0,0"
+                Grid.Column="0"
+                VerticalScrollBarVisibility="Visible">
 		# Markdown example
 		# Markdown example
 		# Markdown example
 		# Markdown example
 	    </mdxam:MarkdownScrollViewer>
+            <TextBox
+                Visibility="{Binding DisplayModSettings, Converter={StaticResource BoolShowCollapseConverter}}"
+                VerticalScrollBarVisibility="Visible"
+                Grid.Column="1"
+                MinWidth="300"
+                DockPanel.Dock="Right"
+                Background="LightGray">Mod settings will be here (if any)</TextBox>
+        </Grid>
+
         <Label
             Grid.Row="3" Grid.Column="2"
             Width="60"
@@ -197,8 +217,9 @@ void!</TextBlock>
 
         <TabControl Grid.Row="0" Grid.Column="3" Grid.RowSpan="2" Padding="0"
                     Margin="3 0 0 0"
+                    SelectedIndex="{Binding SelectedTab}"
                     Name="Tabs" Template="{StaticResource TabControlTemplate}">
-            <TabItem Header="Available">
+            <TabItem Header="Download">
                 <ListView Name="OnlineModList" ItemsSource="{Binding Source={StaticResource OnlineModViewSource}, Mode=OneWay}" SelectionMode="Multiple">
                     <ListView.GroupStyle>
                         <GroupStyle ContainerStyle="{StaticResource ModListGroupCollapsibleHeader}" />
@@ -225,8 +246,10 @@ void!</TextBlock>
                     </ListView.View>
                 </ListView>
             </TabItem>
-            <TabItem Header="Installed">
-                <Grid Background="#FFE5E5E5" />
+            <TabItem Header="Apply">
+                <Grid Background="#FFE5E5E5" >
+                    <TextBlock TextWrapping="Wrap">Mods ready to be applied will be listed here, along with their status and type</TextBlock>
+                </Grid>
             </TabItem>
         </TabControl>
         <Image Grid.Column="0" HorizontalAlignment="Center" Grid.RowSpan="3" Grid.Row="1" Stretch="Uniform" VerticalAlignment="Bottom" MaxHeight="135" Source="/lego.png" />
