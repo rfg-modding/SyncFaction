@@ -50,7 +50,7 @@ public class AppInitializer
     private async Task<bool> DetectGame(Model model, IViewAccessor accessor, CancellationToken token)
     {
         log.LogDebug("Looking for game install path...");
-        //model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
+        model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
         if (!string.IsNullOrWhiteSpace(model.GameDirectory) && !model.MockMode)
         {
             return true;
