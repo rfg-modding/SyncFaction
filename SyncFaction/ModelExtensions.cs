@@ -8,5 +8,5 @@ public static class ModelExtensions
 {
     public static AppStorage GetAppStorage(this Model model, IFileSystem fileSystem) => new AppStorage(model.GameDirectory, fileSystem);
 
-    public static GameStorage GetGameStorage(this Model model, IFileSystem fileSystem) => new GameStorage(model.GameDirectory, fileSystem, Hashes.Get(model.IsGog));
+    public static GameStorage GetGameStorage(this Model model, IFileSystem fileSystem) => new GameStorage(model.GameDirectory, fileSystem, Hashes.Get(model.IsGog.Value));
 }
