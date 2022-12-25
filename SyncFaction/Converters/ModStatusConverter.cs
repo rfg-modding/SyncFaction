@@ -12,13 +12,13 @@ public class ModStatusConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        var status = value as ModStatus?;
+        var status = value as OnlineModStatus?;
         return status switch
         {
-            ModStatus.None => string.Empty,
-            ModStatus.Ready => "✓",
-            ModStatus.InProgress => "⭮",
-            ModStatus.Failed => "⨯",
+            OnlineModStatus.None => string.Empty,
+            OnlineModStatus.Ready => "✓",
+            OnlineModStatus.InProgress => "⭮",
+            OnlineModStatus.Failed => "⨯",
             _ => string.Empty
         };
     }

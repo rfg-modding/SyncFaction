@@ -55,7 +55,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 22
         };
@@ -84,7 +84,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 22
         };
@@ -118,7 +118,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 22
         };
@@ -156,7 +156,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 22
         };
@@ -198,7 +198,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 22
         };
@@ -234,7 +234,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -276,14 +276,14 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 11
         };
         var modResult = await manager.InstallModExclusive(storage, mod, token);
         modResult.Should().BeTrue();
 
-        var mod2 = new Mod()
+        var mod2 = new Mod
         {
             Id = 22
         };
@@ -325,7 +325,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -338,7 +338,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var patch2 = new Mod()
+        var patch2 = new Mod
         {
             Id = 22
         };
@@ -377,7 +377,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -419,14 +419,14 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 11
         };
         var modResult = await manager.InstallModExclusive(storage, mod, token);
         modResult.Should().BeTrue();
 
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -468,7 +468,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -481,7 +481,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var patch2 = new Mod()
+        var patch2 = new Mod
         {
             Id = 22
         };
@@ -523,7 +523,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -536,7 +536,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd = new Mod()
+        var upd = new Mod
         {
             Id = 22
         };
@@ -580,7 +580,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -593,7 +593,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd1 = new Mod()
+        var upd1 = new Mod
         {
             Id = 22
         };
@@ -607,7 +607,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd2 = new Mod()
+        var upd2 = new Mod
         {
             Id = 33
         };
@@ -651,7 +651,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -664,7 +664,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd1 = new Mod()
+        var upd1 = new Mod
         {
             Id = 22
         };
@@ -678,7 +678,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var patch2 = new Mod()
+        var patch2 = new Mod
         {
             Id = 33
         };
@@ -722,7 +722,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -735,7 +735,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd1 = new Mod()
+        var upd1 = new Mod
         {
             Id = 22
         };
@@ -749,7 +749,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 33
         };
@@ -795,7 +795,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -808,7 +808,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd1 = new Mod()
+        var upd1 = new Mod
         {
             Id = 22
         };
@@ -822,7 +822,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 33
         };
@@ -836,7 +836,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd2 = new Mod()
+        var upd2 = new Mod
         {
             Id = 44
         };
@@ -882,7 +882,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -895,7 +895,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd1 = new Mod()
+        var upd1 = new Mod
         {
             Id = 22
         };
@@ -909,7 +909,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 33
         };
@@ -923,7 +923,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var patch2 = new Mod()
+        var patch2 = new Mod
         {
             Id = 44
         };
@@ -969,7 +969,7 @@ public class FileManagerTests
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
 
-        var patch1 = new Mod()
+        var patch1 = new Mod
         {
             Id = 11
         };
@@ -982,7 +982,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd1 = new Mod()
+        var upd1 = new Mod
         {
             Id = 22
         };
@@ -996,7 +996,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 33
         };
@@ -1010,7 +1010,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod2 = new Mod()
+        var mod2 = new Mod
         {
             Id = 44
         };
@@ -1050,7 +1050,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -1098,7 +1098,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -1160,7 +1160,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -1173,7 +1173,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 33
         };
@@ -1234,7 +1234,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -1247,7 +1247,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd = new Mod()
+        var upd = new Mod
         {
             Id = 33
         };
@@ -1310,7 +1310,7 @@ public class FileManagerTests
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes);
         var manager = new FileManager(fs, log);
-        var patch = new Mod()
+        var patch = new Mod
         {
             Id = 22
         };
@@ -1323,7 +1323,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var upd = new Mod()
+        var upd = new Mod
         {
             Id = 33
         };
@@ -1336,7 +1336,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
 
-        var mod = new Mod()
+        var mod = new Mod
         {
             Id = 44
         };

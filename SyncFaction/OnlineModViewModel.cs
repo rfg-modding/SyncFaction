@@ -4,8 +4,17 @@ using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction;
 
+public interface IModViewModel
+{
+    /// <inheritdoc OnlineModViewModelwModel.selected"/>
+    bool Selected { get; set; }
+
+    string Name { get; }
+    IMod Mod { get; set; }
+}
+
 [INotifyPropertyChanged]
-public partial class OnlineModViewModel
+public partial class OnlineModViewModel : IModViewModel
 {
     public OnlineModViewModel(IMod mod)
     {
@@ -18,7 +27,7 @@ public partial class OnlineModViewModel
     private bool selected;
 
     [ObservableProperty]
-    private ModStatus status;
+    private OnlineModStatus status;
 
     public string Name => Mod.Name;
 

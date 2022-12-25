@@ -35,7 +35,7 @@ public partial class MainWindow : Window, IViewAccessor
 
         Application.Current.DispatcherUnhandledException += (s, e) =>
         {
-            log.LogError(e.Exception, "Unhandled exception!");
+            log.LogError(e.Exception, $"Unhandled exception! {e.Exception}");
             e.Handled = true;
         };
 
@@ -92,4 +92,5 @@ public partial class MainWindow : Window, IViewAccessor
     }
 
     public ListView OnlineModListView => OnlineModList;
+    public ListView LocalModListView => LocalModList;
 }

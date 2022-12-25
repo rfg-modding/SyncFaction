@@ -37,17 +37,9 @@ public partial class Model
 
     public int ThreadCount => GetThreadCount();
 
-    public Model(PropertyChangedEventHandler? updateCallback)
-    {
-        // this enables live update of json view of ViewModel
-        PropertyChanged += updateCallback;
-    }
-
-    public Model()
-    {
-    }
-
     public ObservableCollection<long> CommunityUpdates { get; } = new();
+
+    public ObservableCollection<long> AppliedMods { get; } = new();
 
     public ObservableCollection<long> NewCommunityUpdates { get; } = new();
 
@@ -66,6 +58,12 @@ public partial class Model
         {
             CommunityUpdates.Add(update);
         }
+        AppliedMods.Clear();
+        var applied = state.AppliedMods ?? new List<long>();
+        foreach (var modId in applied)
+        {
+            AppliedMods.Add(modId);
+        }
     }
 
     public State ToState() =>
@@ -76,7 +74,9 @@ public partial class Model
             Multithreading = Multithreading,
             IsGog = IsGog,
             IsVerified = IsVerified,
-            CommunityUpdates = CommunityUpdates.ToList()
+            CommunityUpdates = CommunityUpdates.ToList(),
+            AppliedMods = AppliedMods.ToList(),
+
         };
 
     public string GetHumanReadableCommunityVersion(object collectionLock)

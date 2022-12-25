@@ -39,7 +39,7 @@ public class AppInitializer
         log.LogInformation("Reading current state...");
         var stateFromFile = appStorage.LoadStateFile();
         model.FromState(stateFromFile);
-        var firstLaunch = appStorage.InitAppDirectory();
+        var firstLaunch = appStorage.Init();
         OnFirstLaunch(firstLaunch);
         var threadCount = model.GetThreadCount();
         model.IsGog = await ValidateSteamOrGog(stateFromFile, appStorage, threadCount, token);

@@ -24,9 +24,12 @@ public class AppStorage: IAppStorage {
 
 		Data = Game.GetDirectories().Single(x => x.Name == "data");
 		App = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(Data.FullName, Constants.AppDirName));
+		Img = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.ImgDirName));
 	}
 
 	public IDirectoryInfo App { get; }
+
+    public IDirectoryInfo Img { get; }
 
 	public IDirectoryInfo Game { get; }
 
@@ -66,15 +69,21 @@ public class AppStorage: IAppStorage {
 		return hash;
 	}
 
-	public bool InitAppDirectory()
-	{
+	public bool Init()
+    {
+        bool createdAppDir = false;
 		if (!App.Exists)
 		{
 			App.Create();
-			return true;
-		}
+            createdAppDir = true;
+        }
 
-		return false;
+        if (!Img.Exists)
+        {
+            Img.Create();
+        }
+
+		return createdAppDir;
 	}
 
 

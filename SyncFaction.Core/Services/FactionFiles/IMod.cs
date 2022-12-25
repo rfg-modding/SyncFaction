@@ -2,7 +2,7 @@ namespace SyncFaction.Core.Services.FactionFiles;
 
 public interface IMod
 {
-    public long Id { get; init; }
+    public long Id { get; set; }
     public string Name { get; }
     public long Size { get; }
     public string IdString { get; }
@@ -13,5 +13,6 @@ public interface IMod
     public DateTime CreatedAt { get; }
     public string Markdown { get; }
     public Category Category { get; set; }
-    public ModStatus Status { get; set; }
+    public OnlineModStatus Status { get; set; }
+    public ModFlags Flags { get; set; }
 }

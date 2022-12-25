@@ -5,7 +5,10 @@ public static class Constants
     public const string BakDirName = ".bak_vanilla";
     public const string CommunityBakDirName = ".bak_community";
     public const string AppDirName = ".syncfaction";
+    public const string ImgDirName = ".img";
     public const string StateFile = "state.txt";
+    public const string ModDescriptionFile = ".mod.json";
+    public const string ModInfoFile = "modinfo.xml";
 
     /// <summary>
     /// This file is written to mod dir as a marker of ongoing downloading and unpacking.

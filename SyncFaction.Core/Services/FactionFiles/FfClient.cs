@@ -89,6 +89,7 @@ public class FfClient
 
             var image = await client.GetAsync(item.ImageThumb4By3Url, token);
             await using var stream = await image.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
+            item.ImagePath = Path.Combine(storage.Img.FullName, $"ff_{item.Id}.png");
             await using var f = File.Open(item.ImagePath, FileMode.Create);
             await stream.CopyToAsync(f, token);
 
@@ -98,16 +99,16 @@ public class FfClient
         return data.Results.Values.OrderByDescending(x => x.CreatedAt).ToList();
     }
 
-    public ModStatus GetModStatus(Mod item, IGameStorage storage)
+    public OnlineModStatus GetModStatus(Mod item, IGameStorage storage)
     {
         var modDir = storage.GetModDir(item);
         var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
         if (modDir.Exists && !incompleteDataFile.Exists)
         {
-            return ModStatus.Ready;
+            return OnlineModStatus.Ready;
         }
 
-        return ModStatus.None;
+        return OnlineModStatus.None;
     }
 
     private List<LocalMod> GetLocalMods(IAppStorage storage)
@@ -129,11 +130,12 @@ public class FfClient
 
             var mod = new LocalMod()
             {
+                Id = dir.Name.GetHashCode(),
                 Name = dir.Name,
                 Size = 0,
                 DownloadUrl = null,
                 ImageUrl = null,
-                Status = ModStatus.Ready
+                Status = OnlineModStatus.Ready
             };
             mods.Add(mod);
         }
@@ -158,20 +160,20 @@ public class FfClient
 
     public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
     {
-        log.LogDebug($"Installing mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
+        log.LogDebug($"Downloading mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
         var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
         if (modDir.Exists && !incompleteDataFile.Exists)
         {
             // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
+            await PersistDescription(modDir, mod);  // compatibility with older versions: try to save description anyway
             log.LogInformation("Found existing data, skip downloading and extraction");
-            mod.Status = ModStatus.Ready;
+            mod.Status = OnlineModStatus.Ready;
             return true;
         }
 
         modDir.Create();
-        incompleteDataFile.Create();
+        incompleteDataFile.Create().Close();
         incompleteDataFile.Refresh();
-
 
         var request = new HttpRequestMessage(HttpMethod.Head, mod.DownloadUrl);
         var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
@@ -183,7 +185,7 @@ public class FfClient
         if (contentSize == null)
         {
             log.LogInformation("FF server did not return content size. Can not download mod!");
-            mod.Status = ModStatus.Failed;
+            mod.Status = OnlineModStatus.Failed;
             return false;
         }
 
@@ -192,20 +194,35 @@ public class FfClient
         var downloadResult = await DownloadWithResume(dstFile, contentSize.Value, mod.DownloadUrl, token);
         if (downloadResult == false)
         {
-            mod.Status = ModStatus.Failed;
+            mod.Status = OnlineModStatus.Failed;
             return false;
         }
 
         var extractResult = await ExtractArchive(dstFile, modDir, incompleteDataFile, token);
         if (extractResult == false)
         {
-            mod.Status = ModStatus.Failed;
+            mod.Status = OnlineModStatus.Failed;
             return false;
         }
 
+        await PersistDescription(modDir, mod);
         incompleteDataFile.Delete();
-        mod.Status = ModStatus.Ready;
+        mod.Status = OnlineModStatus.Ready;
         return true;
+    }
+
+    private async Task PersistDescription(IDirectoryInfo modDir, IMod mod)
+    {
+        // persist info for offline usage
+        var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
+        if (descriptionFile.Exists)
+        {
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(mod, new JsonSerializerOptions() {WriteIndented = true});
+        await using var writer = descriptionFile.CreateText();
+        await writer.WriteAsync(json);
     }
 
     public async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, string modDownloadUrl, CancellationToken token)

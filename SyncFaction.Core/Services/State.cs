@@ -11,6 +11,7 @@ public class State
 {
     public long? CommunityPatch { get; set; }
     public List<long>? CommunityUpdates { get; set; }
+    public List<long>? AppliedMods { get; set; }
     public bool? DevMode { get; set; }
     public bool? IsGog { get; set; }
     public bool? IsVerified { get; set; }

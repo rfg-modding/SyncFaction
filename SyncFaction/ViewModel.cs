@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HTMLConverter;
@@ -71,11 +73,12 @@ public partial class ViewModel
             DownloadCancelCommand
         };
 
+        // TODO callback to log devMode enable/disable
         PropertyChanged += NotifyInteractiveCommands;
         PropertyChanged += UpdateJsonView;
-        // TODO callback to log devMode enable/disable
-
-        model = new Model(UpdateJsonView);
+        model = new Model();
+        model.PropertyChanged += UpdateJsonView;
+        LocalMods.CollectionChanged += LocalModsOnCollectionChanged;
 
         // this allows other threads to work with UI-bound collection
         BindingOperations.EnableCollectionSynchronization(OnlineMods, collectionLock);
@@ -85,20 +88,36 @@ public partial class ViewModel
         SetDesignTimeDefaults(true);
     }
 
+    private void LocalModsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        LocalModCalculateOrder();
+    }
+
     private void SetDesignTimeDefaults(bool isDesignTime)
     {
         if (isDesignTime)
         {
             // design-time defaults
             Model.DevMode = true;
-            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "just a mod", Category = Category.Local}));
-            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "selected mod", Category = Category.Local}) {Selected = true});
-            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "ready (dl+unp) mod", Category = Category.Local}) {Status = ModStatus.Ready});
-            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod in progress", Category = Category.Local}) {Status = ModStatus.InProgress});
-            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "failed mod", Category = Category.Local}) {Status = ModStatus.Failed});
-            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod with a ridiculously long name so nobody will read it entirely unless they really want to", Category = Category.Local}));
             SelectedCount = 1;
             GridLines = true;
+            SelectedTab = Tab.Apply;
+
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "just a mod", Category = Category.Local}));
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "selected mod", Category = Category.Local}) {Selected = true});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "ready (dl+unp) mod", Category = Category.Local}) {Status = OnlineModStatus.Ready});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod in progress", Category = Category.Local}) {Status = OnlineModStatus.InProgress});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "failed mod", Category = Category.Local}) {Status = OnlineModStatus.Failed});
+            OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "mod with a ridiculously long name so nobody will read it entirely unless they really want to", Category = Category.Local}));
+
+            LocalMods.Add(new LocalModViewModel(new Mod() {Name = "just a mod"}));
+            LocalMods.Add(new LocalModViewModel(new Mod() {Name = "selected mod"}) {Selected = true});
+            LocalMods.Add(new LocalModViewModel(new Mod() {Name = "mod 3"}) {Order = 3});
+            LocalMods.Add(new LocalModViewModel(new Mod() {Name = "mod 1"}) {Order = 1});
+            foreach (var localMod in LocalMods)
+            {
+                localMod.PropertyChanged += LocalModOnPropertyChanged;
+            }
         }
         else
         {
@@ -107,7 +126,17 @@ public partial class ViewModel
             SelectedCount = 0;
             Failure = false;
             GridLines = false;
+            SelectedTab = Tab.Apply;
         }
+    }
+
+    private void LocalModOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(LocalModViewModel.Order) or nameof(LocalModViewModel.Selected))
+        {
+            return;
+        }
+        LocalModCalculateOrder();
     }
 
     private readonly object collectionLock = new();
@@ -141,6 +170,10 @@ public partial class ViewModel
 
         OnPropertyChanged(nameof(JsonView));
     }
+
+    public GroupedDropHandler DropHandler { get; } = new GroupedDropHandler();
+
+    public static readonly SolidColorBrush Highlight = new((Color)ColorConverter.ConvertFromString("#F59408"));
 
     [ObservableProperty] private Model model;
 
@@ -185,6 +218,8 @@ public partial class ViewModel
     /// UI-bound collection displayed as ListView
     /// </summary>
     public ObservableCollection<OnlineModViewModel> OnlineMods { get; } = new();
+
+    public ObservableCollection<LocalModViewModel> LocalMods { get; } = new();
 
     /// <summary>
     /// Commands to disable while running something
@@ -233,6 +268,12 @@ public partial class ViewModel
     {
         await ExecuteAsyncSafeWithUiLock("Initializing", InitInternal, token);
 
+    }
+
+    [RelayCommand]
+    private async Task Test(object x, CancellationToken token)
+    {
+        LocalModCalculateOrder();
     }
 
     [RelayCommand(CanExecute = nameof(Interactive))]
@@ -302,14 +343,24 @@ public partial class ViewModel
     [RelayCommand()]
     private async Task Display(object x, CancellationToken token)
     {
-        var mvm = (OnlineModViewModel)x;
+        var mvm = (IModViewModel)x;
         await ExecuteAsyncSafeWithUiLock($"Fetching info for {mvm.Mod.Id}", async t => await DisplayInternal(mvm, t), token, lockUi:false);
     }
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task Refresh(object x, CancellationToken token)
     {
-        await ExecuteAsyncSafeWithUiLock("Fetching FactionFiles data", RefreshInternal, token);
+        switch (SelectedTab)
+        {
+            case Tab.Download:
+                await ExecuteAsyncSafeWithUiLock("Fetching FactionFiles data", RefreshOnline, token);
+                break;
+            case Tab.Apply:
+                await ExecuteAsyncSafeWithUiLock("Looking for mods", RefreshLocal, token);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
 
     [RelayCommand(CanExecute = nameof(NotInteractive))]
@@ -401,7 +452,7 @@ public partial class ViewModel
         }, async (mvm, cancellationToken) =>
         {
             // display "in progress" regardless of real mod status
-            mvm.Status = ModStatus.InProgress;
+            mvm.Status = OnlineModStatus.InProgress;
             var mod = mvm.Mod;
             var storage = Model.GetGameStorage(fileSystem);
             var modDir = storage.GetModDir(mod);
@@ -418,8 +469,11 @@ public partial class ViewModel
             toProcess--;
             CurrentOperation = $"Downloading {toProcess} mods";
         });
-
-        return success;
+        if (success == false)
+        {
+            return false;
+        }
+        return await RefreshLocal(token);
     }
 
     private async Task<bool> InitInternal(CancellationToken token)
@@ -462,12 +516,83 @@ public partial class ViewModel
 
 
         // populate mod list and stuff
-        await RefreshInternal(token);
+        await RefreshLocal(token);
+        await RefreshOnline(token);
 
         return true;
     }
 
-    private async Task<bool> RefreshInternal(CancellationToken token)
+    private async Task<bool> RefreshLocal(CancellationToken token)
+    {
+        var storage = Model.GetAppStorage(fileSystem);
+        var mods = await GetAvailableMods(storage, token);
+        // TODO compare applied mods from state with current mod
+        ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
+        {
+            lock (collectionLock)
+            {
+                LocalMods.Clear();
+                foreach (var mod in mods)
+                {
+                    var vm = new LocalModViewModel(mod);
+                    vm.PropertyChanged += LocalModOnPropertyChanged;
+                    vm.PropertyChanged += LocalModDisplay;
+                    LocalMods.Add(vm);
+                }
+            }
+        });
+
+
+        return true;
+    }
+
+    private async Task<List<IMod>> GetAvailableMods(IAppStorage storage, CancellationToken token)
+    {
+        // TODO read mod flags
+        List<IMod> mods = new ();
+        foreach (var dir in storage.App.EnumerateDirectories())
+        {
+            if (dir.Name.StartsWith("."))
+            {
+                // skip unix-hidden files
+                continue;
+            }
+
+            if (dir.Name.StartsWith("Mod_") && dir.Name.Substring(4).All(char.IsDigit))
+            {
+                // read mod description from json
+                var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(dir.FullName, Constants.ModDescriptionFile));
+                if (!descriptionFile.Exists)
+                {
+                    // mod was not downloaded correctly
+                    continue;
+                }
+                using (var reader = descriptionFile.OpenText())
+                {
+                    var json = await reader.ReadToEndAsync();
+                    var modFromJson = JsonConvert.DeserializeObject<Mod>(json);
+                    mods.Add(modFromJson);
+                }
+            }
+            else
+            {
+                var mod = new LocalMod()
+                {
+                    Id = dir.Name.GetHashCode(),
+                    Name = dir.Name,
+                    Size = 0,
+                    DownloadUrl = null,
+                    ImageUrl = null,
+                    Status = OnlineModStatus.Ready
+                };
+                mods.Add(mod);
+            }
+        }
+
+        return mods;
+    }
+
+    private async Task<bool> RefreshOnline(CancellationToken token)
     {
         // always show mods from local directory
         var categories = new List<Category>()
@@ -559,7 +684,7 @@ Then run SyncFaction again.
         }
         gameStorage.WriteStateFile(Model.ToState());
         log.LogWarning($"Successfully updated game to community patch: **{Model.GetHumanReadableCommunityVersion(collectionLock)}**");
-        return await RefreshInternal(token);
+        return await RefreshOnline(token);
     }
 
     private async Task<bool> InstallUpdates(IMod patch, List<IMod> updates, GameStorage storage, CancellationToken token)
@@ -629,12 +754,12 @@ Then run SyncFaction again.
         return result;
     }
 
-    private Task<bool> DisplayInternal(OnlineModViewModel onlineModViewModel, CancellationToken token)
+    private Task<bool> DisplayInternal(IModViewModel modViewModel, CancellationToken token)
     {
-        log.Clear();
-        if (onlineModViewModel.Selected)
+        if (modViewModel.Selected)
         {
-            log.LogInformation(new EventId(0, "log_false"), onlineModViewModel.Mod.Markdown);
+            log.Clear();
+            log.LogInformation(new EventId(0, "log_false"), modViewModel.Mod.Markdown);
         }
 
         return Task.FromResult(true);
@@ -701,7 +826,7 @@ Changelogs and info:
                     {
                         Mod = mod,
                     };
-                    vm.PropertyChanged += ModDisplayAndUpdateCount;
+                    vm.PropertyChanged += OnlilneModDisplayAndUpdateCount;
                     OnlineMods.Add(vm);
                 }
 
@@ -721,7 +846,7 @@ Changelogs and info:
 
     }
 
-    private void ModDisplayAndUpdateCount(object? sender, PropertyChangedEventArgs e)
+    private void OnlilneModDisplayAndUpdateCount(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(OnlineModViewModel.Selected))
         {
@@ -734,6 +859,49 @@ Changelogs and info:
         lock (collectionLock)
         {
             SelectedCount = OnlineMods.Count(x => x.Selected);
+        }
+    }
+
+    private void LocalModDisplay(object? sender, PropertyChangedEventArgs e)
+    {
+        // TODO: gets called twice for some reason
+        // TODO: unable to deselect items, why?!
+        if (e.PropertyName != nameof(LocalModViewModel.Selected))
+        {
+            return;
+        }
+
+        var target = sender as LocalModViewModel;
+        // it's AsyncCommand, ok to call this way: awaited inside Execute()
+        DisplayCommand.Execute(target);
+    }
+
+    private void LocalModCalculateOrder()
+    {
+
+        lock (collectionLock)
+        {
+
+            var enabled = LocalMods.Count(x => x.Status == LocalModStatus.Enabled);
+            var disabled = LocalMods.Count(x => x.Status == LocalModStatus.Disabled);
+            try
+            {
+                log.LogInformation($"collection changed event, length: {LocalMods.Count} / enabled {enabled} / disabled {disabled}");
+            }
+            catch (Exception)
+            {
+            }
+
+            var i = 1;
+            foreach (var localMod in LocalMods)
+            {
+                localMod.Order = localMod.Status switch
+                {
+                    LocalModStatus.Enabled => i++,
+                    LocalModStatus.Disabled => null,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+            }
         }
     }
 }
