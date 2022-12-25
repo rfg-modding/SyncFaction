@@ -93,4 +93,5 @@ public partial class MainWindow : Window, IViewAccessor
 
     public ListView OnlineModListView => OnlineModList;
     public ListView LocalModListView => LocalModList;
+    public Window WindowView => this;
 }

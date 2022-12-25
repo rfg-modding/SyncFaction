@@ -22,8 +22,23 @@ public class GroupedDropHandler : IDropTarget
         GongSolutions.Wpf.DragDrop.DragDrop.DefaultDropHandler.DragOver(dropInfo);
         if (dropInfo.TargetGroup == null)
         {
-            dropInfo.Effects = DragDropEffects.None;
+            throw new InvalidOperationException();
         }
+
+        dropInfo.Effects = DragDropEffects.Move;
+        // hackinsh way to make "Enable/Disable" text
+        dropInfo.EffectText = dropInfo.TargetGroup == dropInfo.DragInfo.SourceGroup
+            ? "Reorder"
+            : dropInfo.TargetGroup.Name.ToString()[..^1];
+
+
+        var count = dropInfo.Data switch
+        {
+            List<object> l => l.Count,
+            _ => 1
+        };
+        var caption = count == 1 ? "mod" : "mods";
+        dropInfo.DestinationText = $"{count} {caption}";
 
         // higihlght target group
         var listView = (ListView) dropInfo.VisualTarget;

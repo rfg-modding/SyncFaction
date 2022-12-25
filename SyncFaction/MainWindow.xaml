@@ -272,6 +272,7 @@ void!</TextBlock>
                               dd:DragDrop.IsDropTarget="True"
                               dd:DragDrop.DropHandler="{Binding DropHandler}"
                               dd:DragDrop.SelectDroppedItems="False"
+                              dd:DragDrop.UseDefaultEffectDataTemplate="True"
                               >
 
                         <ListView.GroupStyle>
@@ -312,6 +313,17 @@ void!</TextBlock>
                         MinWidth="200" MinHeight="40" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding DownloadCommand}" >
                     <StackPanel Orientation="Horizontal">
                         <TextBlock>Download&#038;Unpack Selected (</TextBlock>
+                        <TextBlock Text="{Binding SelectedCount}"></TextBlock>
+                        <TextBlock>)</TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="Apply"
+                        Style="{StaticResource ButtonStyle}"
+                        MinWidth="200" MinHeight="40"
+                        Visibility="Collapsed"
+                        Command="{Binding DownloadCommand}" >
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock>Apply Selected (</TextBlock>
                         <TextBlock Text="{Binding SelectedCount}"></TextBlock>
                         <TextBlock>)</TextBlock>
                     </StackPanel>

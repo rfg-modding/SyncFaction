@@ -478,7 +478,7 @@ public partial class ViewModel
 
     private async Task<bool> InitInternal(CancellationToken token)
     {
-        if (await appInitializer.Init(Model, token) == false)
+        if (await appInitializer.Init(Model, ViewAccessor, token) == false)
         {
             return false;
         }

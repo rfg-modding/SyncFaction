@@ -28,9 +28,9 @@ public class AppInitializer
         this.stateProvider = stateProvider;
     }
 
-    public async Task<bool> Init(Model model, CancellationToken token)
+    public async Task<bool> Init(Model model, IViewAccessor accessor, CancellationToken token)
     {
-        if (await DetectGame(model, token) == false)
+        if (await DetectGame(model, accessor, token) == false)
         {
             return false;
         }
@@ -47,10 +47,10 @@ public class AppInitializer
         return true;
     }
 
-    private async Task<bool> DetectGame(Model model, CancellationToken token)
+    private async Task<bool> DetectGame(Model model, IViewAccessor accessor, CancellationToken token)
     {
         log.LogDebug("Looking for game install path...");
-        model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
+        //model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
         if (!string.IsNullOrWhiteSpace(model.GameDirectory) && !model.MockMode)
         {
             return true;
@@ -59,16 +59,24 @@ public class AppInitializer
         // force user to locate game
         log.LogWarning("Unable to autodetect game location! Is it GOG version?");
         log.LogWarning("Please locate game manually");
-        using var dialog = new CommonOpenFileDialog
+        var dialogSucceeded = false;
+        accessor.WindowView.Dispatcher.Invoke(() =>
         {
-            InitialDirectory = Directory.GetCurrentDirectory(),
-            IsFolderPicker = true,
-            EnsurePathExists = true,
-            Title = "Where is the game?"
-        };
-        if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            using var dialog = new CommonOpenFileDialog
+            {
+                InitialDirectory = Directory.GetCurrentDirectory(),
+                IsFolderPicker = true,
+                EnsurePathExists = true,
+                Title = "Where is the game?"
+            };
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                model.GameDirectory = dialog.FileName;
+                dialogSucceeded = true;
+            }
+        });
+        if (dialogSucceeded)
         {
-            model.GameDirectory = dialog.FileName;
             return true;
         }
 
