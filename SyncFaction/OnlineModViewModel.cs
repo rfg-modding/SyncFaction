@@ -1,4 +1,3 @@
-using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SyncFaction.Core.Services.FactionFiles;
 

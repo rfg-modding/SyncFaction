@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -27,7 +26,16 @@ using SyncFaction.Core.Services.Files;
 namespace SyncFaction;
 
 /// <summary>
-/// UI-bound app state and commands
+/// UI-bound commands
+/// </summary>
+[INotifyPropertyChanged]
+public partial class ViewModelCommands
+{
+    // TODO move stuff here
+}
+
+/// <summary>
+/// UI-bound app state
 /// </summary>
 [INotifyPropertyChanged]
 public partial class ViewModel
@@ -62,6 +70,7 @@ public partial class ViewModel
             RefreshCommand,
             RunCommand,
             DownloadCommand,
+            ApplyCommand,
             CancelCommand
         };
 
@@ -70,7 +79,8 @@ public partial class ViewModel
         {
             InitCancelCommand,
             RefreshCancelCommand,
-            DownloadCancelCommand
+            DownloadCancelCommand,
+            ApplyCancelCommand
         };
 
         // TODO callback to log devMode enable/disable
@@ -82,8 +92,10 @@ public partial class ViewModel
 
         // this allows other threads to work with UI-bound collection
         BindingOperations.EnableCollectionSynchronization(OnlineMods, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(LocalMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.CommunityUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.NewCommunityUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.AppliedMods, collectionLock);
 
         SetDesignTimeDefaults(true);
     }
@@ -99,7 +111,8 @@ public partial class ViewModel
         {
             // design-time defaults
             Model.DevMode = true;
-            SelectedCount = 1;
+            OnlineSelectedCount = 1;
+            LocalSelectedCount = 2;
             GridLines = true;
             SelectedTab = Tab.Apply;
 
@@ -123,7 +136,9 @@ public partial class ViewModel
         {
             Model.DevMode = false;
             OnlineMods.Clear();
-            SelectedCount = 0;
+            LocalMods.Clear();
+            OnlineSelectedCount = 0;
+            LocalSelectedCount = 0;
             Failure = false;
             GridLines = false;
             SelectedTab = Tab.Apply;
@@ -202,7 +217,10 @@ public partial class ViewModel
     private bool updateRequired = false;
 
     [ObservableProperty]
-    private int selectedCount;
+    private int onlineSelectedCount;
+
+    [ObservableProperty]
+    private int localSelectedCount;
 
     /// <summary>
     /// For simplified binding
@@ -248,7 +266,7 @@ public partial class ViewModel
                     NotInteractive,
                     UpdateRequired,
                     UpdateNotRequired,
-                    SelectedCount,
+                    OnlineSelectedCount,
                     SelectedTab,
                 };
                 return JsonConvert.SerializeObject(tmp, Formatting.Indented);
@@ -337,7 +355,13 @@ public partial class ViewModel
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task Download(object x, CancellationToken token)
     {
-        await ExecuteAsyncSafeWithUiLock($"Downloading {SelectedCount} mods", DownloadInternal, token);
+        await ExecuteAsyncSafeWithUiLock($"Downloading {OnlineSelectedCount} mods", DownloadInternal, token);
+    }
+
+    [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
+    private async Task Apply(object x, CancellationToken token)
+    {
+        await ExecuteAsyncSafeWithUiLock($"Applying {-42} mods", ApplyInternal, token);
     }
 
     [RelayCommand()]
@@ -437,9 +461,9 @@ public partial class ViewModel
         }
 
         // sanity check
-        if (mods.Count != SelectedCount)
+        if (mods.Count != OnlineSelectedCount)
         {
-            throw new InvalidOperationException($"Collection length {mods.Count} != SelectedCount {SelectedCount}");
+            throw new InvalidOperationException($"Collection length {mods.Count} != SelectedCount {OnlineSelectedCount}");
         }
 
         var toProcess = mods.Count;
@@ -474,6 +498,11 @@ public partial class ViewModel
             return false;
         }
         return await RefreshLocal(token);
+    }
+
+    private async Task<bool> ApplyInternal(CancellationToken token)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task<bool> InitInternal(CancellationToken token)
@@ -624,7 +653,7 @@ public partial class ViewModel
         lock (collectionLock)
         {
             OnlineMods.Clear();
-            SelectedCount = 0;
+            OnlineSelectedCount = 0;
         }
 
         await Parallel.ForEachAsync(categories, new ParallelOptions()
@@ -858,7 +887,7 @@ Changelogs and info:
         DisplayCommand.Execute(target);
         lock (collectionLock)
         {
-            SelectedCount = OnlineMods.Count(x => x.Selected);
+            OnlineSelectedCount = OnlineMods.Count(x => x.Selected);
         }
     }
 

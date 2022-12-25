@@ -15,6 +15,7 @@
         <converters:BoolShowCollapseConverter x:Key="BoolShowCollapseConverter" />
         <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
         <converters:TabSelectedByTypeConverter x:Key="TabSelectedByTypeConverter" />
+        <converters:TabSelectedByTypeVisibilityConverter x:Key="TabSelectedByTypeVisibilityConverter" />
         <HierarchicalDataTemplate DataType="{x:Type jsonLinq:JArray}" ItemsSource="{Binding Converter={StaticResource MethodToValueConverter}, ConverterParameter='Children'}">
             <TextBlock Text="Array" />
         </HierarchicalDataTemplate>
@@ -308,26 +309,32 @@ void!</TextBlock>
                     Style="{StaticResource ButtonStyle}"
                     Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding RunCommand}" />
             <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Button x:Name="Download"
-                        Style="{StaticResource ButtonStyle}"
-                        MinWidth="200" MinHeight="40" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding DownloadCommand}" >
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock>Download&#038;Unpack Selected (</TextBlock>
-                        <TextBlock Text="{Binding SelectedCount}"></TextBlock>
-                        <TextBlock>)</TextBlock>
-                    </StackPanel>
-                </Button>
-                <Button x:Name="Apply"
-                        Style="{StaticResource ButtonStyle}"
-                        MinWidth="200" MinHeight="40"
-                        Visibility="Collapsed"
-                        Command="{Binding DownloadCommand}" >
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock>Apply Selected (</TextBlock>
-                        <TextBlock Text="{Binding SelectedCount}"></TextBlock>
-                        <TextBlock>)</TextBlock>
-                    </StackPanel>
-                </Button>
+                <StackPanel Orientation="Vertical"
+                            Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}">
+                    <Button x:Name="Download"
+                            Style="{StaticResource ButtonStyle}"
+                            MinWidth="200" MinHeight="40"
+                            Visibility="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeVisibilityConverter}, ConverterParameter=Download}"
+                            Command="{Binding DownloadCommand}" >
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock>Download&#038;Unpack Selected (</TextBlock>
+                            <TextBlock Text="{Binding SelectedCount}"></TextBlock>
+                            <TextBlock>)</TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="Apply"
+                            Style="{StaticResource ButtonStyle}"
+                            MinWidth="200" MinHeight="40"
+                            Visibility="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeVisibilityConverter}, ConverterParameter=Apply}"
+                            Command="{Binding ApplyCommand}" >
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock>Apply Selected (</TextBlock>
+                            <TextBlock Text="{Binding SelectedCount}"></TextBlock>
+                            <TextBlock>)</TextBlock>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
                 <Button x:Name="Update" Content="Update to latest Community Patch"
                         MinWidth="200" MinHeight="40"
                         Style="{StaticResource ButtonStyle}"
