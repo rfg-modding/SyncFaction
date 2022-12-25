@@ -22,7 +22,7 @@ public partial class Model
 
     [ObservableProperty] private bool mockMode;
 
-    [ObservableProperty] private bool isGog;
+    [ObservableProperty] private bool? isGog;
 
     [ObservableProperty] private bool isVerified;
 
@@ -47,7 +47,7 @@ public partial class Model
         state ??= new State();
         DevMode = state.DevMode ?? false;
         Multithreading = state.Multithreading ?? true;
-        IsGog = state.IsGog ?? false;
+        IsGog = state.IsGog;  // keep nullable because first-time check can be aborted before we know the version
         MockMode = state.MockMode ?? false;
         IsVerified = state.IsVerified ?? false;
         CommunityPatch = state.CommunityPatch ?? 0;

@@ -42,7 +42,7 @@ public class AppInitializer
         var firstLaunch = appStorage.Init();
         OnFirstLaunch(firstLaunch);
         var threadCount = model.GetThreadCount();
-        model.IsGog = await ValidateSteamOrGog(stateFromFile, appStorage, threadCount, token);
+        model.IsGog = await ValidateSteamOrGog(model.IsGog, appStorage, threadCount, token);
         InitStateProvider(model);
         return true;
     }
@@ -92,11 +92,11 @@ public class AppInitializer
         provider.Init(model);
     }
 
-    private async Task<bool> ValidateSteamOrGog(State? stateFromFile, AppStorage appStorage, int threadCount, CancellationToken token)
+    private async Task<bool> ValidateSteamOrGog(bool? isGog, AppStorage appStorage, int threadCount, CancellationToken token)
     {
-        if (stateFromFile?.IsGog is not null)
+        if (isGog is not null)
         {
-            return stateFromFile.IsGog.Value;
+            return isGog.Value;
         }
 
         // SF did not have this flag before so it might be initialized as null

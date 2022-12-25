@@ -31,7 +31,13 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class ViewModelCommands
 {
+    private readonly ViewModel viewModel;
+
     // TODO move stuff here
+    public ViewModelCommands(ViewModel viewModel)
+    {
+        this.viewModel = viewModel;
+    }
 }
 
 /// <summary>
@@ -328,25 +334,30 @@ public partial class ViewModel
 
     private Task<bool> RunInternal(CancellationToken token)
     {
-        if (Model.IsGog)
+        switch (Model.IsGog)
         {
-            log.LogInformation("Launching game via exe...");
-            var storage = Model.GetGameStorage(fileSystem);
-            var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
-            Process.Start(new ProcessStartInfo()
+            case null:
+                throw new InvalidOperationException("App is not properly initialized, still don't know game version");
+            case true:
             {
-                UseShellExecute = true,
-                FileName = exe.FullName
-            });
-        }
-        else
-        {
-            log.LogInformation("Launching game via Steam...");
-            Process.Start(new ProcessStartInfo()
-            {
-                UseShellExecute = true,
-                FileName = "steam://rungameid/667720"
-            });
+                log.LogInformation("Launching game via exe...");
+                var storage = Model.GetGameStorage(fileSystem);
+                var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
+                Process.Start(new ProcessStartInfo()
+                {
+                    UseShellExecute = true,
+                    FileName = exe.FullName
+                });
+                break;
+            }
+            default:
+                log.LogInformation("Launching game via Steam...");
+                Process.Start(new ProcessStartInfo()
+                {
+                    UseShellExecute = true,
+                    FileName = "steam://rungameid/667720"
+                });
+                break;
         }
 
         return Task.FromResult(true);
