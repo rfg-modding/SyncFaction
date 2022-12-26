@@ -44,7 +44,8 @@ public static class TestUtils
 
     private static List<TestCaseData> AllExtractedOnce = InitAllExtractedOnce();
 
-    private static readonly IEnumerable<TestCaseData> AllVppFilesOnce = Hashes.Vpp.Concat(Hashes.Steam)
+    private static readonly IEnumerable<TestCaseData> AllVppFilesOnce = Hashes.Vpp
+        .Concat(Hashes.Steam)
         .Select(x => x.Key)
         .Where(x => x.ToLowerInvariant().EndsWith(".vpp_pc"))
         //.Where(x => x.Contains("table") || x.Contains("anims"))

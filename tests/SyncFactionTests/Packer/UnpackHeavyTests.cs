@@ -6,6 +6,7 @@ using SyncFaction.Packer;
 
 namespace SyncFactionTests.Packer;
 
+[Explicit("Depend on paths tied to steam version")]
 public class UnpackHeavyTests
 {
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
