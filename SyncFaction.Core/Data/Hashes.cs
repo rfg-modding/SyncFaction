@@ -5,6 +5,7 @@ namespace SyncFaction.Core.Data;
 
 public static class Hashes
 {
+
 	public static ImmutableSortedDictionary<string, string> Get(bool isGog)
 	{
 		return isGog ? AllGog.Value : AllSteam.Value;
@@ -14,11 +15,11 @@ public static class Hashes
 
 	private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllGog = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Gog).OrderBy(x => x.Key).ToImmutableSortedDictionary());
 
+    // TODO: different VPP_PC files between steam and gog are listed in separate dictionaries
 	public static readonly ImmutableDictionary<string, string> Vpp = new Dictionary<string, string>()
 	{
 		{"data/activities.vpp_pc", "99eb018c1b0032d30788f80a49e3998caf03cb937dd3c9a67dd0f6b2816faf0f"},
 		{"data/anims.vpp_pc", "97ed7f3937f8f15e1a7781a869133509ab4ee8b65fd3e6a822aad843142beaa5"},
-		{"data/chunks.vpp_pc", "9c748006b1304bae4a834d3a4360bd25c59a34d0ba0827ad5588df20eaadfa51"},
 		{"data/cloth_sim.vpp_pc", "594a82bc655ab2ccc94e1f6d07e92dc3d1b7dc8f515cab635d5b469d1abb168f"},
 		{"data/decals.vpp_pc", "671f3c3645fb6ecf807d8ee427a2193797b4a898c0d904744bd3c9e250301198"},
 		{"data/dlc01_l0.vpp_pc", "56f3daf37d66bbbdf3675189a71b0568bb48812ec42b994283cc5b3c899012db"},
@@ -40,9 +41,7 @@ public static class Hashes
 		{"data/dlcp02_misc.vpp_pc", "26f0974b5baf8c6441293e2abbdccc983c467c4f2c2a963d496bf6d162fc05ab"},
 		{"data/dlcp03_interface.vpp_pc", "21522b567262f03de5bdea9d446a5c8c583fb227d06173d4e514b58e114061fb"},
 		{"data/dlcp03_misc.vpp_pc", "8a1259de265beb13e57ba4092c403deebca30a7e8e84e121db08d2b35c8f0ca8"},
-		{"data/effects.vpp_pc", "7c357a643e33b4e51cc4ad134f5149a88b3851cd97a7b9728d2700aaa26d8885"},
-		{"data/effects_mp.vpp_pc", "6546b9e83043ffedb01867d3a3b7e37c37133ccb2337688bd0420ba88837f0fc"},
-		{"data/humans.vpp_pc", "d2434bc78aef11de6149a87dbfe377a33102e3f2b00bfa6654fe61facd6340cb"},
+        {"data/humans.vpp_pc", "d2434bc78aef11de6149a87dbfe377a33102e3f2b00bfa6654fe61facd6340cb"},
 		{"data/interface.vpp_pc", "52b8ccc9acf7169a6958d8d4aafea989280b58785387184542350b8e07920040"},
 		{"data/items.vpp_pc", "27c5e51437c2e27389e0cfbe43c9198ba17b547a3ce57d3f122067cae98abdc2"},
 		{"data/items_mp.vpp_pc", "256c9ff01d34c27733af0d9f59158d3ae683e6eb50d2f2853ee204fa0b41d39a"},
@@ -91,10 +90,7 @@ public static class Hashes
 		{"data/steam.vpp_pc", "f41cd9e4c321173a97e7249c57cd84abad54993b37a0c9d9aca8ddb4bca85b4f"},
 		{"data/table.vpp_pc", "8bd7205b68ce105e9ad04f495c5570d9e2dc51fec67bc9c1f0889768c2f9aef9"},
 		{"data/terr01_l0.vpp_pc", "7f2d874589b119dbd1f3c0bbc15ea13873b6f379ee413d3a51dd78dd2dbd2ad0"},
-		{"data/terr01_l1.vpp_pc", "92dc6908affec3806a1cf8d0624ad9aad21f95d97e3ceb39d19ac0f97b56f959"},
-		{"data/terr01_precache.vpp_pc", "2003c162f00e8cd7e2d58be99832532bc7bd9c9271329f08e37a40db94f4e4f1"},
-		{"data/vehicles_r.vpp_pc", "9917023b74f3da29089bff3623f23b94e75e58edb0bdc9a007ee2ff5ded53383"},
-		{"data/voices_de_de.vpp_pc", "829faae46ec48d94830e81bd8c3aa77755fbcb9117cb6fb8c7b473bb01e473af"},
+        {"data/voices_de_de.vpp_pc", "829faae46ec48d94830e81bd8c3aa77755fbcb9117cb6fb8c7b473bb01e473af"},
 		{"data/voices_en_us.vpp_pc", "47243ead34074ba575fdf20c50af3528911e21a2fc9b0deec2f098a313c775f5"},
 		{"data/voices_es_es.vpp_pc", "6e50e28b65641fbc6dcc028b9c1afc820fd77596a8b4ebe6203076e7f35901a4"},
 		{"data/voices_fr_fr.vpp_pc", "18588b88fa18fb51f7ac77a2377d902b383986d12d70dddd835c919f72f6a116"},
@@ -196,6 +192,12 @@ public static class Hashes
 		{"steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d"},
 		{"sw_api.dll", "6f813445ff757f70164c0103833478240e339d5e81dcbc5c4be238264380c89d"},
 		{"thqnocfg_steam.dat", "8357f2c8b9c3be4bcaf780271a1f3b76f9f4cad8dbf1b410fb4cd70cc4851186"},
+        {"data/terr01_precache.vpp_pc", "2003c162f00e8cd7e2d58be99832532bc7bd9c9271329f08e37a40db94f4e4f1"},
+        {"data/vehicles_r.vpp_pc", "9917023b74f3da29089bff3623f23b94e75e58edb0bdc9a007ee2ff5ded53383"},
+        {"data/terr01_l1.vpp_pc", "92dc6908affec3806a1cf8d0624ad9aad21f95d97e3ceb39d19ac0f97b56f959"},
+        {"data/effects.vpp_pc", "7c357a643e33b4e51cc4ad134f5149a88b3851cd97a7b9728d2700aaa26d8885"},
+        {"data/effects_mp.vpp_pc", "6546b9e83043ffedb01867d3a3b7e37c37133ccb2337688bd0420ba88837f0fc"},
+        {"data/chunks.vpp_pc", "9c748006b1304bae4a834d3a4360bd25c59a34d0ba0827ad5588df20eaadfa51"},
 		//{"rfg.pdb", "8ecbdf5c89bc705b97b4184932da45817f06b512507acebe1083342c25b1f6df"},
 	}.ToImmutableDictionary();
 
@@ -206,6 +208,12 @@ public static class Hashes
 		{"rfg.exe", "7a82d2d0f425af5e75d8ffbce12fac53eb5ca9cd812731ccf5a29697e906af0e"},
 		{"sw_api.dll", "3d5b41308c20dc9df779f8e35ceaa303fab0de8d6304b6d7346105fd95d8a24f"},
 		{"thqnocfg_gog.dat", "6f0427b331306c823afdc21347366c822645a6eea4c64d241bbe9e29de7e0c1d"},
+        {"data/terr01_precache.vpp_pc", "fee2544b55f0fd6f642a23bbaeadbefd9d0fb76b05656f591a2e292c6a759590"},
+        {"data/vehicles_r.vpp_pc", "8411b3c42249458cd51741a348ed1b8713b2ec4652d4efffe199bc88e2d4753f"},
+        {"data/terr01_l1.vpp_pc", "a89bfd5405f42bdb13b7447653d6d70d1fff1a753f6d4def7f390f2af0a28b47"},
+        {"data/effects.vpp_pc", "6277e9df4d471f32c1bf7a7a18265eaae41423366c43f9e7b3d07d33190b4eba"},
+        {"data/effects_mp.vpp_pc", "ce8e3b09f1eae980f0ccba5536d8af148300899ca3091b4fefb8981256c86937"},
+        {"data/chunks.vpp_pc", "5c2c1d7a62e9bd1d52815918b0acb67ecdf7efc05afcd46f3b91f4bf671a1973"},
 		//{"gog.ico", "f6a71321521ba89713f0bd38b21f809e87e8a789cb172e8e4693f9479e30b1e4"},
 		//{"goggame-2029222893.hashdb", "15fa43afe01eabd14e282c6bca512006a1c2003a4c493556315820980cbd2049"},
 		//{"goggame-2029222893.ico", "405ef739021f1b807a8e4085331aabeb3070c65e9de0aaabd8f69643262cb51b"},

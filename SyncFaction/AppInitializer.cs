@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Services;
@@ -28,30 +27,30 @@ public class AppInitializer
         this.stateProvider = stateProvider;
     }
 
-    public async Task<bool> Init(Model model, IViewAccessor accessor, CancellationToken token)
+    public async Task<bool> Init(ViewModel viewModel, CancellationToken token)
     {
-        if (await DetectGame(model, accessor, token) == false)
+        if (await DetectGame(viewModel, token) == false)
         {
             return false;
         }
 
-        var appStorage = model.GetAppStorage(fileSystem);
+        var appStorage = viewModel.Model.GetAppStorage(fileSystem);
         log.LogInformation("Reading current state...");
         var stateFromFile = appStorage.LoadStateFile();
-        model.FromState(stateFromFile);
+        viewModel.Model.FromState(stateFromFile);
         var firstLaunch = appStorage.Init();
         OnFirstLaunch(firstLaunch);
-        var threadCount = model.GetThreadCount();
-        model.IsGog = await ValidateSteamOrGog(model.IsGog, appStorage, threadCount, token);
-        InitStateProvider(model);
+        var threadCount = viewModel.Model.GetThreadCount();
+        viewModel.Model.IsGog = await ValidateSteamOrGog(viewModel.Model.IsGog, appStorage, threadCount, token);
+        InitStateProvider(viewModel.Model);
         return true;
     }
 
-    private async Task<bool> DetectGame(Model model, IViewAccessor accessor, CancellationToken token)
+    private async Task<bool> DetectGame(ViewModel viewModel, CancellationToken token)
     {
         log.LogDebug("Looking for game install path...");
-        model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
-        if (!string.IsNullOrWhiteSpace(model.GameDirectory) && !model.MockMode)
+        viewModel.Model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
+        if (!string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory) && !viewModel.Model.MockMode)
         {
             return true;
         }
@@ -60,7 +59,7 @@ public class AppInitializer
         log.LogWarning("Unable to autodetect game location! Is it GOG version?");
         log.LogWarning("Please locate game manually");
         var dialogSucceeded = false;
-        accessor.WindowView.Dispatcher.Invoke(() =>
+        viewModel.ViewAccessor.WindowView.Dispatcher.Invoke(() =>
         {
             using var dialog = new CommonOpenFileDialog
             {
@@ -71,7 +70,7 @@ public class AppInitializer
             };
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                model.GameDirectory = dialog.FileName;
+                viewModel.Model.GameDirectory = dialog.FileName;
                 dialogSucceeded = true;
             }
         });

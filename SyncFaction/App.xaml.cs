@@ -32,6 +32,7 @@ public partial class App : Application
         services.AddSingleton<IStateProvider, StateProvider>();
         services.AddSingleton<ViewModel>();
         services.AddSingleton<AppInitializer>();
+        services.AddSingleton<UiCommands>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddLogging(x =>
         {

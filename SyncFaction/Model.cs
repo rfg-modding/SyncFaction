@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SyncFaction.Core.Services;
 
@@ -77,21 +76,6 @@ public partial class Model
             AppliedMods = AppliedMods.ToList(),
 
         };
-
-    public string GetHumanReadableCommunityVersion(object collectionLock)
-    {
-        var sb = new StringBuilder();
-        sb.Append("base: ");
-        sb.Append(CommunityPatch == 0 ? "not installed" : CommunityPatch);
-        sb.Append(", updates: ");
-        string updates;
-        lock (collectionLock)
-        {
-            updates = string.Join(", ", CommunityUpdates);
-        }
-        sb.Append(updates == string.Empty ? "none" : updates);
-        return sb.ToString();
-    }
 
     public int GetThreadCount()
     {

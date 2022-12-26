@@ -141,40 +141,57 @@ public class AppStorage: IAppStorage {
 			return currentDir.FullName;
 		}
 
-		// TODO no registry entries to autodetect GOG version install path?
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games\2029222893", false);
+            var location = key.GetValue(@"path") as string;
+            if (string.IsNullOrEmpty(location))
+            {
+                log.LogDebug($"GOG location not found in registry");
+            }
+            else
+            {
+                return location;
+            }
+        }
+        catch (Exception ex)
+        {
+            log.LogDebug($"Could not autodetect GOG location: {ex.Message}");
+        }
 
 		try
 		{
+
 			using var key = Registry.LocalMachine.OpenSubKey(@"Software\Wow6432Node\Valve\Steam", false);
 			var steamLocation = key.GetValue(@"InstallPath") as string;
 			if (string.IsNullOrEmpty(steamLocation))
 			{
 				log.LogInformation("Is Steam installed?");
-				return string.Empty;
 			}
-
-			var config = await File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
-			var regex = new Regex(@"""path""\s+""(.+?)""");
-			var locations = regex.Matches(config).Select(x => x.Groups).Select(x => x[1].Value)
-				.Select(x => x.Replace(@"\\", @"\").TrimEnd('\\'));
-			var gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
-			foreach (var location in locations)
-			{
-				log.LogDebug($"Trying library at `{location}`...");
-				var gameDir = Path.Combine(location, gamePath);
-				if (Directory.Exists(gameDir))
-				{
-					return gameDir;
-				}
-			}
-
-			log.LogInformation("Game is not found nearby and not installed in any of Steam libraries!");
-			return string.Empty;
+            else
+            {
+                var config = await File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
+                var regex = new Regex(@"""path""\s+""(.+?)""");
+                var locations = regex.Matches(config).Select(x => x.Groups).Select(x => x[1].Value)
+                    .Select(x => x.Replace(@"\\", @"\").TrimEnd('\\'));
+                var gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
+                foreach (var location in locations)
+                {
+                    log.LogDebug($"Trying library at `{location}`...");
+                    var gameDir = Path.Combine(location, gamePath);
+                    if (Directory.Exists(gameDir))
+                    {
+                        return gameDir;
+                    }
+                }
+            }
 		}
 		catch (Exception ex)
 		{
-			log.LogDebug($"Could not autodetect game location: {ex.Message}");
-			return string.Empty;
+			log.LogDebug($"Could not autodetect Steam location: {ex.Message}");
 		}
+        log.LogInformation("Game is not found nearby, in Gog via registry, or in any of Steam libraries!");
+        return string.Empty;
+
 	}
 }
