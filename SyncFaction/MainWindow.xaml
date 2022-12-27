@@ -181,7 +181,7 @@
 
         <Label
             Grid.Row="3" Grid.Column="2"
-            Width="60"
+            Width="60" Height="40"
             Background="{x:Static local:ViewModel.Highlight}"
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
@@ -199,8 +199,8 @@ void!</TextBlock>
             Icon="Gear" Spin="True"
             SpinDuration="5" Visibility="{Binding Interactive, Converter={StaticResource BoolShowHide}, ConverterParameter=false}" />
         <Grid
-            Name="Failure"
-            Visibility="{Binding Failure, Converter={StaticResource BoolShowHide}, ConverterParameter=true}"
+            Name="GeneralFailure"
+            Visibility="{Binding GeneralFailure, Converter={StaticResource BoolShowHide}, ConverterParameter=true}"
             Grid.Column="3" Grid.Row="3"
             Width="25"
             Height="25"
@@ -318,7 +318,7 @@ void!</TextBlock>
                             Command="{Binding DownloadCommand}" >
                         <StackPanel Orientation="Horizontal">
                             <TextBlock>Download&#038;Unpack Selected (</TextBlock>
-                            <TextBlock Text="{Binding SelectedCount}"></TextBlock>
+                            <TextBlock Text="{Binding OnlineSelectedCount}"></TextBlock>
                             <TextBlock>)</TextBlock>
                         </StackPanel>
                     </Button>
@@ -328,8 +328,8 @@ void!</TextBlock>
                             Visibility="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeVisibilityConverter}, ConverterParameter=Apply}"
                             Command="{Binding ApplyCommand}" >
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock>Apply Selected (</TextBlock>
-                            <TextBlock Text="{Binding SelectedCount}"></TextBlock>
+                            <TextBlock>Apply (</TextBlock>
+                            <TextBlock Text="{Binding LocalSelectedCount}"></TextBlock>
                             <TextBlock>)</TextBlock>
                         </StackPanel>
                     </Button>
@@ -377,6 +377,7 @@ void!</TextBlock>
                 &#160;for feedback
             </TextBlock>
             <WrapPanel Margin="10,10,10,10">
+                <!-- TODO something causes shift on other elements when panel is shown -->
                 <TextBlock>▷ Dev mode&#160;</TextBlock>
                 <CheckBox x:Name="DevMode" VerticalAlignment="Bottom" IsChecked="{Binding Model.DevMode}" />
             </WrapPanel>
@@ -418,9 +419,13 @@ void!</TextBlock>
                         <Button Content="/data" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Style="{StaticResource ButtonStyle}" Command="{Binding OpenDirCommand}" CommandParameter="data" />
                         <Button Content="/.syncfaction" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Style="{StaticResource ButtonStyle}" Command="{Binding OpenDirCommand}" CommandParameter="data/.syncfaction" />
                     </StackPanel>
-                    <Button x:Name="Test" Content="Test"
+                    <Button x:Name="Restore" Content="Restore"
                             Style="{StaticResource ButtonStyle}"
-                            Command="{Binding TestCommand}" />
+                            Command="{Binding RestoreCommand}" />
+
+                    <Button x:Name="RestoreVanilla" Content="Restore Vanilla"
+                            Style="{StaticResource ButtonStyle}"
+                            Command="{Binding RestoreVanillaCommand}" />
 
             </StackPanel>
             <TextBox Grid.Row="0" Grid.Column="1" Background="LightGray"

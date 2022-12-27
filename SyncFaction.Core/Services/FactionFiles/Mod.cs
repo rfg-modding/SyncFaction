@@ -5,6 +5,7 @@ using SyncFaction.Core.Services.Files;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
+// TODO: split? this is a mix of transport model, convenient bag of properties to pass around, and a view model of sorts
 public class Mod : IMod
 {
     public long Id { get; set; }
@@ -29,7 +30,10 @@ public class Mod : IMod
 
     public OnlineModStatus Status { get; set; }
 
+    [JsonIgnore]
     public ModFlags Flags { get; set; }
+
+    public bool Hide { get; set; }
 
     public string? ImageUrl { get; set; }
 
@@ -43,6 +47,7 @@ public class Mod : IMod
     public DateTime CreatedAt => DateTime.UnixEpoch.AddSeconds(UploadTime);
     public string? ImagePath { get; set; }
 
+    [JsonIgnore]
     public string Markdown => @$"# **{Name}** by {Author}
 
 *Added: {CreatedAt:yyyy MMMM dd}  #  Downloads: {DownloadCount}*  #  [See on FactionFiles]({BrowserUrl}) 
@@ -50,29 +55,13 @@ public class Mod : IMod
 {ImageMd}
 
 {DescriptionMd}
+
+{this.InfoMd()}
 ";
 
     public override string ToString() => $"    {Name}";
 
     private string ImageMd => ImagePath != null ? $"![image]({ImagePath})" : string.Empty;
-}
 
-public class LocalMod : IMod
-{
-    public long Id { get; set; }
-    public string Name { get; set; }
-    public long Size { get; set; }
-    public string? ImageUrl { get; set; }
-    public string DownloadUrl { get; set; }
-    public string IdString => $"{Name}";
-    public string BrowserUrl => string.Empty;
-    public DateTime CreatedAt => DateTime.MinValue;
-    public string? ImagePath => null;
-    public string Markdown => @$"# **{Name}**
-Local mod folder in `data/.syncfaction`";
 
-    public Category Category { get; set; } = Category.Local;
-    public OnlineModStatus Status { get; set; }
-    public ModFlags Flags { get; set; }
-    public override string ToString() => $"{Name}";
 }

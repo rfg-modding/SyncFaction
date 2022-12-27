@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
-using SyncFaction.Core.Services.Files;
 
 namespace SyncFaction;
 
@@ -33,13 +32,7 @@ public partial class ViewModel
     private void Close(object x)
     {
         Cancel(x);
-        if (string.IsNullOrWhiteSpace(Model.GameDirectory))
-        {
-            // nowhere to save state
-            return;
-        }
-        var appStorage = new AppStorage(Model.GameDirectory, fileSystem);
-        appStorage.WriteStateFile(Model.ToState());
+        uiCommands.WriteState(this);
     }
 
     [RelayCommand(CanExecute = nameof(Interactive))]
@@ -52,7 +45,6 @@ public partial class ViewModel
     private async Task Update(object x, CancellationToken token)
     {
         await uiCommands.ExecuteSafe(this, "Updating", uiCommands.Update, token);
-
     }
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
@@ -110,5 +102,17 @@ public partial class ViewModel
     private async Task Test(object x, CancellationToken token)
     {
         LocalModCalculateOrder();
+    }
+
+    [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
+    private async Task Restore(object x, CancellationToken token)
+    {
+        await uiCommands.ExecuteSafe(this, $"Restoring to latest update", uiCommands.Restore, token);
+    }
+
+    [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
+    private async Task RestoreVanilla(object x, CancellationToken token)
+    {
+        await uiCommands.ExecuteSafe(this, $"Restoring to vanilla files", uiCommands.RestoreVanilla, token);
     }
 }

@@ -1,11 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO.Abstractions;
-using System.Linq;
-using System.Text;
-using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -13,9 +8,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using SyncFaction.Core.Data;
-using SyncFaction.Core.Services.FactionFiles;
-using SyncFaction.Core.Services.Files;
 
 namespace SyncFaction;
 
@@ -25,21 +17,13 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class ViewModel
 {
-    private readonly FfClient ffClient;
-    private readonly IFileSystem fileSystem;
-    private readonly FileManager fileManager;
     private readonly UiCommands uiCommands;
     private readonly ILogger<ViewModel> log;
-    private readonly AppInitializer appInitializer;
     private readonly object collectionLock = new();
 
-    public ViewModel(FfClient ffClient, ILogger<ViewModel> log, IFileSystem fileSystem, AppInitializer appInitializer, FileManager fileManager, UiCommands uiCommands) : this()
+    public ViewModel(ILogger<ViewModel> log, UiCommands uiCommands) : this()
     {
-        this.ffClient = ffClient;
         this.log = log;
-        this.appInitializer = appInitializer;
-        this.fileSystem = fileSystem;
-        this.fileManager = fileManager;
         this.uiCommands = uiCommands;
 
         SetDesignTimeDefaults(false);
@@ -56,7 +40,9 @@ public partial class ViewModel
             RunCommand,
             DownloadCommand,
             ApplyCommand,
-            CancelCommand
+            CancelCommand,
+            RestoreCommand,
+            RestoreVanillaCommand,
         };
 
 
@@ -65,7 +51,9 @@ public partial class ViewModel
             InitCancelCommand,
             RefreshCancelCommand,
             DownloadCancelCommand,
-            ApplyCancelCommand
+            ApplyCancelCommand,
+            RestoreCancelCommand,
+            RestoreVanillaCancelCommand
         };
 
         // TODO callback to log devMode enable/disable
@@ -73,6 +61,7 @@ public partial class ViewModel
         PropertyChanged += UpdateJsonView;
         model = new Model();
         model.PropertyChanged += UpdateJsonView;
+        model.PropertyChanged += SaveStateDevModeToggle;
         LocalMods.CollectionChanged += LocalModsOnCollectionChanged;
 
         // this allows other threads to work with UI-bound collection
@@ -86,8 +75,6 @@ public partial class ViewModel
     }
 
     public GroupedDropHandler DropHandler { get; } = new();
-
-    public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 
     [ObservableProperty] private Model model;
 
@@ -103,12 +90,12 @@ public partial class ViewModel
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(NotInteractive))]
     private bool interactive = true;
 
-    [ObservableProperty] private bool failure = true;
+    [ObservableProperty] private bool generalFailure;
 
     [ObservableProperty] private bool gridLines;
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(UpdateNotRequired))]
-    private bool updateRequired = false;
+    private bool updateRequired;
 
     [ObservableProperty] private int onlineSelectedCount;
 
@@ -173,27 +160,9 @@ public partial class ViewModel
 
     public IViewAccessor ViewAccessor { get; set; }
 
-
+    public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 }
 
 /*
     install mod: fileManager.InstallModExclusive(storage, mod, token);
-
-
-
-    restore:
-
-    await Task.Run(async () => { await uiCommands.Restore(gameStorage, true, token); }, token);
-    public async Task Restore(IGameStorage storage, bool toVanilla, CancellationToken token)
-    {
-        log.Clear();
-        await fileManager.Restore(storage, toVanilla, token);
-        if (toVanilla)
-        {
-            // forget we had updates
-            stateProvider.State.CommunityPatch = 0;
-            stateProvider.State.CommunityUpdates.Clear();
-            storage.WriteState(stateProvider.State);
-        }
-    }
 */

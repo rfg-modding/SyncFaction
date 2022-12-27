@@ -1,13 +1,14 @@
 using System;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 
 namespace SyncFaction.Converters;
 
 /// <summary>
-/// Converts tab enum value to IsSelected=true
+/// Converts tab enum value to Visibility=Visible
 /// </summary>
-public class TabSelectedByTypeConverter : IValueConverter
+public class TabSelectedByTypeVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
@@ -15,10 +16,10 @@ public class TabSelectedByTypeConverter : IValueConverter
         var enumValue = value as Tab?;
         if (enumValue == selected)
         {
-            return true;
+            return Visibility.Visible;
         }
 
-        return false;
+        return Visibility.Collapsed;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

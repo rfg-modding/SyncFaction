@@ -23,6 +23,7 @@ public partial class ViewModel
             LocalSelectedCount = 2;
             GridLines = true;
             SelectedTab = Tab.Apply;
+            GeneralFailure = true;
 
             OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "just a mod", Category = Category.Local}));
             OnlineMods.Add(new OnlineModViewModel(new Mod() {Name = "selected mod", Category = Category.Local}) {Selected = true});
@@ -47,7 +48,7 @@ public partial class ViewModel
             LocalMods.Clear();
             OnlineSelectedCount = 0;
             LocalSelectedCount = 0;
-            Failure = false;
+            GeneralFailure = false;
             GridLines = false;
             SelectedTab = Tab.Apply;
         }
@@ -83,6 +84,16 @@ public partial class ViewModel
         }
     }
 
+    private void SaveStateDevModeToggle(object? _, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(Model.DevMode))
+        {
+            return;
+        }
+        uiCommands?.WriteState(this);
+    }
+
+
     /// <summary>
     /// Update json view for display and avoid infinite loop
     /// </summary>
@@ -97,37 +108,25 @@ public partial class ViewModel
         OnPropertyChanged(nameof(JsonView));
     }
 
-    public void UpdateLocalMods(List<IMod> mods)
+    private void LocalModChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // TODO compare applied mods from state with current mods
-        ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
+        if (e.PropertyName == nameof(LocalModViewModel.Selected))
         {
-            LockedCollectionOperation(() =>
+            var target = sender as LocalModViewModel;
+            if (target.Selected)
             {
-                LocalMods.Clear();
-                foreach (var mod in mods)
-                {
-                    var vm = new LocalModViewModel(mod);
-                    vm.PropertyChanged += LocalModOnPropertyChanged;
-                    vm.PropertyChanged += LocalModDisplay;
-                    LocalMods.Add(vm);
-                }
-            });
-        });
-    }
-
-    private void LocalModDisplay(object? sender, PropertyChangedEventArgs e)
-    {
-        // TODO: gets called twice for some reason
-        // TODO: unable to deselect items, why?!
-        if (e.PropertyName != nameof(LocalModViewModel.Selected))
-        {
-            return;
+                // it's AsyncCommand, ok to call this way, awaited inside Execute()
+                DisplayCommand.Execute(target);
+            }
         }
 
-        var target = sender as LocalModViewModel;
-        // it's AsyncCommand, ok to call this way: awaited inside Execute()
-        DisplayCommand.Execute(target);
+        else if (e.PropertyName == nameof(LocalModViewModel.Status))
+        {
+            lock (collectionLock)
+            {
+                LocalSelectedCount = LocalMods.Count(x => x.Status == LocalModStatus.Enabled);
+            }
+        }
     }
 
     public string GetHumanReadableCommunityVersion()
@@ -192,7 +191,7 @@ Changelogs and info:
         string FormatUrl(long x) => string.Format(Constants.BrowserUrlTemplate, x);
     }
 
-    public void AddModsWithViewResizeOnUiThread(IReadOnlyList<IMod> mods)
+    public void AddOnlineMods(IReadOnlyList<IMod> mods)
     {
         ViewAccessor.OnlineModListView.Dispatcher.Invoke(() =>
         {
@@ -205,24 +204,63 @@ Changelogs and info:
                     {
                         Mod = mod,
                     };
-                    vm.PropertyChanged += OnlilneModDisplayAndUpdateCount;
+                    vm.PropertyChanged += OnlilneModChanged;
                     OnlineMods.Add(vm);
                 }
-
-                var view = ViewAccessor.OnlineModListView.View as GridView;
-                if (view == null || view.Columns.Count < 1) return;
-                // Simulates column auto sizing as when double-clicking header border
-                // it is very important to both insert and update UI sequentially in same thread
-                // because otherwise callback for resize can be called before UI had time to update and we will still have wrong column width
-                // CollectionChanged event does not help here: it is called after collection change but before UI update
-                foreach (var column in view.Columns.Where(x => double.IsNaN(x.Width)))
-                {
-                    column.Width = column.ActualWidth;
-                    column.Width = double.NaN;
-                }
+                ResizeColumns(ViewAccessor.OnlineModListView);
             }
         });
+    }
 
+    public void UpdateLocalMods(List<IMod> mods)
+    {
+
+        ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
+        {
+            lock (collectionLock)
+            {
+                LocalMods.Clear();
+                foreach (var mod in mods)
+                {
+                    var vm = new LocalModViewModel(mod);
+                    vm.Status = LocalModStatus.Disabled;
+
+                    vm.PropertyChanged += LocalModOnPropertyChanged;
+                    vm.PropertyChanged += LocalModChanged;
+                    LocalMods.Add(vm);
+                }
+                // TODO compare applied mods from state with current mods
+                var order = 0;
+                foreach (var id in Model.AppliedMods)
+                {
+                    var vm = LocalMods.FirstOrDefault(x => x.Mod.Id == id);
+                    if (vm is null)
+                    {
+                        throw new InvalidOperationException($"Unknown mod was applied before, id [{id}]. Restore game files!");
+                    }
+
+                    vm.Order = order++;
+                    vm.Status = LocalModStatus.Enabled;
+                }
+
+                ResizeColumns(ViewAccessor.OnlineModListView);
+            }
+        });
+    }
+
+    private void ResizeColumns(ListView listView)
+    {
+        var view = listView.View as GridView;
+        if (view == null || view.Columns.Count < 1) return;
+        // Simulates column auto sizing as when double-clicking header border
+        // it is very important to both insert and update UI sequentially in same thread
+        // because otherwise callback for resize can be called before UI had time to update and we will still have wrong column width
+        // CollectionChanged event does not help here: it is called after collection change but before UI update
+        foreach (var column in view.Columns.Where(x => double.IsNaN(x.Width)))
+        {
+            column.Width = column.ActualWidth;
+            column.Width = double.NaN;
+        }
     }
 
     private void LocalModCalculateOrder()
@@ -254,7 +292,7 @@ Changelogs and info:
         }
     }
 
-    private void OnlilneModDisplayAndUpdateCount(object? sender, PropertyChangedEventArgs e)
+    private void OnlilneModChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(OnlineModViewModel.Selected))
         {

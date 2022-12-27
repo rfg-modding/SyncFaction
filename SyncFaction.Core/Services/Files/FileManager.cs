@@ -51,6 +51,40 @@ public class FileManager
     }
 
     /// <summary>
+    /// Applies mod over current game state
+    /// </summary>
+    public async Task<bool> InstallModIncremental(IGameStorage storage, IMod mod, CancellationToken token)
+    {
+        var modDir = storage.GetModDir(mod);
+        var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod"));
+        var modified = new List<GameFile>();
+        foreach (var modFile in modFiles)
+        {
+            var gameFile = GameFile.GuessTargetByModFile(storage, modFile);
+            if (gameFile.IsKnown)
+            {
+                // vanilla file must have backup before we modify it
+                gameFile.CopyToBackup(false, false);
+            }
+            // if file is not known, it's introduced by patch or update, meaning it exists in community bak
+
+            var result = await gameFile.ApplyMod(modFile, log, token);
+            if (result)
+            {
+                modified.Add(gameFile);
+            }
+        }
+
+        var modApplied = modified.Any();
+        if (!modApplied)
+        {
+            log.LogError("Nothing was changed by mod, maybe it contained only unsupported files");
+        }
+
+        return modApplied;
+    }
+
+    /// <summary>
     /// Applies community patch. Files are reset to vanilla first. Updates community backup.
     /// </summary>
     public async Task<bool> InstallCommunityPatchBase(IGameStorage storage, IMod patch, CancellationToken token)

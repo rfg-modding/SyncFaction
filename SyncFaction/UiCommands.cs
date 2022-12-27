@@ -72,7 +72,7 @@ public class UiCommands
             }
 
             viewModel.CurrentOperation = success ? string.Empty : $"FAILED: {viewModel.CurrentOperation}";
-            viewModel.Failure |= !success; // stays forever until restart
+            viewModel.GeneralFailure |= !success; // stays forever until restart
         }
     }
 
@@ -124,7 +124,52 @@ public class UiCommands
 
     public async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
     {
-        throw new NotImplementedException();
+        await RestoreInternal(viewModel, false, token);
+        var modsToApply = viewModel.LockedCollectionOperation(() => viewModel.LocalMods.Where(x => x.Status == LocalModStatus.Enabled).ToList());
+        var storage = viewModel.Model.GetGameStorage(fileSystem);
+        foreach (var vm in modsToApply)
+        {
+            var result = await fileManager.InstallModIncremental(storage, vm.Mod, token);
+            if (!result)
+            {
+                return false;
+            }
+        }
+
+        viewModel.LockedCollectionOperation(() =>
+        {
+            foreach (var vm in modsToApply)
+            {
+                viewModel.Model.AppliedMods.Add(vm.Mod.Id);
+            }
+        });
+        return true;
+    }
+
+    public async Task<bool> Restore(ViewModel viewModel, CancellationToken token)
+    {
+        await RestoreInternal(viewModel, false, token);
+        return true;
+    }
+
+    public async Task<bool> RestoreVanilla(ViewModel viewModel, CancellationToken token)
+    {
+        await RestoreInternal(viewModel, true, token);
+        return true;
+    }
+
+    public async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
+    {
+        var storage = viewModel.Model.GetGameStorage(fileSystem);
+        log.Clear();
+        await fileManager.Restore(storage, false, token);
+        viewModel.Model.AppliedMods.Clear();
+        if (toVanilla)
+        {
+            // forget we had updates
+            viewModel.Model.CommunityPatch = 0;
+            viewModel.LockedCollectionOperation(() => { viewModel.Model.CommunityUpdates.Clear(); });
+        }
     }
 
     public async Task<bool> Init(ViewModel viewModel, CancellationToken token)
@@ -168,18 +213,7 @@ public class UiCommands
 
 
         // populate mod list and stuff
-        await RefreshLocal(viewModel, token);
-        await RefreshOnline(viewModel, token);
-
-        return true;
-    }
-
-    public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
-    {
-        var storage = viewModel.Model.GetAppStorage(fileSystem);
-        var mods = await GetAvailableMods(storage, token);
-        viewModel.UpdateLocalMods(mods);
-        return true;
+        return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token, true);
     }
 
     public Task<bool> Run(ViewModel viewModel, CancellationToken token)
@@ -213,9 +247,8 @@ public class UiCommands
         return Task.FromResult(true);
     }
 
-    private async Task<List<IMod>> GetAvailableMods(IAppStorage storage, CancellationToken token)
+    private async Task<List<IMod>> GetAvailableMods(ViewModel viewModel, IGameStorage storage, CancellationToken token)
     {
-        // TODO read mod flags
         List<IMod> mods = new();
         foreach (var dir in storage.App.EnumerateDirectories())
         {
@@ -239,6 +272,12 @@ public class UiCommands
                 {
                     var json = await reader.ReadToEndAsync();
                     var modFromJson = JsonConvert.DeserializeObject<Mod>(json);
+                    if (modFromJson.Hide && !viewModel.Model.DevMode)
+                    {
+                        continue;
+                    }
+
+                    SetFlags(modFromJson, storage);
                     mods.Add(modFromJson);
                 }
             }
@@ -249,10 +288,11 @@ public class UiCommands
                     Id = dir.Name.GetHashCode(),
                     Name = dir.Name,
                     Size = 0,
-                    DownloadUrl = null,
+                    DownloadUrl = string.Empty,
                     ImageUrl = null,
-                    Status = OnlineModStatus.Ready
+                    Status = OnlineModStatus.Ready,
                 };
+                SetFlags(mod, storage);
                 mods.Add(mod);
             }
         }
@@ -260,15 +300,65 @@ public class UiCommands
         return mods;
     }
 
+    private void SetFlags(IMod mod, IGameStorage storage)
+    {
+        var modDir = storage.GetModDir(mod);
+        var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod"));
+        var flags = ModFlags.None;
+
+        // TODO same logic as in GameFile.ApplyMod()
+        foreach (var modFile in modFiles)
+        {
+            var extension = modFile.Extension.ToLowerInvariant();
+            var name = modFile.Name.ToLowerInvariant();
+
+            if (extension is ".rfgpatch" or ".txt" or ".jpg")
+            {
+                continue;
+            }
+
+            if (extension is ".xdelta")
+            {
+                flags |= ModFlags.HasXDelta;
+            }
+            else if (name is "modinfo.xml")
+            {
+                flags |= ModFlags.HasModInfo;
+
+            }
+            else
+            {
+                flags |= ModFlags.HasReplacementFiles;
+            }
+
+            // detecting if there are mp_file.vpp or mp_file.xdelta
+            var nameNoExt = Path.GetFileNameWithoutExtension(name) + ".";
+            if (Hashes.MultiplayerFiles.Any(x => x.StartsWith(nameNoExt)))
+            {
+                // TODO: read modinfo.xml because it can affect MP files too
+                flags |= ModFlags.AffectsMultiplayerFiles;
+            }
+
+            mod.Flags = flags;
+        }
+
+    }
+
     public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token)
+    {
+        return await RefreshOnline(viewModel, token, false);
+    }
+
+    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token, bool isInit)
     {
         // always show mods from local directory
         var categories = new List<Category>()
         {
             Category.Local
         };
-        if (viewModel.Model.DevMode)
+        if (viewModel.Model.DevMode && !isInit)
         {
+            // TODO this is annoying, skip only on Init but allow click on Refresh
             log.LogWarning($"Skipped reading mods and news from FactionFiles because DevMode is enabled");
         }
         else
@@ -302,13 +392,17 @@ public class UiCommands
         }, async (category, cancellationToken) =>
         {
             var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem), cancellationToken);
-            viewModel.AddModsWithViewResizeOnUiThread(mods);
+            viewModel.AddOnlineMods(mods);
         });
         return true;
+    }
 
-
-        // TODO work with "downloaded" status: initial set and update after DL
-        // TODO also detect unpacked and partial state
+    public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
+    {
+        var storage = viewModel.Model.GetGameStorage(fileSystem);
+        var mods = await GetAvailableMods(viewModel, storage, token);
+        viewModel.UpdateLocalMods(mods);
+        return true;
     }
 
     public async Task<bool> Update(ViewModel viewModel, CancellationToken token)
@@ -317,6 +411,12 @@ public class UiCommands
         var mods = await ffClient.GetMods(Category.ModsStandalone, gameStorage, token);
         var patch = mods.Single(x => x.Id == viewModel.Model.NewCommunityPatch);
         var updates = viewModel.LockedCollectionOperation(() => viewModel.Model.NewCommunityUpdates.Select(x => mods.Single(y => y.Id == x)).ToList());
+        // patches are not intended to be installed locally, store as hidden from local mod list
+        patch.Hide = true;
+        foreach (var update in updates)
+        {
+            update.Hide = true;
+        }
         var result = await InstallUpdates(viewModel, patch, updates, gameStorage, token);
         if (!result)
         {
@@ -348,7 +448,9 @@ Then run SyncFaction again.
         gameStorage.WriteStateFile(viewModel.Model.ToState());
         log.LogWarning($"Successfully updated game to community patch: **{viewModel.GetHumanReadableCommunityVersion()}**");
         viewModel.UpdateRequired = false;
-        return await RefreshOnline(viewModel, token);
+
+        // populate mod list and stuff
+        return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token);
     }
 
     private async Task<bool> InstallUpdates(ViewModel viewModel, IMod patch, List<IMod> updates, GameStorage storage, CancellationToken token)
@@ -372,11 +474,10 @@ Then run SyncFaction again.
         }
 
         var needPatches = false;
-        List<long> installed = null;
-        viewModel.LockedCollectionOperation(() =>
+        var installed = viewModel.LockedCollectionOperation(() =>
         {
-            needPatches = updates.Select(x => x.Id).SequenceEqual(viewModel.Model.CommunityUpdates);
-            installed = viewModel.Model.CommunityUpdates.ToList();
+            needPatches = !updates.Select(x => x.Id).SequenceEqual(viewModel.Model.CommunityUpdates);
+            return viewModel.Model.CommunityUpdates.ToList();
         });
 
         if (!needPatches)
@@ -425,5 +526,16 @@ Then run SyncFaction again.
         var newPatch = await ffClient.GetCommunityPatchId(token);
         var updates = await ffClient.GetCommunityUpdateIds(token);
         viewModel.UpdateUpdates(newPatch, updates);
+    }
+
+    public void WriteState(ViewModel viewModel)
+    {
+        if (string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
+        {
+            // nowhere to save state
+            return;
+        }
+        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem);
+        appStorage.WriteStateFile(viewModel.Model.ToState());
     }
 }
