@@ -26,7 +26,8 @@ public static class ModTools
 	public static void ApplyUserInput(ModInfo modInfo)
 	{
 		var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLower());
-		foreach (var listBox in listBoxes.Values)
+		// set copies for listboxes which reference others
+        foreach (var listBox in listBoxes.Values)
 		{
 			if (string.IsNullOrWhiteSpace(listBox.SameOptionsAs))
 			{

@@ -141,8 +141,15 @@ public class ArtifactGenerators
     [OneTimeSetUp]
     public void Init()
     {
-        TestUtils.ArtifactDir.Create();
-        TestUtils.UnpackDir.Create();
+        try
+        {
+            TestUtils.ArtifactDir.Create();
+            TestUtils.UnpackDir.Create();
+        }
+        catch
+        {
+            // ignored exceptions when steam game is not installed
+        }
     }
 
     [OneTimeTearDown]

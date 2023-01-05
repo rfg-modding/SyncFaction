@@ -20,6 +20,9 @@ public static class Constants
     public const string FindMapUrl = @"https://autodl.factionfiles.com/findmap.php";
     public const string BrowserUrlTemplate = "https://www.factionfiles.com/ff.php?action=file&id={0}";
     public const string WikiPage = "https://www.redfactionwiki.com/wiki/RF:G_Game_Night_News";
+    public const string CdnUrl = @"https://rfg.rast.rocks";
+    public const string CdnListUrl = @"https://storage.bunnycdn.com/rfgmods/dev/";  // NOTE: trailing slash is important!
+    public const string CdnReadApiKey = "8c96ec05-2d18-4ed6-83f1bbf5a112-f128-4744";
 
     public static readonly string ErrorFormat = @"# Error!
 **Operation failed**: {0}

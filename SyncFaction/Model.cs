@@ -21,6 +21,8 @@ public partial class Model
 
     [ObservableProperty] private bool mockMode;
 
+    [ObservableProperty] private bool useCdn;
+
     [ObservableProperty] private bool? isGog;
 
     [ObservableProperty] private bool isVerified;
@@ -48,6 +50,7 @@ public partial class Model
         Multithreading = state.Multithreading ?? true;
         IsGog = state.IsGog;  // keep nullable because first-time check can be aborted before we know the version
         MockMode = state.MockMode ?? false;
+        UseCdn = state.UseCdn ?? true;
         IsVerified = state.IsVerified ?? false;
         CommunityPatch = state.CommunityPatch ?? 0;
         CommunityUpdates.Clear();
@@ -72,6 +75,7 @@ public partial class Model
             Multithreading = Multithreading,
             IsGog = IsGog,
             IsVerified = IsVerified,
+            UseCdn = UseCdn,
             CommunityUpdates = CommunityUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),
 

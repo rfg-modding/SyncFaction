@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SyncFaction.Core.Data;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
+using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction;
 
@@ -78,11 +79,16 @@ public partial class ViewModel
     [RelayCommand]
     private async Task Display(object x, CancellationToken token)
     {
+        var isLocal = SelectedTab == Tab.Apply;
         var mvm = (IModViewModel)x;
         if (mvm.Selected)
         {
             log.Clear();
             log.LogInformation(new EventId(0, "log_false"), mvm.Mod.Markdown);
+            if (isLocal)
+            {
+                log.LogInformation(new EventId(0, "log_false"), "\n---\n\n" + mvm.Mod.InfoMd());
+            }
         }
     }
 

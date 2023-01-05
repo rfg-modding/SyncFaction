@@ -17,8 +17,6 @@ public class LocalMod : IMod
     public string? ImagePath => null;
     public string Markdown => @$"# **{Name}**
 Local mod folder in `data/.syncfaction`
-
-{this.InfoMd()}
 ";
 
     public Category Category { get; set; } = Category.Local;

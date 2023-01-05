@@ -26,7 +26,8 @@ public class CategoryHumanReadableConverter : IValueConverter
             Category.ModsStandalone => "Standalone Mods",
             Category.Patches => "Patches",
             Category.Tools => "Tools",
-            Category.Local => "Local",
+            Category.Local => "Local Folders",
+            Category.Dev => "Development (CDN only)",
             _ => throw new ArgumentOutOfRangeException()
         };
     }

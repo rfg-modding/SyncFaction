@@ -162,7 +162,7 @@ public class UiCommands
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem);
         log.Clear();
-        await fileManager.Restore(storage, false, token);
+        await fileManager.Restore(storage, toVanilla, token);
         viewModel.Model.AppliedMods.Clear();
         if (toVanilla)
         {
@@ -356,9 +356,13 @@ public class UiCommands
         {
             Category.Local
         };
-        if (viewModel.Model.DevMode && !isInit)
+        if (viewModel.Model.DevMode && viewModel.Model.UseCdn)
         {
-            // TODO this is annoying, skip only on Init but allow click on Refresh
+            log.LogDebug("Listing dev mods from CDN because DevMode and UseCDN is enabled");
+            categories.Add(Category.Dev);
+        }
+        if (viewModel.Model.DevMode && isInit)
+        {
             log.LogWarning($"Skipped reading mods and news from FactionFiles because DevMode is enabled");
         }
         else

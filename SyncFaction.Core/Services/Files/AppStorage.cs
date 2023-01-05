@@ -90,8 +90,10 @@ public class AppStorage: IAppStorage {
     public bool CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token)
 	{
 		var files = isGog ? Hashes.Gog : Hashes.Steam;
+
 		var versionName = isGog ? nameof(Hashes.Gog) : nameof(Hashes.Steam);
-        var result = Parallel.ForEach(files.OrderBy(x => x.Key), new ParallelOptions()
+        // not checking version-specific VPP files just to detect version, it's very slow
+        var result = Parallel.ForEach(files.Where(x => !x.Key.EndsWith(".vpp_pc")).OrderBy(x => x.Key), new ParallelOptions()
         {
             CancellationToken = token,
             MaxDegreeOfParallelism = threadCount

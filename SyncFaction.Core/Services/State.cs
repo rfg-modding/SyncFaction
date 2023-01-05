@@ -16,6 +16,7 @@ public class State
     public bool? IsGog { get; set; }
     public bool? IsVerified { get; set; }
     public bool? Multithreading { get; set; }
+    public bool? UseCdn { get; set; }
     [JsonIgnore]
     public bool? MockMode => false;
 }

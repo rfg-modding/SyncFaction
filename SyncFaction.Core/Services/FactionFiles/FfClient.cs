@@ -50,6 +50,17 @@ public class FfClient
             return GetLocalMods(storage);
         }
 
+        if (category is Category.Dev)
+        {
+            // this does not belong here too
+            return await GetDevMods(storage, token);
+        }
+
+        return await GetFfMods(category, storage, token);
+    }
+
+    private async Task<IReadOnlyList<IMod>> GetFfMods(Category category, IGameStorage storage, CancellationToken token)
+    {
         // NOTE: pagination currently is not implemented, everything is returned on first page
         log.LogDebug($"Reading FactionFiles category: {category}");
         var builder = new UriBuilder(Constants.ApiUrl);
@@ -93,11 +104,53 @@ public class FfClient
         return data.Results.Values.OrderByDescending(x => x.CreatedAt).ToList();
     }
 
+    private async Task<IReadOnlyList<IMod>> GetDevMods(IGameStorage storage, CancellationToken token)
+    {
+        // TODO: any pagination?
+        log.LogDebug($"Reading CDN for dev mods");
+        var url = new UriBuilder(Constants.CdnListUrl)
+        {
+            Query = $"AccessKey={Constants.CdnReadApiKey}"
+        }.Uri;
+
+        var response = await client.GetAsync(url, token);
+        await using var content = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
+
+        var data = JsonSerializer.Deserialize<List<CdnEntry>>(content);
+        if (data == null)
+        {
+            throw new InvalidOperationException("CDN API returned unexpected data");
+        }
+
+        var result = new List<IMod>();
+        foreach (var entry in data)
+        {
+
+            if (string.IsNullOrEmpty(Path.GetExtension(entry.ObjectName)))
+            {
+                // skip files cached from FF
+                continue;
+            }
+
+            if (entry.IsDirectory)
+            {
+                // skip directories (may be useful in the future)
+                continue;
+            }
+            var mod = entry.ToMod();
+            mod.Status = GetModStatus(mod, storage);
+            result.Add(mod);
+        }
+
+        return result.OrderByDescending(x => x.CreatedAt).ToList();
+    }
+
     public OnlineModStatus GetModStatus(Mod item, IGameStorage storage)
     {
         var modDir = storage.GetModDir(item);
         var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
-        if (modDir.Exists && !incompleteDataFile.Exists)
+        var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
+        if (modDir.Exists && !incompleteDataFile.Exists && descriptionFile.Exists)
         {
             return OnlineModStatus.Ready;
         }
@@ -169,23 +222,15 @@ public class FfClient
         incompleteDataFile.Create().Close();
         incompleteDataFile.Refresh();
 
-        var request = new HttpRequestMessage(HttpMethod.Head, mod.DownloadUrl);
-        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-        var originalName = response.Content.Headers.ContentDisposition?.FileName ?? response.Content.Headers.ContentDisposition?.FileNameStar ?? string.Empty;
-        var filteredName = originalName.Trim().Trim('"');
-        var extension = Path.GetExtension(filteredName);
-        var fileName = $".mod{extension}";
-        var contentSize = response.Content.Headers.ContentLength;
-        if (contentSize == null)
+        var remoteFileInfo = await GetRemoteFileInfo(mod, token);
+        if (remoteFileInfo is null)
         {
-            log.LogInformation("FF server did not return content size. Can not download mod!");
-            mod.Status = OnlineModStatus.Failed;
             return false;
         }
 
-        var dstFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, fileName));
+        var dstFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, remoteFileInfo.FileName));
 
-        var downloadResult = await DownloadWithResume(dstFile, contentSize.Value, mod.DownloadUrl, token);
+        var downloadResult = await DownloadWithResume(dstFile, remoteFileInfo.Size, mod, token);
         if (downloadResult == false)
         {
             mod.Status = OnlineModStatus.Failed;
@@ -205,6 +250,34 @@ public class FfClient
         return true;
     }
 
+    private record RemoteFileInfo(string FileName, long Size);
+
+    private async Task<RemoteFileInfo?> GetRemoteFileInfo(IMod mod, CancellationToken token)
+    {
+        if (mod.DownloadUrl.Contains(Constants.CdnUrl))
+        {
+            // mod retrieved from CDN already has all metadata
+            var cdnFileName = Path.GetFileName(mod.DownloadUrl);
+            return new RemoteFileInfo(cdnFileName, mod.Size);
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Head, mod.DownloadUrl);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+        var originalName = response.Content.Headers.ContentDisposition?.FileName ?? response.Content.Headers.ContentDisposition?.FileNameStar ?? string.Empty;
+        var filteredName = originalName.Trim().Trim('"');
+        var extension = Path.GetExtension(filteredName);
+        var fileName = $".mod{extension}";
+        var contentSize = response.Content.Headers.ContentLength;
+        if (contentSize == null)
+        {
+            log.LogInformation("FF server did not return content size. Can not download mod!");
+            mod.Status = OnlineModStatus.Failed;
+            return null;
+        }
+
+        return new RemoteFileInfo(fileName, contentSize.Value);
+    }
+
     private async Task PersistDescription(IDirectoryInfo modDir, IMod mod)
     {
         // persist info for offline usage
@@ -219,9 +292,9 @@ public class FfClient
         await writer.WriteAsync(json);
     }
 
-    public async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, string modDownloadUrl, CancellationToken token)
+    internal async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, IMod mod, CancellationToken token)
     {
-        log.LogInformation("Downloading `{url}`", modDownloadUrl);
+        log.LogInformation("Downloading **{id}**: {name}", mod.Id, mod.Name);
         if (stateProvider.State.MockMode is true && dstFile.Exists)
         {
             // allow replacing with any other file
@@ -248,11 +321,7 @@ public class FfClient
 
                 try
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Get, modDownloadUrl);
-                    request.Headers.Range = new RangeHeaderValue(dstStream.Position, contentLength);
-
-                    var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-                    await using var srcStream = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
+                    await using var srcStream = await GetHttpStream(mod, contentLength, dstStream.Position, token);
                     await CopyStreamWithProgress(srcStream, dstStream, contentLength, token);
                 }
                 catch (Exception e)
@@ -272,6 +341,49 @@ public class FfClient
 
         dstFile.Refresh();
         return dstFile.Length == contentLength;
+    }
+
+    /// <summary>
+    /// Try CDN if enabled. If disabled or failed, go to FF
+    /// </summary>
+    private async Task<Stream> GetHttpStream(IMod mod, long contentLength, long position, CancellationToken token)
+    {
+        var s = stateProvider.State.UseCdn is true
+            ? await GetCdnStream(mod, contentLength, position, token)
+            : null;
+        return s ?? await GetFfHttpStream(mod, contentLength, position, token);
+    }
+
+    private async Task<Stream?> GetCdnStream(IMod mod, long contentLength, long position, CancellationToken token)
+    {
+        var id = mod.Category is Category.Dev
+            ? mod.Name
+            : mod.Id.ToString();
+        var cdnUrl = $"{Constants.CdnUrl}/mirror/{id}";
+        log.LogDebug("Trying CDN: {url}", cdnUrl);
+        var cdnRequest = new HttpRequestMessage(HttpMethod.Get, cdnUrl);
+        cdnRequest.Headers.Range = new RangeHeaderValue(position, contentLength);
+        var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token, timeout.Token);
+        try
+        {
+            var response = await client.SendAsync(cdnRequest, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            return await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
+        }
+        catch (Exception e)
+        {
+            // it's ok, fall back to normal FF download
+            log.LogDebug(e, "CDN mirror not available");
+            return null;
+        }
+    }
+
+    private async Task<Stream> GetFfHttpStream(IMod mod, long contentLength, long position, CancellationToken token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, mod.DownloadUrl);
+        request.Headers.Range = new RangeHeaderValue(position, contentLength);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+        return await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
     }
 
     private async Task<bool> ExtractArchive(IFileInfo downloadedFile, IDirectoryInfo modDir, IFileInfo incompleteDataFile, CancellationToken token)

@@ -83,12 +83,17 @@ public class Tests
         var dstFile = fs.FileInfo.FromFileName("out.bin");
         dstFile.Delete();
         var url = "https://www.factionfiles.com/ffdownload.php?id=5843";
+        var mod = new Mod()
+        {
+            DownloadUrl = url
+        };
+
 
         var request = new HttpRequestMessage(HttpMethod.Head, url);
         var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
         var contentSize = response.Content.Headers.ContentLength.Value;
 
-        var result = await client.DownloadWithResume(dstFile, contentSize, url, CancellationToken.None);
+        var result = await client.DownloadWithResume(dstFile, contentSize, mod, CancellationToken.None);
 
         dstFile.Length.Should().Be(contentSize);
         result.Should().BeTrue();

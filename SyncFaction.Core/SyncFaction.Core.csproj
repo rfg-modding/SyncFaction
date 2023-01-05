@@ -24,4 +24,11 @@
     <ItemGroup>
       <ProjectReference Include="..\SyncFaction.Packer\SyncFaction.Packer.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+        <InternalsVisibleTo Include="SyncFaction.Tests" />
+        <InternalsVisibleTo Include="SyncFactionTests" />
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+    </ItemGroup>
 </Project>

@@ -208,6 +208,7 @@ public class FileManager
                 log.LogInformation("+ `{file}`: skipped", gameFile.RelativePath);
             }
         }
+        // don't nuke community bak if restored to vanilla. this allows fast switch between vanilla and updated version
         log.LogInformation($"**Success!**");
     }
 
