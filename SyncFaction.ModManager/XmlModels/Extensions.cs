@@ -6,6 +6,8 @@ public static class Extensions
 {
     public static readonly string HolderName = "syncfaction_holder";
 
+    public static readonly string NoOpName = "syncfaction_noop";
+
     public static XmlNode GetHolderNode(this XmlDocument doc) => doc.CreateNode(XmlNodeType.Element, HolderName, null);
 
     public static XmlNode Wrap(this IReadOnlyList<XmlNode> nodes)

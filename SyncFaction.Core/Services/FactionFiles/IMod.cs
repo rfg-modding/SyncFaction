@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using SyncFaction.Core.Data;
+using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -24,4 +25,6 @@ public interface IMod
     public bool Hide { get; set; }
     public long UploadTime { get; set; }
     public long DownloadCount { get; set; }
+    [JsonIgnore]
+    public ModInfo? ModInfo { get; set; }
 }

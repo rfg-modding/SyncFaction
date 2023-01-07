@@ -5,6 +5,7 @@ using System.Windows;
 using MdXaml;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.ModManager;
 using SyncFaction.Services;
 
 namespace SyncFaction;
@@ -33,6 +34,7 @@ public partial class App : Application
         services.AddSingleton<ViewModel>();
         services.AddSingleton<AppInitializer>();
         services.AddSingleton<UiCommands>();
+        services.AddSingleton<ModTools>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddLogging(x =>
         {

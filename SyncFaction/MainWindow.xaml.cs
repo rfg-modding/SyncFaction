@@ -1,11 +1,14 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using GongSolutions.Wpf.DragDrop.Utilities;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
+using ListBox = SyncFaction.ModManager.XmlModels.ListBox;
 
 namespace SyncFaction;
 
@@ -20,10 +23,9 @@ public partial class MainWindow : Window, IViewAccessor
         this.viewModel.ViewAccessor = this;
         this.log = log;
 
-        Title = Extras.Title.Value;
-
         DataContext = viewModel;
         InitializeComponent();
+        Title = Extras.Title.Value;
 
         markdownRender.Init(Markdown);
         markdownRender.Append("# Welcome!");
@@ -89,4 +91,39 @@ public partial class MainWindow : Window, IViewAccessor
     public ListView OnlineModListView => OnlineModList;
     public ListView LocalModListView => LocalModList;
     public Window WindowView => this;
+
+    private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateOptionValueText(sender);
+    }
+
+    private void TextBoxBase_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateOptionValueText(sender);
+    }
+
+    private void UIElement_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        UpdateOptionValueText(sender);
+    }
+
+    private static void UpdateOptionValueText(object sender)
+    {
+        var input = sender as DependencyObject;
+        var group = input.GetVisualAncestor<GroupBox>();
+        if (group is null)
+        {
+            // event is fired when textbox is removed from selection and it's removed from visual tree also
+            return;
+        }
+
+        var textBox = group.GetVisualDescendents<TextBox>().LastOrDefault();
+        if (textBox is null)
+        {
+            // skip when textbox is not visible
+            return;
+        }
+        var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+        binding.UpdateTarget();
+    }
 }

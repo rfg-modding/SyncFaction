@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Core.Services.Files;
@@ -25,6 +26,7 @@ public class FileManager
         var modified = new List<GameFile>();
         foreach (var modFile in modFiles)
         {
+            token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTargetByModFile(storage, modFile);
             gameFile.RestoreFromBackup();
             if (gameFile.IsKnown)
@@ -55,11 +57,17 @@ public class FileManager
     /// </summary>
     public async Task<bool> InstallModIncremental(IGameStorage storage, IMod mod, CancellationToken token)
     {
+        if (mod.ModInfo is not null)
+        {
+            return await InstallModInfo(storage, mod, token);
+        }
+
         var modDir = storage.GetModDir(mod);
         var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod"));
         var modified = new List<GameFile>();
         foreach (var modFile in modFiles)
         {
+            token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTargetByModFile(storage, modFile);
             if (gameFile.IsKnown)
             {
@@ -84,6 +92,14 @@ public class FileManager
         return modApplied;
     }
 
+    private async Task<bool> InstallModInfo(IGameStorage storage, IMod mod, CancellationToken token)
+    {
+        var json = JsonConvert.SerializeObject(mod, Formatting.Indented);
+        log.LogDebug("Applying mod: {mod}", json);
+        // TODO unpack, edit xml and files, etc
+        return true;
+    }
+
     /// <summary>
     /// Applies community patch. Files are reset to vanilla first. Updates community backup.
     /// </summary>
@@ -95,6 +111,7 @@ public class FileManager
         // some files might have been modified by mod, update or older patch. restore everything from vanilla files
         foreach (var knownFile in storage.VanillaHashes.Keys)
         {
+            token.ThrowIfCancellationRequested();
             var gameFile = new GameFile(storage, knownFile, fileSystem);
             gameFile.RestoreFromBackup();
         }
@@ -105,6 +122,7 @@ public class FileManager
         var modified = new List<GameFile>();
         foreach (var patchFile in patchFiles)
         {
+            token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTargetByModFile(storage, patchFile);
             if (gameFile.IsKnown)
             {
@@ -145,6 +163,7 @@ public class FileManager
             var modified = new List<GameFile>();
             foreach (var modFile in modFiles)
             {
+                token.ThrowIfCancellationRequested();
                 var gameFile = GameFile.GuessTargetByModFile(storage, modFile);
 
                 /*
@@ -195,6 +214,7 @@ public class FileManager
         log.LogInformation("> Restoring files (to vanilla = {toVanilla})...", toVanilla);
         foreach (var knownFile in storage.VanillaHashes.Keys)
         {
+            token.ThrowIfCancellationRequested();
             // TODO: probably delete all files not belonging to the game?
             var gameFile = new GameFile(storage, knownFile, fileSystem);
             var src = GetRestoreLocation(gameFile, toVanilla);

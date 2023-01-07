@@ -57,7 +57,7 @@ public partial class ViewModel
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task Apply(object x, CancellationToken token)
     {
-        await uiCommands.ExecuteSafe(this, $"Applying {-42} mods", uiCommands.Apply, token);
+        await uiCommands.ExecuteSafe(this, $"Applying {LocalSelectedCount} mods", uiCommands.Apply, token);
     }
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
@@ -79,16 +79,15 @@ public partial class ViewModel
     [RelayCommand]
     private async Task Display(object x, CancellationToken token)
     {
-        var isLocal = SelectedTab == Tab.Apply;
         var mvm = (IModViewModel)x;
         if (mvm.Selected)
         {
-            log.Clear();
-            log.LogInformation(new EventId(0, "log_false"), mvm.Mod.Markdown);
-            if (isLocal)
-            {
-                log.LogInformation(new EventId(0, "log_false"), "\n---\n\n" + mvm.Mod.InfoMd());
-            }
+            SelectedMod = mvm;
+            await uiCommands.ExecuteSafe(this, $"Displaying mod", uiCommands.Display, token);
+        }
+        else
+        {
+            SelectedMod = null;
         }
     }
 

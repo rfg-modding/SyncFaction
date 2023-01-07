@@ -20,10 +20,13 @@ public class Edit : HasNestedXml, IChange
 	    }
 
 	    var holder = NestedXml.Wrap();
-
 	    InsertUserEditValuesRecursive(holder, selectedValues);
-
 	    RemoveUserEditNodesRecursive(holder);
+        NestedXml.Clear();
+        foreach (var x in holder.ChildNodes)
+        {
+            NestedXml.Add((XmlNode)x);
+        }
     }
 
 	/// <summary>
@@ -36,17 +39,20 @@ public class Edit : HasNestedXml, IChange
 			return;
 		}
 
-		var nameLower = element.Name.ToLower();
-		if (nameLower == UserInputName)
+		if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
 		{
 			var key = element.InnerText.ToLowerInvariant();
-			// TODO support null (no-op)
 			var replacementHolder = selectedValues[key];
+            if (replacementHolder.OwnerDocument != element.OwnerDocument)
+            {
+                replacementHolder = element.OwnerDocument.ImportNode(replacementHolder, true);
+            }
 			var parent = element.ParentNode;
 			XmlNode current = element;
-			for (var i = 0; i< replacementHolder.ChildNodes.Count; i++)
+            // collection of child nodes shrinks because we actually move elements to another place
+            while (replacementHolder.ChildNodes.Count > 0)
 			{
-				var replacement = replacementHolder.ChildNodes[i];
+				var replacement = replacementHolder.ChildNodes[0];
 				parent.InsertAfter(replacement, current);
 				current = replacement;
 				// now outer loop will iterate over newly inserted replacement results. recursive edits are possible yaay!
@@ -86,8 +92,7 @@ public class Edit : HasNestedXml, IChange
 
 		if (element.HasChildNodes)
 		{
-			// descend
-			// can't use for/foreach: we modify collection in-place!
+			// descend. can't use for/foreach: we modify collection in-place!
 			var i = 0;
 			while (i < element.ChildNodes.Count)
 			{

@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="FastHashes" Version="3.5.0" />
         <PackageReference Include="HtmlToXamlConverter" Version="1.0.5727.24510" />
         <PackageReference Include="JorgeSerrano.Json.JsonSnakeCaseNamingPolicy" Version="0.9.0" />
         <PackageReference Include="AngleSharp" Version="0.17.1" />
@@ -15,6 +16,7 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
         <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
         <PackageReference Include="PleOps.XdeltaSharp" Version="1.3.0" />
         <PackageReference Include="SharpCompress" Version="0.32.2" />
         <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
@@ -22,6 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\SyncFaction.ModManager\SyncFaction.ModManager.csproj" />
       <ProjectReference Include="..\SyncFaction.Packer\SyncFaction.Packer.csproj" />
     </ItemGroup>
 

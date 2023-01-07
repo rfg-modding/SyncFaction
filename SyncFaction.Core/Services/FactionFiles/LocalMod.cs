@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -26,5 +27,7 @@ Local mod folder in `data/.syncfaction`
     public bool Hide { get; set; }
     public long UploadTime { get; set; }
     public long DownloadCount { get; set; }
+    [JsonIgnore]
+    public ModInfo? ModInfo { get; set; }
     public override string ToString() => $"{Name}";
 }

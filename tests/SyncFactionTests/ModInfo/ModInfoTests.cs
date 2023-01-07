@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Moq;
 using SyncFaction.ModManager;
 
 namespace SyncFactionTests.ModInfo;
@@ -10,7 +12,7 @@ public class ModInfoTests
     public void ReadAll(FileInfo fileInfo)
     {
         using var fileStream = fileInfo.OpenRead();
-        var modInfo = ModTools.LoadFromXml(fileStream);
+        var modInfo = new ModTools(Mock.Of<ILogger<ModTools>>()).LoadFromXml(fileStream);
         if (modInfo is null)
         {
             Assert.Fail("should not be null!");
@@ -30,8 +32,9 @@ public class ModInfoTests
     public void ApplyEditsAll(FileInfo fileInfo)
     {
         using var fileStream = fileInfo.OpenRead();
-        var modInfo = ModTools.LoadFromXml(fileStream);
-        ModTools.ApplyUserInput(modInfo);
+        var modTools = new ModTools(Mock.Of<ILogger<ModTools>>());
+        var modInfo = modTools.LoadFromXml(fileStream);
+        modTools.ApplyUserInput(modInfo);
 
         TestUtils.PrintJson(modInfo);
         fileStream.Position = 0;

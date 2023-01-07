@@ -36,6 +36,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\SyncFaction.Core\SyncFaction.Core.csproj" />
+	  <ProjectReference Include="..\SyncFaction.ModManager\SyncFaction.ModManager.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -41,24 +41,26 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 A lot of functionality is not implemented yet!
 
-* need a good UI solution for mod management: mods can have settings but it's unknown until they are downloaded and unpacked
-* version or build date in window header
 * button to report current state, collect log and probably list files/hashes
-* sanity check for state management, eg when resetting to vanilla
-* test how app behaves when resetting to vanilla and removing state.txt. should work with existing cache
-* Support mods that modify files inside vpp_pc archives as ModManager did
-* Support installing several mods at same time if they don't conflict with multiplayer
-  * Allow to "void warranty" and install custom mix of multiplayer mods
-  * Better UI: need some sort of ordered multi select with checkboxes and numbers (or something better)
-* Extend dev mode to aid mod developers in their crusades
-  * Fast switch between different game versions, mod builds, etc
-  * Allow installing local patch/update/mod manually to help with testing (add file picker)
-  * Button to clear caches
-  * Button to open game directory
-  * ???
+* sanity checks for state management, eg when resetting to vanilla (now app needs restart)
 * Check discord for feature requests
 * Better logging: now it's a mess of important stuff, trash and bad-formatted information
 * rickroll
+* COMMUNITY PATCHES MUST SUPPORT MODINFO XML
+* Support mods that modify files inside vpp_pc archives as ModManager did
+  * display inputs from MM
+  * account for situations when modinfo.xml is inside subfolder
+  * show resulting XML tree after user input
+  * apply operations
+    * unpack
+    * edit XML contents
+    * move files
+    * pack
+    * save/load state of selected values and custom inputs
+    * SameOptionsAs must be copied before displaying
+    * display list of files changed by mod (even for non-xml mods)
+* compare hashes for steam and gog versions
+* test what happens if cdn is unavailable
 
 ## Tech info
 
@@ -70,6 +72,6 @@ All settings, cache, backups and downloads are stored inside `<game_dir>/.syncfa
 
 ## Credits
 
-Implemented with support from **moneyl, Camo, Goober, natalie, ATMLIVE** and others from FactionFiles community. You people are awesome, bringing life to my favourite game! <3
+Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and others from FactionFiles community. You people are awesome, bringing life to my favourite game! <3
 
 ([join Discord!](https://discord.gg/factionfiles))

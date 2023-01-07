@@ -7,18 +7,23 @@ namespace SyncFaction.ModManager.XmlModels;
 /// </summary>
 public class CustomOption : IOption
 {
-    public string Value { get; set; }
+    public string? Value { get; set; }
 
     public XmlNode? ValueHolder
     {
         get
         {
-            // editable option gives only one text string as a node
+            // TODO: editable option as one text string node or an xml structure?
             var fakeDoc = new XmlDocument();
             var holder = fakeDoc.GetHolderNode();
-            var text = fakeDoc.CreateTextNode(Value);
-            holder.AppendChild(text);
+            //var text = fakeDoc.CreateTextNode(Value);
+            holder.InnerXml = Value ?? string.Empty;
             return holder;
         }
     }
+
+    /// <summary>
+    /// For debug printing with Newtonsoft serializer
+    /// </summary>
+    public bool ShouldSerializeValueHolder() => false;
 }

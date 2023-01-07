@@ -13,4 +13,9 @@ public abstract class Input
 
     [XmlIgnore]
     public abstract XmlNode SelectedValue { get; }
+
+    /// <summary>
+    /// For debug printing with Newtonsoft serializer
+    /// </summary>
+    public bool ShouldSerializeSelectedValue() => false;
 }

@@ -38,7 +38,7 @@ public partial class ViewModel
             LocalMods.Add(new LocalModViewModel(new Mod() {Name = "mod 1"}) {Order = 1});
             foreach (var localMod in LocalMods)
             {
-                localMod.PropertyChanged += LocalModOnPropertyChanged;
+                localMod.PropertyChanged += LocalModRecalculateOrder;
             }
         }
         else
@@ -57,9 +57,13 @@ public partial class ViewModel
     private void LocalModsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         LocalModCalculateOrder();
+        lock (collectionLock)
+        {
+            LocalSelectedCount = LocalMods.Count(x => x.Status == LocalModStatus.Enabled);
+        }
     }
 
-    private void LocalModOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void LocalModRecalculateOrder(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(LocalModViewModel.Order) or nameof(LocalModViewModel.Selected))
         {
@@ -84,16 +88,6 @@ public partial class ViewModel
         }
     }
 
-    private void SaveStateDevModeToggle(object? _, PropertyChangedEventArgs args)
-    {
-        if (args.PropertyName != nameof(Model.DevMode))
-        {
-            return;
-        }
-        uiCommands?.WriteState(this);
-    }
-
-
     /// <summary>
     /// Update json view for display and avoid infinite loop
     /// </summary>
@@ -113,11 +107,8 @@ public partial class ViewModel
         if (e.PropertyName == nameof(LocalModViewModel.Selected))
         {
             var target = sender as LocalModViewModel;
-            if (target.Selected)
-            {
-                // it's AsyncCommand, ok to call this way, awaited inside Execute()
-                DisplayCommand.Execute(target);
-            }
+            // it's AsyncCommand, ok to call this way, awaited inside Execute()
+            DisplayCommand.Execute(target);
         }
 
         else if (e.PropertyName == nameof(LocalModViewModel.Status))
@@ -214,26 +205,24 @@ Changelogs and info:
 
     public void UpdateLocalMods(List<IMod> mods)
     {
-
         ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
         {
             lock (collectionLock)
             {
                 LocalMods.Clear();
+                var tmp = new List<LocalModViewModel>();
                 foreach (var mod in mods)
                 {
                     var vm = new LocalModViewModel(mod);
                     vm.Status = LocalModStatus.Disabled;
-
-                    vm.PropertyChanged += LocalModOnPropertyChanged;
+                    vm.PropertyChanged += LocalModRecalculateOrder;
                     vm.PropertyChanged += LocalModChanged;
-                    LocalMods.Add(vm);
+                    tmp.Add(vm);
                 }
-                // TODO compare applied mods from state with current mods
-                var order = 0;
+                var order = 1;
                 foreach (var id in Model.AppliedMods)
                 {
-                    var vm = LocalMods.FirstOrDefault(x => x.Mod.Id == id);
+                    var vm = tmp.FirstOrDefault(x => x.Mod.Id == id);
                     if (vm is null)
                     {
                         throw new InvalidOperationException($"Unknown mod was applied before, id [{id}]. Restore game files!");
@@ -241,6 +230,11 @@ Changelogs and info:
 
                     vm.Order = order++;
                     vm.Status = LocalModStatus.Enabled;
+                }
+
+                foreach (var x in tmp)
+                {
+                    LocalMods.Add(x);
                 }
 
                 ResizeColumns(ViewAccessor.OnlineModListView);
@@ -265,19 +259,8 @@ Changelogs and info:
 
     private void LocalModCalculateOrder()
     {
-
         lock (collectionLock)
         {
-
-            var enabled = LocalMods.Count(x => x.Status == LocalModStatus.Enabled);
-            var disabled = LocalMods.Count(x => x.Status == LocalModStatus.Disabled);
-            try
-            {
-                log.LogInformation($"collection changed event, length: {LocalMods.Count} / enabled {enabled} / disabled {disabled}");
-            }
-            catch (Exception)
-            {
-            }
 
             var i = 1;
             foreach (var localMod in LocalMods)

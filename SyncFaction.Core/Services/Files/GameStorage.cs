@@ -8,7 +8,7 @@ namespace SyncFaction.Core.Services.Files;
 
 public class GameStorage : AppStorage, IGameStorage
 {
-    public GameStorage(string gameDir, IFileSystem fileSystem, IDictionary<string, string> fileHashes) : base(gameDir, fileSystem)
+    public GameStorage(string gameDir, IFileSystem fileSystem, IDictionary<string, string> fileHashes, ILogger log) : base(gameDir, fileSystem, log)
     {
 
         Bak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.BakDirName));

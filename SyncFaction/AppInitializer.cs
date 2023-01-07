@@ -34,7 +34,7 @@ public class AppInitializer
             return false;
         }
 
-        var appStorage = viewModel.Model.GetAppStorage(fileSystem);
+        var appStorage = viewModel.Model.GetAppStorage(fileSystem, log);
         log.LogInformation("Reading current state...");
         var stateFromFile = appStorage.LoadStateFile();
         viewModel.Model.FromState(stateFromFile);
@@ -50,7 +50,7 @@ public class AppInitializer
     {
         log.LogDebug("Looking for game install path...");
         viewModel.Model.GameDirectory = await AppStorage.DetectGameLocation(log, token);
-        if (!string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory) && !viewModel.Model.MockMode)
+        if (!string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
         {
             return true;
         }

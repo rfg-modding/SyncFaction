@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SyncFaction.ModManager;
 
 namespace SyncFaction.Core.Services;
 
@@ -17,6 +18,5 @@ public class State
     public bool? IsVerified { get; set; }
     public bool? Multithreading { get; set; }
     public bool? UseCdn { get; set; }
-    [JsonIgnore]
-    public bool? MockMode => false;
+    public Settings? Settings { get; set; }
 }

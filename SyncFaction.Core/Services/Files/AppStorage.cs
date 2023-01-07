@@ -5,18 +5,19 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using SyncFaction.Core.Data;
-using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Core.Services.Files;
 
 public class AppStorage: IAppStorage {
 
 	internal readonly IFileSystem fileSystem;
+    private readonly ILogger log;
 
-	public AppStorage(string gameDir, IFileSystem fileSystem)
+    public AppStorage(string gameDir, IFileSystem fileSystem, ILogger log)
 	{
 		this.fileSystem = fileSystem;
-		Game = fileSystem.DirectoryInfo.FromDirectoryName(gameDir);
+        this.log = log;
+        Game = fileSystem.DirectoryInfo.FromDirectoryName(gameDir);
 		if (!Game.Exists)
 		{
 			throw new ArgumentException($"Specified game directory does not exist! [{Game.FullName}]");
@@ -37,19 +38,21 @@ public class AppStorage: IAppStorage {
 
 	public State? LoadStateFile()
 	{
-		var file = new FileInfo(Path.Combine(App.FullName, Constants.StateFile));
+
+		var file = fileSystem.FileInfo.FromFileName(Path.Combine(App.FullName, Constants.StateFile));
 		if (!file.Exists)
 		{
+            log.LogInformation("State file does not exist");
 			return null;
 		}
-
+        log.LogInformation("Reading state file (size: {size})", file.Length);
 		var content = File.ReadAllText(file.FullName).Trim();
 		return JsonSerializer.Deserialize<State>(content);
 	}
 
 	public void WriteStateFile(State state)
 	{
-		var file = new FileInfo(Path.Combine(App.FullName, Constants.StateFile));
+		var file = fileSystem.FileInfo.FromFileName(Path.Combine(App.FullName, Constants.StateFile));
 		if (file.Exists)
 		{
 			file.Delete();

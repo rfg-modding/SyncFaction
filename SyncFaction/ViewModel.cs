@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction;
 
@@ -61,7 +62,6 @@ public partial class ViewModel
         PropertyChanged += UpdateJsonView;
         model = new Model();
         model.PropertyChanged += UpdateJsonView;
-        model.PropertyChanged += SaveStateDevModeToggle;
         LocalMods.CollectionChanged += LocalModsOnCollectionChanged;
 
         // this allows other threads to work with UI-bound collection
@@ -85,7 +85,7 @@ public partial class ViewModel
     private Tab selectedTab = Tab.Apply;
 
     // TODO show this only when mod has modinfo.xml with inputs?
-    public bool DisplayModSettings => SelectedTab == Tab.Apply;
+    public bool DisplayModSettings => SelectedTab == Tab.Apply && ModInfo is not null;
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(NotInteractive))]
     private bool interactive = true;
@@ -100,6 +100,12 @@ public partial class ViewModel
     [ObservableProperty] private int onlineSelectedCount;
 
     [ObservableProperty] private int localSelectedCount;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
+    private IModViewModel? selectedMod;
+
+    public ModInfo? ModInfo => (SelectedMod as LocalModViewModel)?.Mod.ModInfo;
 
     /// <summary>
     /// For simplified binding
@@ -158,11 +164,17 @@ public partial class ViewModel
         }
     }
 
+    /// <summary>
+    /// Debug view of modinfo.xml state
+    /// </summary>
+    [ObservableProperty] private string xmlView;
+
+    /// <summary>
+    /// Debug view of modinfo.xml after user input is applied
+    /// </summary>
+    [ObservableProperty] private string xmlView2;
+
     public IViewAccessor ViewAccessor { get; set; }
 
     public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 }
-
-/*
-    install mod: fileManager.InstallModExclusive(storage, mod, token);
-*/

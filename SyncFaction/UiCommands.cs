@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FastHashes;
 using HTMLConverter;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -13,6 +15,9 @@ using SyncFaction.Core;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.ModManager;
+using SyncFaction.ModManager.XmlModels;
+using Mod = SyncFaction.Core.Services.FactionFiles.Mod;
 
 namespace SyncFaction;
 
@@ -23,14 +28,16 @@ public class UiCommands
     private readonly FfClient ffClient;
     private readonly AppInitializer appInitializer;
     private readonly FileManager fileManager;
+    private readonly ModTools modTools;
 
-    public UiCommands(ILogger<UiCommands> log, IFileSystem fileSystem, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager)
+    public UiCommands(ILogger<UiCommands> log, IFileSystem fileSystem, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ModTools modTools)
     {
         this.log = log;
         this.fileSystem = fileSystem;
         this.ffClient = ffClient;
         this.appInitializer = appInitializer;
         this.fileManager = fileManager;
+        this.modTools = modTools;
     }
 
     /// <summary>
@@ -40,7 +47,7 @@ public class UiCommands
     {
         if (lockUi && !viewModel.Interactive)
         {
-            log.LogWarning("Attempt to run UI-locking command while not intercative, this should not happen normally");
+            log.LogWarning("Attempt to run UI-locking command while not interactive, this should not happen normally");
         }
 
         if (lockUi)
@@ -98,7 +105,7 @@ public class UiCommands
             // display "in progress" regardless of real mod status
             mvm.Status = OnlineModStatus.InProgress;
             var mod = mvm.Mod;
-            var storage = viewModel.Model.GetGameStorage(fileSystem);
+            var storage = viewModel.Model.GetGameStorage(fileSystem, log);
             var modDir = storage.GetModDir(mod);
             var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
             mvm.Status = mod.Status; // status is changed by from ffClient
@@ -126,7 +133,15 @@ public class UiCommands
     {
         await RestoreInternal(viewModel, false, token);
         var modsToApply = viewModel.LockedCollectionOperation(() => viewModel.LocalMods.Where(x => x.Status == LocalModStatus.Enabled).ToList());
-        var storage = viewModel.Model.GetGameStorage(fileSystem);
+        foreach (var mvm in modsToApply)
+        {
+            if (mvm.Mod.ModInfo is not null)
+            {
+                viewModel.Model.Settings.Mods[mvm.Mod.Id] = modTools.SaveCurrentSettings(mvm.Mod.ModInfo);
+                modTools.ApplyUserInput(mvm.Mod.ModInfo);
+            }
+        }
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         foreach (var vm in modsToApply)
         {
             var result = await fileManager.InstallModIncremental(storage, vm.Mod, token);
@@ -146,6 +161,38 @@ public class UiCommands
         return true;
     }
 
+    public async Task<bool> Display(ViewModel viewModel, CancellationToken token)
+    {
+        var isLocal = viewModel.SelectedTab == Tab.Apply;
+        var mvm = viewModel.SelectedMod;
+
+        if (mvm is null)
+        {
+            log.LogWarning($"Attempt to display mod when it's null");
+            return false;
+        }
+
+        if (mvm.Selected is not true)
+        {
+            log.LogWarning($"Attempt to display wrong mod: {mvm.Name}");
+            return false;
+        }
+
+        log.Clear();
+        log.LogInformation(new EventId(0, "log_false"), mvm.Mod.Markdown);
+        if (isLocal)
+        {
+            log.LogInformation(new EventId(0, "log_false"), "\n---\n\n" + mvm.Mod.InfoMd());
+        }
+
+        if (mvm is LocalModViewModel lvm)
+        {
+            viewModel.XmlView2 = JsonConvert.SerializeObject(lvm.Mod.ModInfo, Formatting.Indented);
+        }
+
+        return true;
+    }
+
     public async Task<bool> Restore(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, false, token);
@@ -160,7 +207,7 @@ public class UiCommands
 
     public async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
     {
-        var storage = viewModel.Model.GetGameStorage(fileSystem);
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         log.Clear();
         await fileManager.Restore(storage, toVanilla, token);
         viewModel.Model.AppliedMods.Clear();
@@ -186,7 +233,7 @@ public class UiCommands
 
     public async Task<bool> InitPopulateData(ViewModel viewModel, CancellationToken token)
     {
-        var gameStorage = viewModel.Model.GetGameStorage(fileSystem);
+        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         // create dirs and validate files if required
         gameStorage.InitBakDirectories();
         var threadCount = viewModel.Model.GetThreadCount();
@@ -225,7 +272,7 @@ public class UiCommands
             case true:
             {
                 log.LogInformation("Launching game via exe...");
-                var storage = viewModel.Model.GetGameStorage(fileSystem);
+                var storage = viewModel.Model.GetGameStorage(fileSystem, log);
                 var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
                 Process.Start(new ProcessStartInfo()
                 {
@@ -249,7 +296,40 @@ public class UiCommands
 
     private async Task<List<IMod>> GetAvailableMods(ViewModel viewModel, IGameStorage storage, CancellationToken token)
     {
-        List<IMod> mods = new();
+        var result = new List<IMod>();
+        foreach (var mod in EnumerateModFolders(storage, viewModel.Model.DevMode))
+        {
+            SetFlags(mod, storage);
+            mod.ModInfo = await ReadModInfo(mod, viewModel.Model.Settings, storage, token);
+            result.Add(mod);
+        }
+
+        return result;
+    }
+
+    private async Task<ModInfo?> ReadModInfo(IMod mod, Settings settings, IGameStorage storage, CancellationToken token)
+    {
+        var modDir = storage.GetModDir(mod);
+        var xmlFile = modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).FirstOrDefault();
+        if (xmlFile is null)
+        {
+            return null;
+        }
+
+        await using var s = xmlFile.OpenRead();
+        var modInfo = modTools.LoadFromXml(s);
+        modTools.CopySameOptions(modInfo);
+        if (settings.Mods.TryGetValue(mod.Id, out var modSettings))
+        {
+            modTools.LoadSettings(modSettings, modInfo);
+        }
+
+        return modInfo;
+    }
+
+    private IEnumerable<IMod> EnumerateModFolders(IGameStorage storage, bool devMode)
+    {
+        // TODO make async enumerable for ReadAsync()?
         foreach (var dir in storage.App.EnumerateDirectories())
         {
             if (dir.Name.StartsWith("."))
@@ -258,7 +338,7 @@ public class UiCommands
                 continue;
             }
 
-            if (dir.Name.StartsWith("Mod_") && dir.Name.Substring(4).All(char.IsDigit))
+            if (dir.Name.StartsWith("Mod_"))
             {
                 // read mod description from json
                 var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(dir.FullName, Constants.ModDescriptionFile));
@@ -270,34 +350,32 @@ public class UiCommands
 
                 using (var reader = descriptionFile.OpenText())
                 {
-                    var json = await reader.ReadToEndAsync();
-                    var modFromJson = JsonConvert.DeserializeObject<Mod>(json);
-                    if (modFromJson.Hide && !viewModel.Model.DevMode)
+                    var json = reader.ReadToEnd();
+                    var mod = JsonConvert.DeserializeObject<Mod>(json);
+                    if (mod.Hide && !devMode)
                     {
                         continue;
                     }
 
-                    SetFlags(modFromJson, storage);
-                    mods.Add(modFromJson);
+                    yield return mod;
                 }
             }
             else
             {
+                var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash( Encoding.UTF8.GetBytes(dir.Name.ToLowerInvariant()) ));
                 var mod = new LocalMod()
                 {
-                    Id = dir.Name.GetHashCode(),
+                    Id = id,
                     Name = dir.Name,
                     Size = 0,
                     DownloadUrl = string.Empty,
                     ImageUrl = null,
                     Status = OnlineModStatus.Ready,
                 };
-                SetFlags(mod, storage);
-                mods.Add(mod);
+                yield return mod;
             }
-        }
 
-        return mods;
+        }
     }
 
     private void SetFlags(IMod mod, IGameStorage storage)
@@ -371,6 +449,7 @@ public class UiCommands
             categories.Add(Category.MapPacks);
             categories.Add(Category.MapsStandalone);
             categories.Add(Category.MapsPatches);
+            categories.Add(Category.ModsRemaster);
 
             // upd text
             var document = await ffClient.GetNewsWiki(token);
@@ -395,7 +474,7 @@ public class UiCommands
             MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
         }, async (category, cancellationToken) =>
         {
-            var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem), cancellationToken);
+            var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, log), cancellationToken);
             viewModel.AddOnlineMods(mods);
         });
         return true;
@@ -403,7 +482,7 @@ public class UiCommands
 
     public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
     {
-        var storage = viewModel.Model.GetGameStorage(fileSystem);
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         var mods = await GetAvailableMods(viewModel, storage, token);
         viewModel.UpdateLocalMods(mods);
         return true;
@@ -411,7 +490,7 @@ public class UiCommands
 
     public async Task<bool> Update(ViewModel viewModel, CancellationToken token)
     {
-        var gameStorage = viewModel.Model.GetGameStorage(fileSystem);
+        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         var mods = await ffClient.GetMods(Category.ModsStandalone, gameStorage, token);
         var patch = mods.Single(x => x.Id == viewModel.Model.NewCommunityPatch);
         var updates = viewModel.LockedCollectionOperation(() => viewModel.Model.NewCommunityUpdates.Select(x => mods.Single(y => y.Id == x)).ToList());
@@ -539,7 +618,7 @@ Then run SyncFaction again.
             // nowhere to save state
             return;
         }
-        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem);
+        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem, log);
         appStorage.WriteStateFile(viewModel.Model.ToState());
     }
 }

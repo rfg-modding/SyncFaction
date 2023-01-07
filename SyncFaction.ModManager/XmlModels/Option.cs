@@ -12,4 +12,9 @@ public class Option : HasNestedXml, IOption
     public string Name { get; set; }
 
     public XmlNode? ValueHolder => NestedXml.Wrap();
+
+    /// <summary>
+    /// For debug printing with Newtonsoft serializer
+    /// </summary>
+    public bool ShouldSerializeValueHolder() => false;
 }

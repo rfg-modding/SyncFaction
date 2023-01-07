@@ -1,7 +1,9 @@
 using System.IO.Abstractions;
 using System.Text.Json.Serialization;
+using FastHashes;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -48,6 +50,9 @@ public class Mod : IMod
     public string? ImagePath { get; set; }
 
     [JsonIgnore]
+    public ModInfo? ModInfo { get; set; }
+
+    [JsonIgnore]
     public string Markdown => @$"# **{Name}** by {Author}
 
 *Added: {CreatedAt:yyyy MMMM dd}  #  Downloads: {DownloadCount}*  #  [See on FactionFiles]({BrowserUrl}) 
@@ -85,9 +90,10 @@ public class CdnEntry
 
     public Mod ToMod()
     {
+        var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash(Guid.ToByteArray()));
         return new Mod()
         {
-            Id = Guid.GetHashCode(),
+            Id = id,
             Category = Category.Dev,
             Author = "unknown",
             DescriptionMd = "# Mod under development, available from SyncFaction CDN",

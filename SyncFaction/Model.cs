@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SyncFaction.Core.Services;
+using SyncFaction.ModManager;
 
 namespace SyncFaction;
 
@@ -13,13 +14,9 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class Model
 {
-    // TODO: carefully load state from text file as fields may be missing (from older versions)
-
     [ObservableProperty] private string gameDirectory = string.Empty;
 
     [ObservableProperty] private bool devMode;
-
-    [ObservableProperty] private bool mockMode;
 
     [ObservableProperty] private bool useCdn;
 
@@ -43,15 +40,21 @@ public partial class Model
 
     public ObservableCollection<long> NewCommunityUpdates { get; } = new();
 
+    /// <summary>
+    /// NOTE: not observable, no UI interaction, only save/load on certain actions
+    /// </summary>
+    public Settings Settings { get; set; } = new Settings();
+
     public void FromState(State? state)
     {
+        // NOTE: carefully loading state from text file as fields may be missing (from older versions)
         state ??= new State();
         DevMode = state.DevMode ?? false;
         Multithreading = state.Multithreading ?? true;
         IsGog = state.IsGog;  // keep nullable because first-time check can be aborted before we know the version
-        MockMode = state.MockMode ?? false;
         UseCdn = state.UseCdn ?? true;
         IsVerified = state.IsVerified ?? false;
+        Settings = state.Settings ?? new Settings();
         CommunityPatch = state.CommunityPatch ?? 0;
         CommunityUpdates.Clear();
         var updates = state.CommunityUpdates ?? new List<long>();
@@ -78,6 +81,7 @@ public partial class Model
             UseCdn = UseCdn,
             CommunityUpdates = CommunityUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),
+            Settings = Settings
 
         };
 

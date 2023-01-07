@@ -1,8 +1,10 @@
 using System.IO.Abstractions;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Dom;
+using FastHashes;
 using JorgeSerrano.Json;
 using Microsoft.Extensions.Logging;
 using SharpCompress.Archives;
@@ -30,20 +32,6 @@ public class FfClient
 
     public async Task<IReadOnlyList<IMod>> GetMods(Category category, IGameStorage storage, CancellationToken token)
     {
-        if (stateProvider.State.MockMode is true && category is Category.ModsStandalone)
-        {
-            // use fake mod info for testing until community patch is uploaded to FF
-            return new List<Mod>
-            {
-                new()
-                {
-                    Id = 666,
-                    Size = 108996431,
-                    DownloadUrl = "https://www.factionfiles.com/ffdownload.php?id=2730"
-                }
-            };
-        }
-
         if (category is Category.Local)
         {
             // this does not belong here really, but is very convenient to parallelize calls
@@ -169,15 +157,16 @@ public class FfClient
                 continue;
             }
 
-            if (dir.Name.StartsWith("Mod_") && dir.Name.Substring(4).All(char.IsDigit))
+            if (dir.Name.StartsWith("Mod_"))
             {
                 // skip downloaded mods
                 continue;
             }
 
+            var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash( Encoding.UTF8.GetBytes(dir.Name.ToLowerInvariant()) ));
             var mod = new LocalMod()
             {
-                Id = dir.Name.GetHashCode(),
+                Id = id,
                 Name = dir.Name,
                 Size = 0,
                 DownloadUrl = null,
@@ -295,12 +284,6 @@ public class FfClient
     internal async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, IMod mod, CancellationToken token)
     {
         log.LogInformation("Downloading **{id}**: {name}", mod.Id, mod.Name);
-        if (stateProvider.State.MockMode is true && dstFile.Exists)
-        {
-            // allow replacing with any other file
-            return true;
-        }
-
         if (dstFile.Exists && dstFile.Length == contentLength)
         {
             // skip only if fully downloaded before
@@ -444,16 +427,7 @@ public class FfClient
 
     public async Task<long> GetCommunityPatchId(CancellationToken token)
     {
-        long? id;
-        if (stateProvider.State.MockMode is true)
-        {
-            // use fake mod id for testing until community patch is uploaded to FF
-            id = 666;
-        }
-        else
-        {
-            id = await GetIdBySearchString("rfgcommunitypatch", token);
-        }
+        var id = await GetIdBySearchString("rfgcommunitypatch", token);
         var humanReadableId = id == null ? "null" : id.ToString();
         log.LogInformation($"Community patch id: **{humanReadableId}**");
         return id ?? 0;
