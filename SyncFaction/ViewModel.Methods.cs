@@ -232,7 +232,8 @@ Changelogs and info:
                     vm.Status = LocalModStatus.Enabled;
                 }
 
-                foreach (var x in tmp)
+                // NOTE: initial collection order is important!
+                foreach (var x in tmp.OrderBy(x => x.Order).ThenBy(x => x.Name))
                 {
                     LocalMods.Add(x);
                 }

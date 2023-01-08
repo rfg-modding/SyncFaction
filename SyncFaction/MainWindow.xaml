@@ -135,9 +135,10 @@
             </Grid>
         </DataTemplate>
         <ControlTemplate x:Key="TabControlTemplate" TargetType="TabControl">
-            <DockPanel Margin="0">
-                <UniformGrid IsItemsHost="True" Rows="1" DockPanel.Dock="Top" />
-                <Border BorderThickness="0 1 0 0" BorderBrush="LightGray" DockPanel.Dock="Top" />
+            <DockPanel>
+                <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->
+                <UniformGrid IsItemsHost="True" Rows="1" DockPanel.Dock="Bottom" Margin="5 0 0 0" />
+                <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->
                 <ContentPresenter ContentSource="SelectedContent" />
             </DockPanel>
 
@@ -217,19 +218,36 @@
             </Setter>
         </Style>
         <Style TargetType="TabItem">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0 12 5 12" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Grid Name="Panel">
-                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="4" />
+                            <Border BorderThickness="1" BorderBrush="DimGray"></Border>
+                            <ContentPresenter
+                                x:Name="ContentSite"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                ContentSource="Header"
+                                />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Panel" Property="Background" Value="{x:Static local:ViewModel.Highlight}" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="False">
-                                <Setter TargetName="Panel" Property="Background" Value="White" />
+                                <Setter TargetName="Panel" Property="Background" Value="#DDDDDD" />
                             </Trigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Path=IsMouseOver, RelativeSource={RelativeSource Mode=Self}}" Value="True" />
+                                    <Condition Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource Mode=Self}}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Panel" Property="Background" Value="#BEE6FD" />
+                            </MultiDataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -279,7 +297,7 @@
 	        </mdxam:MarkdownScrollViewer>
             <ScrollViewer
                 Grid.Column="1"
-                Width="300"
+                Width="400"
                 Visibility="{Binding DisplayModSettings, Converter={StaticResource BoolShowCollapseConverter}}"
                 VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ContentControl Content="{Binding SelectedMod.Mod.ModInfo}"></ContentControl>
@@ -332,11 +350,10 @@ void!</TextBlock>
         <Label Grid.Column="3" Grid.Row="2" Name="CurrentOperation"
                Content="{Binding CurrentOperation}"
                VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0" Foreground="DarkGray" />
-        <TabControl Grid.Row="0" Grid.Column="3" Grid.RowSpan="2" Padding="0"
-                    Margin="3 0 0 0"
+        <TabControl Grid.Row="0" Grid.Column="3" Grid.RowSpan="2"
                     SelectedIndex="{Binding SelectedTab}"
                     Name="Tabs" Template="{StaticResource TabControlTemplate}">
-            <TabItem Header="Download" Name="DownloadItem"
+            <TabItem Header="Browse Online" Name="DownloadItem"
                      IsSelected="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeConverter}}"
                      >
                 <ListView
@@ -369,7 +386,7 @@ void!</TextBlock>
                     </ListView.View>
                 </ListView>
             </TabItem>
-            <TabItem Header="Apply" Name="ApplyItem"
+            <TabItem Header="Install" Name="ApplyItem"
                      IsSelected="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeConverter}, ConverterParameter=Apply}"
                      >
                 <Grid Background="#FFE5E5E5" >
@@ -425,7 +442,7 @@ void!</TextBlock>
                             Visibility="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeVisibilityConverter}, ConverterParameter=Download}"
                             Command="{Binding DownloadCommand}" >
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock>Download&#038;Unpack Selected (</TextBlock>
+                            <TextBlock>Download (</TextBlock>
                             <TextBlock Text="{Binding OnlineSelectedCount}"></TextBlock>
                             <TextBlock>)</TextBlock>
                         </StackPanel>
