@@ -195,7 +195,7 @@ Changelogs and info:
                     {
                         Mod = mod,
                     };
-                    vm.PropertyChanged += OnlilneModChanged;
+                    vm.PropertyChanged += OnlineModChanged;
                     OnlineMods.Add(vm);
                 }
                 ResizeColumns(ViewAccessor.OnlineModListView);
@@ -276,7 +276,7 @@ Changelogs and info:
         }
     }
 
-    private void OnlilneModChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnlineModChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(OnlineModViewModel.Selected))
         {

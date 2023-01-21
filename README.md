@@ -61,6 +61,7 @@ A lot of functionality is not implemented yet!
     * display list of files changed by mod (even for non-xml mods)
 * compare hashes for steam and gog versions
 * test what happens if cdn is unavailable
+* show warnings if mod edits MP files. also show files to be modified as list
 
 ## Tech info
 
@@ -75,3 +76,14 @@ All settings, cache, backups and downloads are stored inside `<game_dir>/.syncfa
 Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and others from FactionFiles community. You people are awesome, bringing life to my favourite game! <3
 
 ([join Discord!](https://discord.gg/factionfiles))
+
+
+0. pause XML merging features (that's the heart of modmanager)
+1. introduce VPP repacking support for mods/updates
+2. rewrite updater
+3. track new separate set of search strings from FF - for RSL2
+4. compare gog and steam distributions
+5. release unification patch based on observations and VPP differences
+6. all this stuff will require rebuilding current state of game files from ground up, but since i have cache and backups it won't be a problem for users
+7. people will need to get new SF version though
+   i'd like to make things smooth and will need help testing...

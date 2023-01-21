@@ -225,7 +225,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Grid Name="Panel">
+                        <Grid Name="Panel" Background="#DDDDDD">
                             <Border BorderThickness="1" BorderBrush="DimGray"></Border>
                             <ContentPresenter
                                 x:Name="ContentSite"
@@ -233,18 +233,21 @@
                                 HorizontalAlignment="Center"
                                 ContentSource="Header"
                                 />
+                            <Rectangle Name="Indicator" Width="20" Height="7" VerticalAlignment="Top" Margin="0 5 0 0" Stroke="DimGray" StrokeThickness="1">
+                            </Rectangle>
+
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Panel" Property="Background" Value="{x:Static local:ViewModel.Highlight}" />
+                                <Setter TargetName="Indicator" Property="Fill" Value="{x:Static local:ViewModel.Highlight}"></Setter>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="False">
-                                <Setter TargetName="Panel" Property="Background" Value="#DDDDDD" />
+                                <Setter TargetName="Indicator" Property="Fill" Value="#FFFFFF"></Setter>
                             </Trigger>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding Path=IsMouseOver, RelativeSource={RelativeSource Mode=Self}}" Value="True" />
-                                    <Condition Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource Mode=Self}}" Value="False" />
+                                    <!--<Condition Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource Mode=Self}}" Value="False" />-->
                                 </MultiDataTrigger.Conditions>
                                 <Setter TargetName="Panel" Property="Background" Value="#BEE6FD" />
                             </MultiDataTrigger>
