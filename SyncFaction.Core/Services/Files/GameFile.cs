@@ -16,9 +16,9 @@ public class GameFile
     /// <summary>
     /// Map mod files to target files. Mod files can be "rfg.exe", "foo.vpp_pc", "data/foo.vpp_pc", "foo.xdelta", "foo.rfgpatch" and so on
     /// </summary>
-    public static GameFile GuessTargetByModFile(IGameStorage storage, IFileInfo modFile)
+    public static GameFile GuessTargetByModFile(IGameStorage storage, IFileInfo modFile, IDirectoryInfo modDir)
     {
-        var relativePath = GuessRelativePath(storage, modFile);
+        var relativePath = GuessRelativePath(storage, modFile, modDir);
         return new GameFile(storage, relativePath, modFile.FileSystem);
     }
 
@@ -146,6 +146,7 @@ public class GameFile
             // new files from mods dont go anywhere, but we keep track in managed directory
             // we just create an empty file to keep track of it. doesn't matter if file in game directory exists
             var managedLocation = GetManagedLocation();
+            EnsureDirectoriesCreated(managedLocation);
             managedLocation.Create().Close();
             return managedLocation;
         }
@@ -203,7 +204,7 @@ public class GameFile
                 break;
             default:
                 // doesnt exist. prepare directories recursively then copy file
-                Directory.CreateDirectory(dst.Directory.FullName);
+                EnsureDirectoriesCreated(dst);
                 FileInfo.CopyTo(dst.FullName);
                 break;
         }
@@ -278,32 +279,32 @@ public class GameFile
 
     private IGameStorage Storage { get; }
 
-    private static string GuessRelativePath(IGameStorage storage, IFileInfo modFile)
+    private static string GuessRelativePath(IGameStorage storage, IFileInfo modFile, IDirectoryInfo modDir)
     {
-        var modNameNoExt = Path.GetFileNameWithoutExtension(modFile.Name);
-        if (storage.RootFiles.TryGetValue(modNameNoExt, out var rootPath))
+        var relativeModPath = Path.GetRelativePath(modDir.FullName, modFile.FullName);
+        if (!relativeModPath.Contains('\\'))
         {
-            return rootPath;
-        }
-        if (storage.DataFiles.TryGetValue(modNameNoExt, out var dataPath))
-        {
-            return dataPath;
+            // it's a file in mod root, probably a replacement for one of known files
+            var modNameNoExt = Path.GetFileNameWithoutExtension(modFile.Name);
+            if (storage.RootFiles.TryGetValue(modNameNoExt, out var rootPath))
+            {
+                return rootPath;
+            }
+            if (storage.DataFiles.TryGetValue(modNameNoExt, out var dataPath))
+            {
+                return dataPath;
+            }
         }
 
         /*
             it is not a known file, so it must be a new file to copy. not an xdelta patch. so extension must be preserved!
             but is it a new file inside / or inside /data?
-            let's guess: if modFile is inside /data directory in mod structure, it goes to /data
+            mod should mimic game structure: if modFile is inside /data directory in mod structure, it goes to /data
             else it goes to root
+            all subdirs are preserved too
         */
 
-        var lastModDirectory = Path.GetDirectoryName(modFile.FullName).Split(Path.DirectorySeparatorChar).Last();
-        if (lastModDirectory.Equals("data", StringComparison.OrdinalIgnoreCase))
-        {
-            return Path.Combine("data", modFile.Name);
-        }
-
-        return modFile.Name;
+        return relativeModPath;
     }
 
     private bool Skip(IFileInfo modFile, ILogger log)
@@ -314,9 +315,15 @@ public class GameFile
 
     private bool ApplyNewFile(IFileInfo modFile, ILogger log)
     {
+        EnsureDirectoriesCreated(FileInfo);
         modFile.CopyTo(FileInfo.FullName, true);
         log.LogInformation($"+ Copied `{modFile.Name}`");
         return true;
+    }
+
+    private void EnsureDirectoriesCreated(IFileInfo file)
+    {
+        Directory.CreateDirectory(file.Directory.FullName);
     }
 
     private async Task<bool> ApplyXdelta(IFileInfo modFile, ILogger log, CancellationToken cancellationToken)

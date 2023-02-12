@@ -56,7 +56,7 @@ public class FileManager
         foreach (var modFile in modFiles)
         {
             token.ThrowIfCancellationRequested();
-            var gameFile = GameFile.GuessTargetByModFile(storage, modFile);
+            var gameFile = GameFile.GuessTargetByModFile(storage, modFile, modDir);
             gameFile.CopyToBackup(false, isUpdate);
             var applyResult = await gameFile.ApplyMod(modFile, log, token);
             var result = new ApplyFileResult(gameFile, applyResult);
