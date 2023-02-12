@@ -496,8 +496,8 @@ public class UiCommands
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         var mods = await ffClient.GetMods(Category.ModsStandalone, gameStorage, token);
         var updates = viewModel.LockedCollectionOperation(() =>
-            viewModel.Model.NewTerraformUpdates
-                .Concat(viewModel.Model.NewRslUpdates)
+            viewModel.Model.RemoteTerraformUpdates
+                .Concat(viewModel.Model.RemoteRslUpdates)
                 .Select(x => mods.Single(y => y.Id == x)).ToList());
         // patches are not intended to be installed locally, will store them as hidden from local mod list
         foreach (var x in updates)
@@ -528,9 +528,9 @@ Then run SyncFaction again.
         viewModel.LockedCollectionOperation(() =>
         {
             viewModel.Model.TerraformUpdates.Clear();
-            viewModel.Model.TerraformUpdates.AddRange(viewModel.Model.NewTerraformUpdates);
+            viewModel.Model.TerraformUpdates.AddRange(viewModel.Model.RemoteTerraformUpdates);
             viewModel.Model.RslUpdates.Clear();
-            viewModel.Model.RslUpdates.AddRange(viewModel.Model.NewRslUpdates);
+            viewModel.Model.RslUpdates.AddRange(viewModel.Model.RemoteRslUpdates);
         });
         gameStorage.WriteStateFile(viewModel.Model.ToState());
         log.LogWarning($"Successfully updated game: **{viewModel.GetHumanReadableVersion()}**");
@@ -585,7 +585,13 @@ Then run SyncFaction again.
     public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
     {
         log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
-        var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
+        // TODO uncomment me!!!
+        //var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
+
+        var terraform = new List<long>(){6247}
+                .Concat(await ffClient.ListPatchIds("rfgcommunityupdate", token))
+                .ToList()
+                ;
         var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);
         viewModel.UpdateUpdates(terraform, rsl);
     }

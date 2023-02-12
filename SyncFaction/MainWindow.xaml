@@ -531,8 +531,8 @@ void!</TextBlock>
                 Margin="10"
                 Header="Dev options (careful!)">
             <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
-                <CheckBox Margin="10" IsChecked="{Binding UpdateRequired}" Content="Update required" />
-                    <CheckBox Margin="10" IsChecked="{Binding Interactive}" Content="Interactive" />
+                <CheckBox Margin="10" IsChecked="{Binding UpdateRequired}" Content="UI: Update required" />
+                    <CheckBox Margin="10" IsChecked="{Binding Interactive}" Content="UI: Interactive/Busy" />
                     <CheckBox Margin="10" IsChecked="{Binding Model.Multithreading}" >
                         <StackPanel Orientation="Horizontal">
                             <TextBlock>Multithreading (</TextBlock>

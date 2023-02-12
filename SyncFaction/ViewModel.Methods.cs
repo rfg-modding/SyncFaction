@@ -139,12 +139,12 @@ public partial class ViewModel
     {
         lock(collectionLock)
         {
-            Model.NewTerraformUpdates.Clear();
-            Model.NewTerraformUpdates.AddRange(terraform);
-            Model.NewRslUpdates.Clear();
-            model.NewRslUpdates.AddRange(rsl);
+            Model.RemoteTerraformUpdates.Clear();
+            Model.RemoteTerraformUpdates.AddRange(terraform);
+            Model.RemoteRslUpdates.Clear();
+            model.RemoteRslUpdates.AddRange(rsl);
 
-            var newUpdates = Model.NewTerraformUpdates.Concat(model.NewRslUpdates).ToList();
+            var newUpdates = Model.RemoteTerraformUpdates.Concat(model.RemoteRslUpdates).ToList();
             var currentUpdates = Model.TerraformUpdates.Concat(Model.RslUpdates).ToList();
             if (!currentUpdates.SequenceEqual(newUpdates))
             {
@@ -163,14 +163,14 @@ Mod management will be available after updating.
 Changelogs and info:
 ");
                 var i = 1;
-                foreach (var x in Model.NewTerraformUpdates)
+                foreach (var x in Model.RemoteTerraformUpdates)
                 {
                     log.LogInformation($"+ [Terraform patch part {i} (id {x})]({FormatUrl(x)})");
                     i++;
                 }
 
                 i = 1;
-                foreach (var x in Model.NewRslUpdates)
+                foreach (var x in Model.RemoteRslUpdates)
                 {
                     log.LogInformation($"+ [Script Loader part {i} (id {x})]({FormatUrl(x)})");
                     i++;

@@ -30,7 +30,7 @@ public class FfClient
         this.fileSystem = fileSystem;
         this.log = log;
 
-        this.client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(Title.AppName, Title.Version));
+        this.client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(Title.AppName, Title.Version.Replace(':', '-').Replace(' ', '_')));
     }
 
     public async Task<IReadOnlyList<IMod>> GetMods(Category category, IGameStorage storage, CancellationToken token)

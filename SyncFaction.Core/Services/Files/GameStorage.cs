@@ -14,6 +14,9 @@ public class GameStorage : AppStorage, IGameStorage
         Bak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.BakDirName));
         PatchBak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.PatchBakDirName));
         Managed = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.ManagedDirName));
+        EnsureCreated(Bak);
+        EnsureCreated(PatchBak);
+        EnsureCreated(Managed);
         vanillaHashes = fileHashes.OrderBy(x => x.Key).ToImmutableSortedDictionary();
         rootFiles = VanillaHashes.Keys
             .Where(x => x.Split('/').Length == 1)
@@ -25,6 +28,14 @@ public class GameStorage : AppStorage, IGameStorage
             .ToDictionary(x => Path.GetFileNameWithoutExtension(x.Split('/').Last()), x => x)
             .OrderBy(x => x.Key)
             .ToImmutableSortedDictionary();
+    }
+
+    private static void EnsureCreated(IDirectoryInfo dir)
+    {
+        if (!dir.Exists)
+        {
+            dir.Create();
+        }
     }
 
     public IDirectoryInfo Bak { get; }

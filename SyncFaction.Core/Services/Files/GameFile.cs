@@ -103,10 +103,10 @@ public class GameFile
         return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.Managed.FullName, RelativePath));
     }
 
-    public IFileInfo GetBackupLocation(bool vanilla)
+    public IFileInfo FindBackup()
     {
         var patch = GetPatchBackupLocation();
-        if (patch.Exists && !vanilla)
+        if (patch.Exists)
         {
             return patch;
         }
@@ -118,17 +118,33 @@ public class GameFile
 
     public bool BackupExists()
     {
-        return GetBackupLocation(false).Exists;
+        return FindBackup().Exists;
     }
 
     public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
-        var isNew = !IsKnown;
-        var isMod = isNew && !isUpdate;
-        if (isMod)
+        static FileKind DetermineKind(bool isUpdate, bool isKnown)
         {
-            // new files from mods dont go anywhere
-            // but we keep track in managed directory
+            if (isKnown)
+            {
+                return FileKind.Stock;
+            }
+
+            if (isUpdate)
+            {
+                return FileKind.FromPatch;
+            }
+
+            return FileKind.FromMod;
+        }
+
+        var kind = DetermineKind(isUpdate, IsKnown);
+
+
+        if (kind is FileKind.FromMod)
+        {
+            // new files from mods dont go anywhere, but we keep track in managed directory
+            // we just create an empty file to keep track of it. doesn't matter if file in game directory exists
             var managedLocation = GetManagedLocation();
             managedLocation.Create().Close();
             return managedLocation;
@@ -136,17 +152,49 @@ public class GameFile
 
         if (!Exists)
         {
-            // nothing to back up
+            // nothing to back up. this will happen when iterating over updates containing new files
             return null;
         }
 
-        // new files from update go to community bak only
-        // known files go to vanilla bak, or, if updated before, to community bak
-        var dst = isNew ? GetPatchBackupLocation() : GetBackupLocation(false);
+        // not new file and not update? it's vanilla file being modified or patched
+        IFileInfo GetDestination(FileKind kind)
+        {
+            switch (kind)
+            {
+                case FileKind.Stock:
+                    // TODO this is total mess:
+                    // we are patching or modding vanilla file
+                    // if it is not backed up, copy to vanilla bak
+                    var vanillaBak = GetVanillaBackupLocation();
+                    if (!vanillaBak.Exists)
+                    {
+                        return vanillaBak;
+                    }
+
+                    // if is already backed up and we are updating, work with patch bak
+                    if (isUpdate)
+                    {
+                        return GetPatchBackupLocation();
+                    }
+
+                    return vanillaBak;
+                case FileKind.FromPatch:
+                    // new files from update go to community bak only
+                    return GetPatchBackupLocation();
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+            }
+        }
+
+        var dst = GetDestination(kind);
         switch (dst.Exists)
         {
             case true when overwrite:
-                // already exists, force copy over
+                // already exists, force copy over, but dont break vanilla backup
+                if (dst.FullName == GetVanillaBackupLocation().FullName)
+                {
+                    throw new InvalidOperationException($"This should not happen: attempt to overwrite vanilla backup of file [{AbsolutePath}]");
+                }
                 dst.Delete();
                 FileInfo.CopyTo(dst.FullName);
                 break;
@@ -171,7 +219,7 @@ public class GameFile
         switch (Kind)
         {
             case FileKind.Stock:
-                var src = GetBackupLocation(vanilla);
+                var src = vanilla ? GetVanillaBackupLocation() : FindBackup();
                 if (!src.Exists)
                 {
                     // stock file not present in backups == it was never modified
@@ -261,7 +309,7 @@ public class GameFile
     private bool Skip(IFileInfo modFile, ILogger log)
     {
         log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
-        return false;
+        return true;
     }
 
     private bool ApplyNewFile(IFileInfo modFile, ILogger log)
@@ -278,16 +326,26 @@ public class GameFile
         {
             dstFile.Delete();
         }
-        var srcFile = GetBackupLocation(false);
+        var srcFile = FindBackup();
         await using var srcStream = srcFile.OpenRead();
         await using var patchStream = modFile.OpenRead();
         await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
 
-        using var decoder = new Decoder(srcStream, patchStream, dstStream);
-        decoder.Run();
+        try
+        {
+            using var decoder = new Decoder(srcStream, patchStream, dstStream);
+            // TODO log progress
+            decoder.ProgressChanged += progress => { cancellationToken.ThrowIfCancellationRequested(); };
+            decoder.Run();
 
-        log.LogInformation($"+ **Patched** `{modFile.Name}`");
-        return true;
+            log.LogInformation($"+ **Patched** `{modFile.Name}`");
+            return true;
+        }
+        catch (Exception e)
+        {
+            log.LogError(e, $"XDelta failed: [{srcFile.FullName}] + [{modFile.FullName}] -> [{dstFile.FullName}]");
+            throw;
+        }
     }
 }
 

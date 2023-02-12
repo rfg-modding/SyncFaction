@@ -23,7 +23,8 @@ public static class Constants
     public const string FindMapUrl = @"https://autodl.factionfiles.com/findmap.php";
     public const string BrowserUrlTemplate = "https://www.factionfiles.com/ff.php?action=file&id={0}";
     public const string WikiPage = "https://www.redfactionwiki.com/wiki/RF:G_Game_Night_News";
-    public const string PatchSearchStringPrefix = "rfgterraform";
+    //public const string PatchSearchStringPrefix = "rfgterraform";  // TODO uncomment me!!!
+    public const string PatchSearchStringPrefix = "rfgcommunitypatch";
     public const string RslSearchStringPrefix = "rfgscriptloader";
 
 

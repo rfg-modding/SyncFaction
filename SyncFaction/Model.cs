@@ -32,11 +32,11 @@ public partial class Model
 
     public ObservableCollection<long> TerraformUpdates { get; } = new();
 
-    public ObservableCollection<long> NewTerraformUpdates { get; } = new();
+    public ObservableCollection<long> RemoteTerraformUpdates { get; } = new();
 
     public ObservableCollection<long> RslUpdates { get; } = new();
 
-    public ObservableCollection<long> NewRslUpdates { get; } = new();
+    public ObservableCollection<long> RemoteRslUpdates { get; } = new();
 
     public ObservableCollection<long> AppliedMods { get; } = new();
 

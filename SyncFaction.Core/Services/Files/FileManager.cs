@@ -49,8 +49,8 @@ public class FileManager
         }
 
         var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Where(x => excludeDirs.Contains(x.Directory.FullName.ToLowerInvariant()))
-            .Where(x => excludeFiles.Contains(x.FullName.ToLowerInvariant()))
+            .Where(x => !excludeDirs.Contains(x.Directory.FullName.ToLowerInvariant()))
+            .Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant()))
             .Where(x => !x.Name.ToLowerInvariant().StartsWith(".mod"));
         var modified = new List<ApplyFileResult>();
         foreach (var modFile in modFiles)

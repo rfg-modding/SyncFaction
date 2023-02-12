@@ -68,9 +68,9 @@ public partial class ViewModel
         BindingOperations.EnableCollectionSynchronization(OnlineMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(LocalMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.TerraformUpdates, collectionLock);
-        BindingOperations.EnableCollectionSynchronization(Model.NewTerraformUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.RemoteTerraformUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.RslUpdates, collectionLock);
-        BindingOperations.EnableCollectionSynchronization(Model.NewRslUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.RemoteRslUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.AppliedMods, collectionLock);
 
         SetDesignTimeDefaults(true);
