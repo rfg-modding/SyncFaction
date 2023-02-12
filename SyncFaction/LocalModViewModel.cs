@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using SyncFaction.Core.Services.FactionFiles;
-using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction;
 

@@ -4,9 +4,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
-using SyncFaction.Core;
-using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction;
 

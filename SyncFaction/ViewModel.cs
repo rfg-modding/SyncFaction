@@ -67,8 +67,10 @@ public partial class ViewModel
         // this allows other threads to work with UI-bound collection
         BindingOperations.EnableCollectionSynchronization(OnlineMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(LocalMods, collectionLock);
-        BindingOperations.EnableCollectionSynchronization(Model.CommunityUpdates, collectionLock);
-        BindingOperations.EnableCollectionSynchronization(Model.NewCommunityUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.TerraformUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.NewTerraformUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.RslUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.NewRslUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.AppliedMods, collectionLock);
 
         SetDesignTimeDefaults(true);

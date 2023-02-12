@@ -24,21 +24,21 @@ public partial class Model
 
     [ObservableProperty] private bool isVerified;
 
-    [ObservableProperty] private long communityPatch;
-
-    [ObservableProperty] private long newCommunityPatch;
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ThreadCount))]
     private bool multithreading;
 
     public int ThreadCount => GetThreadCount();
 
-    public ObservableCollection<long> CommunityUpdates { get; } = new();
+    public ObservableCollection<long> TerraformUpdates { get; } = new();
+
+    public ObservableCollection<long> NewTerraformUpdates { get; } = new();
+
+    public ObservableCollection<long> RslUpdates { get; } = new();
+
+    public ObservableCollection<long> NewRslUpdates { get; } = new();
 
     public ObservableCollection<long> AppliedMods { get; } = new();
-
-    public ObservableCollection<long> NewCommunityUpdates { get; } = new();
 
     /// <summary>
     /// NOTE: not observable, no UI interaction, only save/load on certain actions
@@ -55,34 +55,23 @@ public partial class Model
         UseCdn = state.UseCdn ?? true;
         IsVerified = state.IsVerified ?? false;
         Settings = state.Settings ?? new Settings();
-        CommunityPatch = state.CommunityPatch ?? 0;
-        CommunityUpdates.Clear();
-        var updates = state.CommunityUpdates ?? new List<long>();
-        foreach (var update in updates.Distinct().OrderBy(x => x))
-        {
-            CommunityUpdates.Add(update);
-        }
-        AppliedMods.Clear();
-        var applied = state.AppliedMods ?? new List<long>();
-        foreach (var modId in applied)
-        {
-            AppliedMods.Add(modId);
-        }
+        PopulateList(state.TerraformUpdates, TerraformUpdates, true);
+        PopulateList(state.RslUpdates, RslUpdates, true);
+        PopulateList(state.AppliedMods, AppliedMods, false);
     }
 
     public State ToState() =>
         new()
         {
-            CommunityPatch = CommunityPatch,
             DevMode = DevMode,
             Multithreading = Multithreading,
             IsGog = IsGog,
             IsVerified = IsVerified,
             UseCdn = UseCdn,
-            CommunityUpdates = CommunityUpdates.ToList(),
+            TerraformUpdates = TerraformUpdates.ToList(),
+            RslUpdates = RslUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),
-            Settings = Settings
-
+            Settings = Settings,
         };
 
     public int GetThreadCount()
@@ -96,5 +85,20 @@ public partial class Model
         // also limit to some sane value for network calls
         var almostAllCpus = Environment.ProcessorCount - 2;
         return Math.Clamp(almostAllCpus, 1, 10);
+    }
+
+    private void PopulateList<T>(IEnumerable<T>? src, ObservableCollection<T> dst, bool order)
+    {
+        dst.Clear();
+        src ??= new List<T>();
+        src = src.Distinct();
+        if (order)
+        {
+            src = src.OrderBy(x => x);
+        }
+        foreach (var modId in src)
+        {
+            dst.Add(modId);
+        }
     }
 }

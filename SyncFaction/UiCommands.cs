@@ -108,7 +108,7 @@ public class UiCommands
             var storage = viewModel.Model.GetGameStorage(fileSystem, log);
             var modDir = storage.GetModDir(mod);
             var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
-            mvm.Status = mod.Status; // status is changed by from ffClient
+            mvm.Status = mod.Status; // status is changed by ffClient
             if (!clientSuccess)
             {
                 log.LogError("Downloading mod failed");
@@ -144,8 +144,8 @@ public class UiCommands
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         foreach (var vm in modsToApply)
         {
-            var result = await fileManager.InstallModIncremental(storage, vm.Mod, token);
-            if (!result)
+            var result = await fileManager.InstallMod(storage, vm.Mod, false, token);
+            if (!result.Success)
             {
                 return false;
             }
@@ -208,14 +208,16 @@ public class UiCommands
     public async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        log.Clear();
-        await fileManager.Restore(storage, toVanilla, token);
+        fileManager.Rollback(storage, toVanilla, token);
         viewModel.Model.AppliedMods.Clear();
         if (toVanilla)
         {
-            // forget we had updates
-            viewModel.Model.CommunityPatch = 0;
-            viewModel.LockedCollectionOperation(() => { viewModel.Model.CommunityUpdates.Clear(); });
+            viewModel.LockedCollectionOperation(() =>
+            {
+                // forget we had updates entirely
+                viewModel.Model.TerraformUpdates.Clear();
+                viewModel.Model.RslUpdates.Clear();
+            });
         }
     }
 
@@ -250,7 +252,7 @@ public class UiCommands
         else
         {
             // populate community patch info
-            await CheckCommunityUpdates(viewModel, token);
+            await CheckPatchUpdates(viewModel, token);
             if (viewModel.UpdateRequired)
             {
                 // we need to update first, don't populate mods
@@ -318,6 +320,7 @@ public class UiCommands
 
         await using var s = xmlFile.OpenRead();
         var modInfo = modTools.LoadFromXml(s);
+        modInfo.WorkDir = xmlFile.Directory;
         modTools.CopySameOptions(modInfo);
         if (settings.Mods.TryGetValue(mod.Id, out var modSettings))
         {
@@ -492,16 +495,19 @@ public class UiCommands
     {
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         var mods = await ffClient.GetMods(Category.ModsStandalone, gameStorage, token);
-        var patch = mods.Single(x => x.Id == viewModel.Model.NewCommunityPatch);
-        var updates = viewModel.LockedCollectionOperation(() => viewModel.Model.NewCommunityUpdates.Select(x => mods.Single(y => y.Id == x)).ToList());
-        // patches are not intended to be installed locally, store as hidden from local mod list
-        patch.Hide = true;
-        foreach (var update in updates)
+        var updates = viewModel.LockedCollectionOperation(() =>
+            viewModel.Model.NewTerraformUpdates
+                .Concat(viewModel.Model.NewRslUpdates)
+                .Select(x => mods.Single(y => y.Id == x)).ToList());
+        // patches are not intended to be installed locally, will store them as hidden from local mod list
+        foreach (var x in updates)
         {
-            update.Hide = true;
+            x.Hide = true;
         }
-        var result = await InstallUpdates(viewModel, patch, updates, gameStorage, token);
-        if (!result)
+
+        var installed = viewModel.LockedCollectionOperation(() => viewModel.Model.TerraformUpdates.Concat(viewModel.Model.RslUpdates).ToList());
+        var result = await InstallUpdates(installed, updates, gameStorage, viewModel, token);
+        if (!result.Success)
         {
             log.LogError(@$"Action needed:
 
@@ -519,96 +525,69 @@ Then run SyncFaction again.
             return false;
         }
 
-        viewModel.Model.CommunityPatch = patch.Id;
         viewModel.LockedCollectionOperation(() =>
         {
-            viewModel.Model.CommunityUpdates.Clear();
-            foreach (var update in updates)
-            {
-                viewModel.Model.CommunityUpdates.Add(update.Id);
-            }
+            viewModel.Model.TerraformUpdates.Clear();
+            viewModel.Model.TerraformUpdates.AddRange(viewModel.Model.NewTerraformUpdates);
+            viewModel.Model.RslUpdates.Clear();
+            viewModel.Model.RslUpdates.AddRange(viewModel.Model.NewRslUpdates);
         });
         gameStorage.WriteStateFile(viewModel.Model.ToState());
-        log.LogWarning($"Successfully updated game to community patch: **{viewModel.GetHumanReadableCommunityVersion()}**");
+        log.LogWarning($"Successfully updated game: **{viewModel.GetHumanReadableVersion()}**");
         viewModel.UpdateRequired = false;
 
         // populate mod list and stuff
         return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token);
     }
 
-    private async Task<bool> InstallUpdates(ViewModel viewModel, IMod patch, List<IMod> updates, GameStorage storage, CancellationToken token)
+    private async Task<ApplyModResult> InstallUpdates(List<long> installed, List<IMod> updates, GameStorage storage, ViewModel viewModel, CancellationToken token)
     {
-        if (viewModel.Model.CommunityPatch != patch.Id)
-        {
-            var modDir = storage.GetModDir(patch);
-            var successDl = await ffClient.DownloadAndUnpackMod(modDir, patch, token);
-            if (!successDl)
-            {
-                return false;
-            }
+        var updateIds = updates.Select(x => x.Id).ToList();
+        var filteredUpdateIds = installed.FilterUpdateList(updateIds).ToHashSet();
+        var fromScratch = filteredUpdateIds.Count == updateIds.Count;
 
-            var successPatch = await fileManager.InstallCommunityPatchBase(storage, patch, token);
-            if (!successPatch)
-            {
-                return false;
-            }
-
-            viewModel.LockedCollectionOperation(() => { viewModel.Model.CommunityUpdates.Clear(); });
-        }
-
-        var needPatches = false;
-        var installed = viewModel.LockedCollectionOperation(() =>
-        {
-            needPatches = !updates.Select(x => x.Id).SequenceEqual(viewModel.Model.CommunityUpdates);
-            return viewModel.Model.CommunityUpdates.ToList();
-        });
-
-        if (!needPatches)
-        {
-            return true;
-        }
-
-        var pendingUpdates = updates.ToList();
-        while (installed.Any())
-        {
-            var current = installed.First();
-            var apiUpdate = pendingUpdates.First();
-            if (current != apiUpdate.Id)
-            {
-                log.LogError($"Updates are mixed up, please contact developer");
-                return false;
-            }
-
-            installed.RemoveAt(0);
-            pendingUpdates.RemoveAt(0);
-        }
-
+        var pendingUpdates = updates.Where(x => filteredUpdateIds.Contains(x.Id)).ToList();
         log.LogDebug($"Updates to install: {JsonConvert.SerializeObject(pendingUpdates)}");
-        foreach (var update in pendingUpdates)
+
+        var toProcess = pendingUpdates.Count;
+        var success = true;
+
+        await Parallel.ForEachAsync(pendingUpdates, new ParallelOptions()
         {
-            var updDir = storage.GetModDir(update);
-            var success = await ffClient.DownloadAndUnpackMod(updDir, update, token);
-            if (!success)
+            CancellationToken = token,
+            MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+        }, async (mod, cancellationToken) =>
+        {
+            var modDir = storage.GetModDir(mod);
+            var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
+            if (!clientSuccess)
             {
-                return false;
+                log.LogError("Downloading update failed");
+                success = false;
+                return;
             }
-        }
 
-        var result = await fileManager.InstallCommunityUpdateIncremental(storage, pendingUpdates, token);
-        if (!result)
+            var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
+            log.LogDebug($"Update contents: {files}");
+            toProcess--;
+            viewModel.CurrentOperation = $"Downloading {toProcess} updates";
+        });
+        if (success == false)
         {
-            log.LogError($"Update community patch failed. please contact developer. `newCommunityVersion=[{viewModel.Model.NewCommunityPatch}], patch=[{patch.Id}], pending updates count=[{pendingUpdates.Count}]`");
+            return new ApplyModResult(new List<GameFile>(), false);
         }
 
+        var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
+        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, token);
         return result;
     }
 
-    public async Task CheckCommunityUpdates(ViewModel viewModel, CancellationToken token)
+    public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
     {
-        log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableCommunityVersion()}**");
-        var newPatch = await ffClient.GetCommunityPatchId(token);
-        var updates = await ffClient.GetCommunityUpdateIds(token);
-        viewModel.UpdateUpdates(newPatch, updates);
+        log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
+        var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
+        var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);
+        viewModel.UpdateUpdates(terraform, rsl);
     }
 
     public void WriteState(ViewModel viewModel)

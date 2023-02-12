@@ -1,10 +1,6 @@
 using System.Security.Cryptography;
-using System.Text.Json;
-using FluentAssertions;
-using Kaitai;
 using Newtonsoft.Json;
 using SyncFaction.Core.Data;
-using SyncFaction.Packer;
 
 namespace SyncFactionTests;
 

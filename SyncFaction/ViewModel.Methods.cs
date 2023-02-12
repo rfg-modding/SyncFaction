@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows.Controls;
+using Kaitai;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.FactionFiles;
@@ -120,41 +121,40 @@ public partial class ViewModel
         }
     }
 
-    public string GetHumanReadableCommunityVersion()
+    public string GetHumanReadableVersion()
     {
         var sb = new StringBuilder();
-        sb.Append("base: ");
-        sb.Append(Model.CommunityPatch == 0 ? "not installed" : Model.CommunityPatch);
-        sb.Append(", updates: ");
-        string updates;
+        string value;
         lock (collectionLock)
         {
-            updates = string.Join(", ", Model.CommunityUpdates);
+            var terraform = string.Join(", ", Model.TerraformUpdates);
+            var rsl = string.Join(", ", Model.RslUpdates);
+            value = $"terraform: {terraform}, rsl: {rsl}";
         }
-        sb.Append(updates == string.Empty ? "none" : updates);
+        sb.Append(value ?? "none");
         return sb.ToString();
     }
 
-    public void UpdateUpdates(long newPatch, List<long> updates)
+    public void UpdateUpdates(List<long> terraform, List<long> rsl)
     {
         lock(collectionLock)
         {
-            Model.NewCommunityPatch = newPatch;
-            Model.NewCommunityUpdates.Clear();
-            foreach (var u in updates)
-            {
-                Model.NewCommunityUpdates.Add(u);
-            }
+            Model.NewTerraformUpdates.Clear();
+            Model.NewTerraformUpdates.AddRange(terraform);
+            Model.NewRslUpdates.Clear();
+            model.NewRslUpdates.AddRange(rsl);
 
-            if (Model.CommunityPatch != Model.NewCommunityPatch || !Model.CommunityUpdates.SequenceEqual(Model.NewCommunityUpdates))
+            var newUpdates = Model.NewTerraformUpdates.Concat(model.NewRslUpdates).ToList();
+            var currentUpdates = Model.TerraformUpdates.Concat(Model.RslUpdates).ToList();
+            if (!currentUpdates.SequenceEqual(newUpdates))
             {
-                log.LogWarning(@$"You don't have latest community patch installed!
+                log.LogWarning(@$"You don't have latest patches installed!
 
 # What is this?
 
-Multiplayer mods depend on community patch and its updates. Even some singleplayer mods too! **It is highly recommended to have latest versions installed.**
+Multiplayer mods depend on Terraform Patch and Script Loader. Even some singleplayer mods too! **It is highly recommended to have latest versions installed.**
 This app is designed to keep players updated to avoid issues in multiplayer.
-If you don't need this, install mods manually, suggest an improvement at Github or FF Discord, or enable dev mode.
+If you don't need this: install mods manually, suggest an improvement at Github or FF Discord, or enable dev mode.
 
 # Press button below to update your game
 
@@ -162,11 +162,17 @@ Mod management will be available after updating.
 
 Changelogs and info:
 ");
-                log.LogInformation($"+ [Community patch base (id {Model.NewCommunityPatch})]({FormatUrl(Model.NewCommunityPatch)})");
                 var i = 1;
-                foreach (var update in Model.NewCommunityUpdates)
+                foreach (var x in Model.NewTerraformUpdates)
                 {
-                    log.LogInformation($"+ [Community patch update {i} (id {update})]({FormatUrl(update)})");
+                    log.LogInformation($"+ [Terraform patch part {i} (id {x})]({FormatUrl(x)})");
+                    i++;
+                }
+
+                i = 1;
+                foreach (var x in Model.NewRslUpdates)
+                {
+                    log.LogInformation($"+ [Script Loader part {i} (id {x})]({FormatUrl(x)})");
                     i++;
                 }
 

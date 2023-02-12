@@ -1,4 +1,5 @@
 using System.Collections;
+using System.IO.Abstractions;
 using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
@@ -7,6 +8,9 @@ namespace SyncFaction.ModManager.XmlModels;
 public class ModInfo
 {
     private List<IChange> changes = new();
+
+    [XmlIgnore]
+    public IDirectoryInfo WorkDir { get; set; }
 
     [XmlAttribute]
     public string Name { get; set; }

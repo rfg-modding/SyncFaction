@@ -62,6 +62,8 @@ A lot of functionality is not implemented yet!
 * compare hashes for steam and gog versions
 * test what happens if cdn is unavailable
 * show warnings if mod edits MP files. also show files to be modified as list
+* rename community patch to terraform patch where possible
+* if both .reg versions are detected, fail auto search and ask to place app in game dir
 
 ## Tech info
 
@@ -81,6 +83,12 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 0. pause XML merging features (that's the heart of modmanager)
 1. introduce VPP repacking support for mods/updates
 2. rewrite updater
+   * store terraform and rsl updates in separate lists
+   * apply terraform, then rsl
+   * track a list of extra files and delete them on restore
+     * restore to vanilla = delete all extra files
+     * restore to community = should keep files introduced by community patch
+       * probably OK to delete all extra files and then copy all from community backup
 3. track new separate set of search strings from FF - for RSL2
 4. compare gog and steam distributions
 5. release unification patch based on observations and VPP differences

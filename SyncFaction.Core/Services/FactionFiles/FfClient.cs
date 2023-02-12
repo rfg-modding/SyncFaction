@@ -12,6 +12,7 @@ using SharpCompress.Common;
 using SharpCompress.Readers;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.Extras;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -28,6 +29,8 @@ public class FfClient
         this.stateProvider = stateProvider;
         this.fileSystem = fileSystem;
         this.log = log;
+
+        this.client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(Title.AppName, Title.Version));
     }
 
     public async Task<IReadOnlyList<IMod>> GetMods(Category category, IGameStorage storage, CancellationToken token)
@@ -425,26 +428,18 @@ public class FfClient
 
     }
 
-    public async Task<long> GetCommunityPatchId(CancellationToken token)
-    {
-        var id = await GetIdBySearchString("rfgcommunitypatch", token);
-        var humanReadableId = id == null ? "null" : id.ToString();
-        log.LogInformation($"Community patch id: **{humanReadableId}**");
-        return id ?? 0;
-    }
-
-    public async Task<List<long>> GetCommunityUpdateIds(CancellationToken token)
+    public async Task<List<long>> ListPatchIds(string prefix, CancellationToken token)
     {
         var result = new List<long>();
         int i = 1;
         long? id;
         do
         {
-            id = await GetIdBySearchString($"rfgcommunityupdate{i}", token);
+            id = await GetIdBySearchString($"{prefix}{i}", token);
             if (id != null)
             {
                 result.Add(id.Value);
-                log.LogInformation($"Community update {i} id: **{id}**");
+                log.LogInformation($"Found {prefix} patch part {i}, id: **{id}**");
             }
 
             i++;

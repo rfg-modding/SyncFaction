@@ -1,6 +1,5 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Core.Services.Files;
 

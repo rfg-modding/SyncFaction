@@ -8,7 +8,6 @@ using System.Windows.Input;
 using GongSolutions.Wpf.DragDrop.Utilities;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
-using ListBox = SyncFaction.ModManager.XmlModels.ListBox;
 
 namespace SyncFaction;
 

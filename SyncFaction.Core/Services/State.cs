@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using SyncFaction.ModManager;
 
 namespace SyncFaction.Core.Services;
@@ -10,8 +9,8 @@ namespace SyncFaction.Core.Services;
 /// </summary>
 public class State
 {
-    public long? CommunityPatch { get; set; }
-    public List<long>? CommunityUpdates { get; set; }
+    public List<long>? TerraformUpdates { get; set; }
+    public List<long>? RslUpdates { get; set; }
     public List<long>? AppliedMods { get; set; }
     public bool? DevMode { get; set; }
     public bool? IsGog { get; set; }

@@ -27,6 +27,7 @@
       <PackageReference Include="gong-wpf-dragdrop" Version="3.2.0" />
       <PackageReference Include="MdXaml" Version="1.15.0" />
       <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
+      <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.1.14" />
     </ItemGroup>
 
 	<ItemGroup>

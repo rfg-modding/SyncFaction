@@ -463,7 +463,7 @@ void!</TextBlock>
                     </Button>
                 </StackPanel>
 
-                <Button x:Name="Update" Content="Update to latest Community Patch"
+                <Button x:Name="Update" Content="Update to latest Terraform Patch"
                         MinWidth="200" MinHeight="40"
                         Style="{StaticResource ButtonStyle}"
                         Visibility="{Binding UpdateRequired,Converter={StaticResource BoolToVis}}" Command="{Binding UpdateCommand}" />

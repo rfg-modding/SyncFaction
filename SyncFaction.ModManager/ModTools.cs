@@ -1,6 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.IO.Abstractions;
 using System.Xml;
-using System.Xml.Linq;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
 using SyncFaction.ModManager.XmlModels;
@@ -89,6 +88,16 @@ public class ModTools
         }
     }
 
+    /// <summary>
+    /// Returns list of all unique files used by this modinfo
+    /// </summary>
+    public IEnumerable<IFileInfo> GetReferencedFiles(ModInfo modInfo)
+    {
+        return Enumerable.Empty<IFileInfo>();
+        // TODO iterate over changes
+        // TODO iterate over user inputs?
+        //TODO xml can have referenced files there as relative paths. remove all ".." from relative paths to jail references to xml directory
+    }
 }
 
 public class Settings

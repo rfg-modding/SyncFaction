@@ -2,7 +2,6 @@ using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
-using SyncFaction.Extras;
 
 namespace SyncFaction.Packer;
 

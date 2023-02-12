@@ -12,7 +12,8 @@ public class GameStorage : AppStorage, IGameStorage
     {
 
         Bak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.BakDirName));
-        CommunityBak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.CommunityBakDirName));
+        PatchBak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.PatchBakDirName));
+        Managed = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.ManagedDirName));
         vanillaHashes = fileHashes.OrderBy(x => x.Key).ToImmutableSortedDictionary();
         rootFiles = VanillaHashes.Keys
             .Where(x => x.Split('/').Length == 1)
@@ -28,21 +29,42 @@ public class GameStorage : AppStorage, IGameStorage
 
     public IDirectoryInfo Bak { get; }
 
-    public IDirectoryInfo CommunityBak { get; }
+    public IDirectoryInfo PatchBak { get; }
 
-    /// <summary>
-    /// Filenames with extensions for all files in game. Relatve paths!
-    /// </summary>
+    public IDirectoryInfo Managed { get; }
+
+    /// <inheritdoc />
+    public IEnumerable<GameFile> EnumerateStockFiles()
+    {
+        return VanillaHashes.Keys
+            .Select(x => new GameFile(this, x, fileSystem));
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<GameFile> EnumeratePatchFiles()
+    {
+        return PatchBak.EnumerateFiles("*", SearchOption.AllDirectories)
+            .Select(x => Path.GetRelativePath(PatchBak.FullName, x.FullName))
+            .Select(x => new GameFile(this, x, fileSystem))
+            .Where(x => x.Kind is FileKind.FromPatch);
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<GameFile> EnumerateManagedFiles()
+    {
+        return Managed.EnumerateFiles("*", SearchOption.AllDirectories)
+            .Select(x => Path.GetRelativePath(Managed.FullName, x.FullName))
+            .Select(x => new GameFile(this, x, fileSystem))
+            .Where(x => x.Kind is FileKind.FromMod);
+    }
+
+    /// <inheritdoc />
     public ImmutableSortedDictionary<string, string> VanillaHashes => vanillaHashes;
 
-    /// <summary>
-    /// Filenames without extension for files in /
-    /// </summary>
+    /// <inheritdoc />
     public ImmutableSortedDictionary<string, string> RootFiles => rootFiles;
 
-    /// <summary>
-    /// Filenames without extension for files in /data
-    /// </summary>
+    /// <inheritdoc />
     public ImmutableSortedDictionary<string, string> DataFiles => dataFiles;
 
     private ImmutableSortedDictionary<string, string> vanillaHashes;
@@ -61,9 +83,9 @@ public class GameStorage : AppStorage, IGameStorage
             Bak.Create();
         }
 
-        if (!CommunityBak.Exists)
+        if (!PatchBak.Exists)
         {
-            CommunityBak.Create();
+            PatchBak.Create();
         }
     }
 
@@ -79,7 +101,7 @@ public class GameStorage : AppStorage, IGameStorage
         {
             log.LogInformation($"+ *Checking* {kv.Key}");
             var file = new GameFile(this, kv.Key, fileSystem);
-            if (!file.IsVanilla())
+            if (!file.IsVanillaByHash())
             {
                 log.LogError(@$"Action needed:
 

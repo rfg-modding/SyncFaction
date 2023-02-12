@@ -1,8 +1,6 @@
-using System.IO.Abstractions;
 using System.Text.Json.Serialization;
 using FastHashes;
 using SyncFaction.Core.Data;
-using SyncFaction.Core.Services.Files;
 using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction.Core.Services.FactionFiles;

@@ -3,7 +3,6 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFactionTests;

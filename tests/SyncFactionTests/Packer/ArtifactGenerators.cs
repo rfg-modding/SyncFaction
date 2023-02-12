@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FluentAssertions;
 using Kaitai;
 using SyncFaction.Packer;
 

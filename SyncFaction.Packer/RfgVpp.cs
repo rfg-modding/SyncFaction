@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using SyncFaction.Packer;
 
 namespace Kaitai;

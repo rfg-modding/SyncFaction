@@ -8,7 +8,25 @@ namespace SyncFaction.Core.Services.Files;
 public interface IGameStorage : IAppStorage
 {
     IDirectoryInfo Bak { get; }
-    IDirectoryInfo CommunityBak { get; }
+
+    IDirectoryInfo PatchBak { get; }
+
+    IDirectoryInfo Managed { get; }
+
+    /// <summary>
+    /// List original files
+    /// </summary>
+    IEnumerable<GameFile> EnumerateStockFiles();
+
+    /// <summary>
+    /// List files introduced by patches
+    /// </summary>
+    IEnumerable<GameFile> EnumeratePatchFiles();
+
+    /// <summary>
+    /// List files introduced by mods
+    /// </summary>
+    IEnumerable<GameFile> EnumerateManagedFiles();
 
     /// <summary>
     /// Filenames with extensions for all files in game. Relatve paths!

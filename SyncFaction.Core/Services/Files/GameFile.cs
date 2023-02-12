@@ -53,7 +53,10 @@ public class GameFile
         return Storage.ComputeHash(FileInfo);
     }
 
-    public bool IsVanilla()
+    /// <summary>
+    /// Compute hash and compare with expected value. Works only for vanilla files!
+    /// </summary>
+    public bool IsVanillaByHash()
     {
         var expected = Storage.VanillaHashes[RelativePath.Replace("\\", "/")];
         var hash = ComputeHash();
@@ -62,22 +65,50 @@ public class GameFile
 
     public bool IsKnown => Storage.VanillaHashes.ContainsKey(RelativePath.Replace("\\", "/"));
 
+    public FileKind Kind
+    {
+        get
+        {
+            if (IsKnown)
+            {
+                return FileKind.Stock;
+            }
+
+            if (GetPatchBackupLocation().Exists)
+            {
+                return FileKind.FromPatch;
+            }
+
+            if (GetManagedLocation().Exists)
+            {
+                return FileKind.FromMod;
+            }
+
+            return FileKind.Unmanaged;
+        }
+    }
+
     public IFileInfo GetVanillaBackupLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.Bak.FullName, NameExt));
+        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.Bak.FullName, RelativePath));
     }
 
-    public IFileInfo GetCommunityBackupLocation()
+    public IFileInfo GetPatchBackupLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.CommunityBak.FullName, NameExt));
+        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.PatchBak.FullName, RelativePath));
     }
 
-    public IFileInfo GetBackupLocation()
+    public IFileInfo GetManagedLocation()
     {
-        var community = GetCommunityBackupLocation();
-        if (community.Exists)
+        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.Managed.FullName, RelativePath));
+    }
+
+    public IFileInfo GetBackupLocation(bool vanilla)
+    {
+        var patch = GetPatchBackupLocation();
+        if (patch.Exists && !vanilla)
         {
-            return community;
+            return patch;
         }
 
         return GetVanillaBackupLocation();
@@ -87,18 +118,31 @@ public class GameFile
 
     public bool BackupExists()
     {
-        return GetBackupLocation().Exists;
+        return GetBackupLocation(false).Exists;
     }
 
-    public IFileInfo? CopyToBackup(bool overwrite, bool forceToCommunityBak)
+    public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
+        var isNew = !IsKnown;
+        var isMod = isNew && !isUpdate;
+        if (isMod)
+        {
+            // new files from mods dont go anywhere
+            // but we keep track in managed directory
+            var managedLocation = GetManagedLocation();
+            managedLocation.Create().Close();
+            return managedLocation;
+        }
+
         if (!Exists)
         {
             // nothing to back up
             return null;
         }
 
-        var dst = forceToCommunityBak ? GetCommunityBackupLocation() : GetBackupLocation();
+        // new files from update go to community bak only
+        // known files go to vanilla bak, or, if updated before, to community bak
+        var dst = isNew ? GetPatchBackupLocation() : GetBackupLocation(false);
         switch (dst.Exists)
         {
             case true when overwrite:
@@ -110,7 +154,8 @@ public class GameFile
                 // already exists, do nothing
                 break;
             default:
-                // doesnt exist
+                // doesnt exist. prepare directories recursively then copy file
+                Directory.CreateDirectory(dst.Directory.FullName);
                 FileInfo.CopyTo(dst.FullName);
                 break;
         }
@@ -118,16 +163,56 @@ public class GameFile
         return dst;
     }
 
-    public bool RestoreFromBackup()
+    /// <summary>
+    /// Reverts file back to default state
+    /// </summary>
+    public bool Rollback(bool vanilla)
     {
-        var src = GetBackupLocation();
-        if (!src.Exists)
+        switch (Kind)
         {
-            return false;
-        }
+            case FileKind.Stock:
+                var src = GetBackupLocation(vanilla);
+                if (!src.Exists)
+                {
+                    // stock file not present in backups == it was never modified
+                    return false;
+                }
 
-        src.CopyTo(FileInfo.FullName, true);
-        return true;
+                src.CopyTo(FileInfo.FullName, true);
+                return true;
+            case FileKind.FromPatch:
+                if (vanilla)
+                {
+                    Delete();
+                    return true;
+                }
+                var srcPatch = GetPatchBackupLocation();
+                if (!srcPatch.Exists)
+                {
+                    throw new InvalidOperationException($"This should not happen: file is {FileKind.FromPatch} and should've been present in .bak_patch! File: [{AbsolutePath}], Exists: {Exists}");
+                }
+
+                srcPatch.CopyTo(FileInfo.FullName, true);
+                return true;
+            case FileKind.FromMod:
+                // forget about this mod file entirely, we don't need it anymore
+                var extraModFile = GetManagedLocation();
+                extraModFile.Delete();
+                if (FileInfo.Exists)
+                {
+                    Delete();
+                }
+                return true;
+            case FileKind.Unmanaged:
+                throw new InvalidOperationException($"This should not happen: file is unmanaged and should've been excluded from rollback! File: [{AbsolutePath}], Exists: {Exists}");
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public void Delete()
+    {
+        FileInfo.Delete();
     }
 
     public async Task<bool> ApplyMod(IFileInfo modFile, ILogger log, CancellationToken token)
@@ -135,7 +220,7 @@ public class GameFile
         return modFile.Extension.ToLowerInvariant() switch
         {
             ".xdelta" => await ApplyXdelta(modFile, log, token),
-            ".rfgpatch" or ".txt" or ".jpg" => Skip(modFile, log),  // ignore xml-patches (for now) and common clutter
+            ".rfgpatch" or ".txt" or ".jpg" => Skip(modFile, log),  // ignore xml rfgpatch format (unsupported) and common clutter
             var x when x == Ext => ApplyNewFile(modFile, log),
             _ => Skip(modFile, log)
         };
@@ -158,7 +243,7 @@ public class GameFile
         }
 
         /*
-            it is not a known file, so it must be a new file to copy. not a patch. so extension must be preserved!
+            it is not a known file, so it must be a new file to copy. not an xdelta patch. so extension must be preserved!
             but is it a new file inside / or inside /data?
             let's guess: if modFile is inside /data directory in mod structure, it goes to /data
             else it goes to root
@@ -193,7 +278,7 @@ public class GameFile
         {
             dstFile.Delete();
         }
-        var srcFile = GetBackupLocation();
+        var srcFile = GetBackupLocation(false);
         await using var srcStream = srcFile.OpenRead();
         await using var patchStream = modFile.OpenRead();
         await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
@@ -204,4 +289,27 @@ public class GameFile
         log.LogInformation($"+ **Patched** `{modFile.Name}`");
         return true;
     }
+}
+
+public enum FileKind
+{
+    /// <summary>
+    /// File exists in base game distribution
+    /// </summary>
+    Stock,
+
+    /// <summary>
+    /// File is introduced by patch and should be preserved
+    /// </summary>
+    FromPatch,
+
+    /// <summary>
+    /// File is introduced by mod and should be removed
+    /// </summary>
+    FromMod,
+
+    /// <summary>
+    /// File is created by user or game and should be ignored
+    /// </summary>
+    Unmanaged
 }

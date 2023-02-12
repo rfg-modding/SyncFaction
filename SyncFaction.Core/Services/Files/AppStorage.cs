@@ -136,7 +136,7 @@ public class AppStorage: IAppStorage {
 
 		if (entries.Any(x => x.Name.Equals("table.vpp_pc", StringComparison.OrdinalIgnoreCase)))
 		{
-			// we are in "game/data/"
+			// we are in "game/data/" and SF was not present before
 			return currentDir.Parent.FullName;
 		}
 
