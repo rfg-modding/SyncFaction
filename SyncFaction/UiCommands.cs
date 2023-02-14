@@ -494,7 +494,11 @@ public class UiCommands
     public async Task<bool> Update(ViewModel viewModel, CancellationToken token)
     {
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var mods = await ffClient.GetMods(Category.ModsStandalone, gameStorage, token);
+        // TODO remove me!
+        var mods = (await ffClient.GetMods(Category.ModsStandalone, gameStorage, token))
+            .Concat(await ffClient.GetMods(Category.Local, gameStorage, token))
+            .Concat(await ffClient.GetMods(Category.Dev, gameStorage, token))
+            .ToList();
         var updates = viewModel.LockedCollectionOperation(() =>
             viewModel.Model.RemoteTerraformUpdates
                 .Concat(viewModel.Model.RemoteRslUpdates)
@@ -590,6 +594,7 @@ Then run SyncFaction again.
 
         var terraform = new List<long>(){6247}
                 .Concat(await ffClient.ListPatchIds("rfgcommunityupdate", token))
+                .Concat(new List<long>(){5783686945589925058})
                 .ToList()
                 ;
         var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);

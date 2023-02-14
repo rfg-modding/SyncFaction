@@ -123,6 +123,9 @@ public class GameFile
 
     public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
+        ////////////////////////////
+        TODO FIXME WTF: extra files from patch are not copied to .bak_patch!? same with subdirectories or without!
+        ////////////////////////////
         static FileKind DetermineKind(bool isUpdate, bool isKnown)
         {
             if (isKnown)
@@ -132,7 +135,7 @@ public class GameFile
 
             if (isUpdate)
             {
-                return FileKind.FromPatch;
+                 return FileKind.FromPatch;
             }
 
             return FileKind.FromMod;
