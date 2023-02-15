@@ -169,6 +169,11 @@ public class GameFile
         {
             return Path.Combine("data", modFile.Name);
         }
+        if (lastModDirectory.Equals("rsl2", StringComparison.OrdinalIgnoreCase))
+        {
+            return Path.Combine("rsl2", modFile.Name);
+        }
+
 
         return modFile.Name;
     }
@@ -181,6 +186,7 @@ public class GameFile
 
     private bool ApplyNewFile(IFileInfo modFile, ILogger log)
     {
+        Directory.CreateDirectory(FileInfo.Directory.FullName);
         modFile.CopyTo(FileInfo.FullName, true);
         log.LogInformation($"+ Copied `{modFile.Name}`");
         return true;
