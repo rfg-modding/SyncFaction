@@ -164,18 +164,11 @@ public class GameFile
             else it goes to root
         */
 
-        var lastModDirectory = Path.GetDirectoryName(modFile.FullName).Split(Path.DirectorySeparatorChar).Last();
-        if (lastModDirectory.Equals("data", StringComparison.OrdinalIgnoreCase))
-        {
-            return Path.Combine("data", modFile.Name);
-        }
-        if (lastModDirectory.Equals("rsl2", StringComparison.OrdinalIgnoreCase))
-        {
-            return Path.Combine("rsl2", modFile.Name);
-        }
-
-
-        return modFile.Name;
+        var pathWithModDir = Path.GetRelativePath(storage.App.FullName, modFile.FullName);
+        var modDirName = pathWithModDir.Split(Path.DirectorySeparatorChar).First();
+        var modDirPath = Path.Join(storage.App.FullName, modDirName);
+        var relativeFilePath = Path.GetRelativePath(modDirPath, modFile.FullName);
+        return relativeFilePath;
     }
 
     private bool Skip(IFileInfo modFile, ILogger log)
