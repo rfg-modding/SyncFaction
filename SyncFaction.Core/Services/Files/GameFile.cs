@@ -8,7 +8,7 @@ public class GameFile
 {
     public GameFile(IGameStorage storage, string relativePath, IFileSystem fileSystem)
     {
-        var path = Path.Combine(storage.Game.FullName, relativePath);
+        var path = fileSystem.Path.Combine(storage.Game.FullName, relativePath);
         FileInfo = fileSystem.FileInfo.FromFileName(path);
         Storage = storage;
     }
@@ -22,7 +22,7 @@ public class GameFile
         return new GameFile(storage, relativePath, modFile.FileSystem);
     }
 
-    public string Name => Path.GetFileNameWithoutExtension(FileInfo.Name);
+    public string Name => FileInfo.FileSystem.Path.GetFileNameWithoutExtension(FileInfo.Name);
 
     public string Ext => FileInfo.Extension;
 
@@ -31,12 +31,12 @@ public class GameFile
     /// <summary>
     /// Directory inside game folder where this file lives: empty string (game root) or "data"
     /// </summary>
-    public string RelativeDirectory => Path.GetRelativePath(Storage.Game.FullName, FileInfo.DirectoryName);
+    public string RelativeDirectory => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.DirectoryName);
 
     /// <summary>
     /// "rfg.exe" or "data/foo.vpp_pc"
     /// </summary>
-    public string RelativePath => Path.GetRelativePath(Storage.Game.FullName, FileInfo.FullName);
+    public string RelativePath => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.FullName);
 
     /// <summary>
     /// Full name to file, useful for reading/writing/moving
@@ -90,17 +90,17 @@ public class GameFile
 
     public IFileInfo GetVanillaBackupLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.Bak.FullName, RelativePath));
+        return FileInfo.FileSystem.FileInfo.FromFileName(FileInfo.FileSystem.Path.Combine(Storage.Bak.FullName, RelativePath));
     }
 
     public IFileInfo GetPatchBackupLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.PatchBak.FullName, RelativePath));
+        return FileInfo.FileSystem.FileInfo.FromFileName(FileInfo.FileSystem.Path.Combine(Storage.PatchBak.FullName, RelativePath));
     }
 
     public IFileInfo GetManagedLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(Path.Combine(Storage.Managed.FullName, RelativePath));
+        return FileInfo.FileSystem.FileInfo.FromFileName(FileInfo.FileSystem.Path.Combine(Storage.Managed.FullName, RelativePath));
     }
 
     public IFileInfo FindBackup()
@@ -124,7 +124,7 @@ public class GameFile
     public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
         ////////////////////////////
-        TODO FIXME WTF: extra files from patch are not copied to .bak_patch!? same with subdirectories or without!
+        //TODO FIXME WTF: extra files from patch are not copied to .bak_patch!? same with subdirectories or without!
         ////////////////////////////
         static FileKind DetermineKind(bool isUpdate, bool isKnown)
         {
@@ -284,11 +284,13 @@ public class GameFile
 
     private static string GuessRelativePath(IGameStorage storage, IFileInfo modFile, IDirectoryInfo modDir)
     {
-        var relativeModPath = Path.GetRelativePath(modDir.FullName, modFile.FullName);
-        if (!relativeModPath.Contains('\\'))
+        var separator = modFile.FileSystem.Path.DirectorySeparatorChar;
+        var relativeModPath = modFile.FileSystem.Path.GetRelativePath(modDir.FullName, modFile.FullName);
+        var modNameNoExt = modFile.FileSystem.Path.GetFileNameWithoutExtension(modFile.Name);
+
+        if (!relativeModPath.Contains(separator))
         {
-            // it's a file in mod root, probably a replacement for one of known files
-            var modNameNoExt = Path.GetFileNameWithoutExtension(modFile.Name);
+            // it's a file in mod root, probably a replacement or patch for one of known files
             if (storage.RootFiles.TryGetValue(modNameNoExt, out var rootPath))
             {
                 return rootPath;
@@ -298,10 +300,18 @@ public class GameFile
                 return dataPath;
             }
         }
+        var firstRelativeDir = relativeModPath.Split(separator).FirstOrDefault()?.ToLowerInvariant();
+        if (firstRelativeDir == "data")
+        {
+            // it's a file in mod/data directory, probably a replacement or patch for one of known data files
+            if (storage.DataFiles.TryGetValue(modNameNoExt, out var dataPath))
+            {
+                return dataPath;
+            }
+        }
 
         /*
             it is not a known file, so it must be a new file to copy. not an xdelta patch. so extension must be preserved!
-            but is it a new file inside / or inside /data?
             mod should mimic game structure: if modFile is inside /data directory in mod structure, it goes to /data
             else it goes to root
             all subdirs are preserved too
@@ -326,7 +336,7 @@ public class GameFile
 
     private void EnsureDirectoriesCreated(IFileInfo file)
     {
-        Directory.CreateDirectory(file.Directory.FullName);
+        file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
     }
 
     private async Task<bool> ApplyXdelta(IFileInfo modFile, ILogger log, CancellationToken cancellationToken)

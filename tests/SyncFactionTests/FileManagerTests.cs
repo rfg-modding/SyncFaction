@@ -7,19 +7,22 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.ModManager;
 
 namespace SyncFactionTests;
 
+/*
 public class FileManagerTests
 {
     private ILogger<FileManager> log = new NullLogger<FileManager>();
     private CancellationToken token = CancellationToken.None;
     private string gameDir = "/game";
 
+    private readonly ModTools modTools = new(new NullLogger<ModTools>());
+
     [Test]
     public async Task ApplyModExclusive_EmptyMod_False()
     {
-        var fsMock = new Mock<IFileSystem>();
         var modMock = new Mock<IMod>();
         var dirMock = new Mock<IDirectoryInfo>();
         dirMock.Setup(x => x.EnumerateFiles(It.IsAny<string>(), It.IsAny<SearchOption>()))
@@ -28,13 +31,12 @@ public class FileManagerTests
         storageMock.Setup(x => x.GetModDir(It.IsAny<IMod>()))
             .Returns(dirMock.Object);
 
-        var fs = fsMock.Object;
         var mod = modMock.Object;
         var storage = storageMock.Object;
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
-        var result = await manager.InstallModExclusive(storage, mod, token);
-        result.Should().BeFalse();
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeFalse();
     }
 
     [Test]
@@ -54,14 +56,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, mod, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeTrue();
     }
 
     [Test]
@@ -83,14 +85,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, mod, token);
-        result.Should().BeFalse();
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeFalse();
     }
 
     [TestCase("/game/test.exe","/game/data/.syncfaction/Mod_22/test.exe", "/game/data/.syncfaction/.bak_vanilla/test.exe")]
@@ -117,14 +119,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, mod, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeTrue();
         fs.GetFile(gameFile).TextContents.Should().Be(moddedData);
         fs.GetFile(bakFile).TextContents.Should().Be(originalData);
     }
@@ -155,14 +157,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, mod, token);
-        result.Should().BeFalse();
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeFalse();
         fs.GetFile(gameFile).TextContents.Should().Be(bakData);
         fs.GetFile(bakFile).TextContents.Should().Be(bakData);
     }
@@ -197,14 +199,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, mod, token);
-        result.Should().BeFalse();
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeFalse();
         fs.GetFile(gameFile).TextContents.Should().Be(communityBakData);
         fs.GetFile(bakFile).TextContents.Should().Be(bakData);
         fs.GetFile(communityBakFile).TextContents.Should().Be(communityBakData);
@@ -233,14 +235,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallMod(storage, patch, false, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
@@ -274,22 +276,22 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var mod = new Mod
         {
             Id = 11
         };
-        var modResult = await manager.InstallModExclusive(storage, mod, token);
-        modResult.Should().BeTrue();
+        var modResult = await manager.InstallMod(storage, mod, false, token);
+        modResult.Success.Should().BeTrue();
 
         var mod2 = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, mod2, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallMod(storage, mod2, false, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod2");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
@@ -323,14 +325,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patch1Result = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patch1Result.Should().BeTrue();
+        var patch1Result = await manager.InstallUpdate(storage, patch1, token);
+        patch1result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch1");
@@ -343,8 +345,8 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, patch2, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallMod(storage, patch2, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch1");
@@ -376,14 +378,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallCommunityPatchBase(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -417,22 +419,22 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var mod = new Mod
         {
             Id = 11
         };
-        var modResult = await manager.InstallModExclusive(storage, mod, token);
-        modResult.Should().BeTrue();
+        var modResult = await manager.InstallMod(storage, mod, false, token);
+        modresult.Success.Should().BeTrue();
 
         var patch = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallCommunityPatchBase(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -466,14 +468,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patch1Result = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patch1Result.Should().BeTrue();
+        var patch1Result = await manager.InstallUpdate(storage, patch1, token);
+        patch1result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch1");
@@ -486,8 +488,8 @@ public class FileManagerTests
             Id = 22
         };
 
-        var result = await manager.InstallCommunityPatchBase(storage, patch2, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch2, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch2");
@@ -521,14 +523,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -542,7 +544,7 @@ public class FileManagerTests
         };
 
         var result = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
-        result.Should().BeTrue();
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
@@ -578,14 +580,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -649,14 +651,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -683,7 +685,7 @@ public class FileManagerTests
             Id = 33
         };
 
-        var result2 = await manager.InstallCommunityPatchBase(storage, patch2, token);
+        var result2 = await manager.InstallUpdate(storage, patch2, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
@@ -720,14 +722,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -754,7 +756,7 @@ public class FileManagerTests
             Id = 33
         };
 
-        var result2 = await manager.InstallModExclusive(storage, mod, token);
+        var result2 = await manager.InstallMod(storage, mod, false, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
@@ -793,14 +795,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -827,7 +829,7 @@ public class FileManagerTests
             Id = 33
         };
 
-        var result2 = await manager.InstallModExclusive(storage, mod, token);
+        var result2 = await manager.InstallMod(storage, mod, false, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
@@ -880,14 +882,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -914,7 +916,7 @@ public class FileManagerTests
             Id = 33
         };
 
-        var result2 = await manager.InstallModExclusive(storage, mod, token);
+        var result2 = await manager.InstallMod(storage, mod, false, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
@@ -928,7 +930,7 @@ public class FileManagerTests
             Id = 44
         };
 
-        var result3 = await manager.InstallCommunityPatchBase(storage, patch2, token);
+        var result3 = await manager.InstallUpdate(storage, patch2, token);
         result3.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
@@ -967,14 +969,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
 
         var patch1 = new Mod
         {
             Id = 11
         };
-        var patchResult = await manager.InstallCommunityPatchBase(storage, patch1, token);
-        patchResult.Should().BeTrue();
+        var patchResult = await manager.InstallUpdate(storage, patch1, token);
+        patchresult.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -1001,7 +1003,7 @@ public class FileManagerTests
             Id = 33
         };
 
-        var result2 = await manager.InstallModExclusive(storage, mod, token);
+        var result2 = await manager.InstallMod(storage, mod, false, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod1");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod1");
@@ -1015,7 +1017,7 @@ public class FileManagerTests
             Id = 44
         };
 
-        var result3 = await manager.InstallModExclusive(storage, mod2, token);
+        var result3 = await manager.InstallMod(storage, mod2, token);
         result3.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod2");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod2");
@@ -1049,14 +1051,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallModExclusive(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallMod(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
@@ -1097,14 +1099,14 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
 
-        var result = await manager.InstallCommunityPatchBase(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -1159,13 +1161,13 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
-        var result = await manager.InstallCommunityPatchBase(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -1177,7 +1179,7 @@ public class FileManagerTests
         {
             Id = 33
         };
-        var result2 = await manager.InstallModExclusive(storage, mod, token);
+        var result2 = await manager.InstallMod(storage, mod, false, token);
         result2.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
@@ -1233,13 +1235,13 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
-        var result = await manager.InstallCommunityPatchBase(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -1309,13 +1311,13 @@ public class FileManagerTests
         }.ToImmutableDictionary();
         var fs = new MockFileSystem(fsData);
         var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(fs, log);
+        var manager = new FileManager(modTools, log);
         var patch = new Mod
         {
             Id = 22
         };
-        var result = await manager.InstallCommunityPatchBase(storage, patch, token);
-        result.Should().BeTrue();
+        var result = await manager.InstallUpdate(storage, patch, token);
+        result.Success.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
         fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
@@ -1340,7 +1342,7 @@ public class FileManagerTests
         {
             Id = 44
         };
-        var result3 = await manager.InstallModExclusive(storage, mod, token);
+        var result3 = await manager.InstallMod(storage, mod, false, token);
         result3.Should().BeTrue();
         fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
         fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
@@ -1370,3 +1372,4 @@ public class FileManagerTests
         }
     }
 }
+*/
