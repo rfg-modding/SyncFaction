@@ -177,21 +177,21 @@ public static class Hashes
 
 	private static readonly ImmutableDictionary<string, string> Common = new Dictionary<string, string>()
 	{
-		{"GfeSDK.dll", "fffaf72a3d5adbaa7df849afdb5af8c10fe3a42800786096f41dde1cc5847e14"},
-		{"binkw32.dll", "36810b3318acd07a5b4e78fe72db163ed63880ab2eb2d9b5bda0331ded32a9c3"},
-		{"discord-rpc.dll", "3ade46bd17d6cd114b0e7f79f8a1e985b9221b92d897c28d32d659f032991bb1"},
-		{"dualshock4.padcfg", "fb551911de7edcd98b22dbfc4d6b6e5bf3327e560b03e51f74197a27cf6b3175"},
-		{"libeay32.dll", "3dc13114435872a72a26b16e67c3cda764d44aa20a44105835e28a4ea6021679"},
-		{"ssleay32.dll", "e05800580e4f8bba4c965734d1231f0b80897f826326c52bbdce41d81c452c3c"},
-		{"switchprocon.padcfg", "794cc295d29cb4667b77f84a371e5ee3a612806095f1a3a457e0de21cc924fcd"},
+		//{"GfeSDK.dll", "fffaf72a3d5adbaa7df849afdb5af8c10fe3a42800786096f41dde1cc5847e14"},
+		//{"binkw32.dll", "36810b3318acd07a5b4e78fe72db163ed63880ab2eb2d9b5bda0331ded32a9c3"},
+		//{"discord-rpc.dll", "3ade46bd17d6cd114b0e7f79f8a1e985b9221b92d897c28d32d659f032991bb1"},
+		//{"dualshock4.padcfg", "fb551911de7edcd98b22dbfc4d6b6e5bf3327e560b03e51f74197a27cf6b3175"},
+		//{"libeay32.dll", "3dc13114435872a72a26b16e67c3cda764d44aa20a44105835e28a4ea6021679"},
+		//{"ssleay32.dll", "e05800580e4f8bba4c965734d1231f0b80897f826326c52bbdce41d81c452c3c"},
+		//{"switchprocon.padcfg", "794cc295d29cb4667b77f84a371e5ee3a612806095f1a3a457e0de21cc924fcd"},
 	}.ToImmutableDictionary();
 
 	public static readonly ImmutableDictionary<string, string> Steam = new Dictionary<string, string>()
 	{
-		{"rfg.exe", "0d52039e7f2d3f25a4be52a2aba83919456fb3f00e52e75051726247471a2df4"},
-		{"steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d"},
-		{"sw_api.dll", "6f813445ff757f70164c0103833478240e339d5e81dcbc5c4be238264380c89d"},
-		{"thqnocfg_steam.dat", "8357f2c8b9c3be4bcaf780271a1f3b76f9f4cad8dbf1b410fb4cd70cc4851186"},
+		//{"rfg.exe", "0d52039e7f2d3f25a4be52a2aba83919456fb3f00e52e75051726247471a2df4"},
+		//{"steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d"},
+		//{"sw_api.dll", "79abdd4e22aab7e1b47f8fdd8b36fe75aaf99a87fe4a9279be62e9ef44a6af24"},
+		//{"thqnocfg_steam.dat", "8357f2c8b9c3be4bcaf780271a1f3b76f9f4cad8dbf1b410fb4cd70cc4851186"},
         {"data/terr01_precache.vpp_pc", "2003c162f00e8cd7e2d58be99832532bc7bd9c9271329f08e37a40db94f4e4f1"},
         {"data/vehicles_r.vpp_pc", "9917023b74f3da29089bff3623f23b94e75e58edb0bdc9a007ee2ff5ded53383"},
         {"data/terr01_l1.vpp_pc", "92dc6908affec3806a1cf8d0624ad9aad21f95d97e3ceb39d19ac0f97b56f959"},
@@ -203,11 +203,11 @@ public static class Hashes
 
 	public static readonly ImmutableDictionary<string, string> Gog = new Dictionary<string, string>()
 	{
-		{"Galaxy.dll", "bafeb03ca094e95226b4992314b15118c54f582da3c4b0401c59c92c3f472191"},
-		{"GalaxyPeer.dll", "9bfd8835020ef832001c7893df070af1f110d5beebf86e87b6133665c5329590"},
-		{"rfg.exe", "7a82d2d0f425af5e75d8ffbce12fac53eb5ca9cd812731ccf5a29697e906af0e"},
-		{"sw_api.dll", "3d5b41308c20dc9df779f8e35ceaa303fab0de8d6304b6d7346105fd95d8a24f"},
-		{"thqnocfg_gog.dat", "6f0427b331306c823afdc21347366c822645a6eea4c64d241bbe9e29de7e0c1d"},
+		//{"Galaxy.dll", "bafeb03ca094e95226b4992314b15118c54f582da3c4b0401c59c92c3f472191"},
+		//{"GalaxyPeer.dll", "9bfd8835020ef832001c7893df070af1f110d5beebf86e87b6133665c5329590"},
+		//{"rfg.exe", "7a82d2d0f425af5e75d8ffbce12fac53eb5ca9cd812731ccf5a29697e906af0e"},
+		//{"sw_api.dll", "3d5b41308c20dc9df779f8e35ceaa303fab0de8d6304b6d7346105fd95d8a24f"},
+		//{"thqnocfg_gog.dat", "6f0427b331306c823afdc21347366c822645a6eea4c64d241bbe9e29de7e0c1d"},
         {"data/terr01_precache.vpp_pc", "fee2544b55f0fd6f642a23bbaeadbefd9d0fb76b05656f591a2e292c6a759590"},
         {"data/vehicles_r.vpp_pc", "8411b3c42249458cd51741a348ed1b8713b2ec4652d4efffe199bc88e2d4753f"},
         {"data/terr01_l1.vpp_pc", "a89bfd5405f42bdb13b7447653d6d70d1fff1a753f6d4def7f390f2af0a28b47"},
