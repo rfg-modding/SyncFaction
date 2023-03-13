@@ -189,7 +189,7 @@ public static class Hashes
 	public static readonly ImmutableDictionary<string, string> Steam = new Dictionary<string, string>()
 	{
 		//{"rfg.exe", "0d52039e7f2d3f25a4be52a2aba83919456fb3f00e52e75051726247471a2df4"},
-		//{"steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d"},
+		{"steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d"},
 		//{"sw_api.dll", "79abdd4e22aab7e1b47f8fdd8b36fe75aaf99a87fe4a9279be62e9ef44a6af24"},
 		//{"thqnocfg_steam.dat", "8357f2c8b9c3be4bcaf780271a1f3b76f9f4cad8dbf1b410fb4cd70cc4851186"},
         {"data/terr01_precache.vpp_pc", "2003c162f00e8cd7e2d58be99832532bc7bd9c9271329f08e37a40db94f4e4f1"},
@@ -203,7 +203,7 @@ public static class Hashes
 
 	public static readonly ImmutableDictionary<string, string> Gog = new Dictionary<string, string>()
 	{
-		//{"Galaxy.dll", "bafeb03ca094e95226b4992314b15118c54f582da3c4b0401c59c92c3f472191"},
+		{"Galaxy.dll", "bafeb03ca094e95226b4992314b15118c54f582da3c4b0401c59c92c3f472191"},
 		//{"GalaxyPeer.dll", "9bfd8835020ef832001c7893df070af1f110d5beebf86e87b6133665c5329590"},
 		//{"rfg.exe", "7a82d2d0f425af5e75d8ffbce12fac53eb5ca9cd812731ccf5a29697e906af0e"},
 		//{"sw_api.dll", "3d5b41308c20dc9df779f8e35ceaa303fab0de8d6304b6d7346105fd95d8a24f"},
