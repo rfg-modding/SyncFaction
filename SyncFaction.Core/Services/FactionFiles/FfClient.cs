@@ -29,7 +29,7 @@ public class FfClient
         this.fileSystem = fileSystem;
         this.log = log;
 
-        this.client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SyncFaction"));
+        this.client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SyncFaction", "1"));
     }
 
     public async Task<IReadOnlyList<IMod>> GetMods(Category category, IGameStorage storage, CancellationToken token)
