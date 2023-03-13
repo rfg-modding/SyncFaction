@@ -28,6 +28,8 @@ public class FfClient
         this.stateProvider = stateProvider;
         this.fileSystem = fileSystem;
         this.log = log;
+
+        this.client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SyncFaction"));
     }
 
     public async Task<IReadOnlyList<IMod>> GetMods(Category category, IGameStorage storage, CancellationToken token)
