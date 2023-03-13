@@ -13,10 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Core", "SyncFac
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Packer", "SyncFaction.Packer\SyncFaction.Packer.csproj", "{A0B7A163-29E1-428C-9C18-B16548048785}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Extras.CodeGenerator", "SyncFaction.Extras.CodeGenerator\SyncFaction.Extras.CodeGenerator.csproj", "{FE704D94-2669-4314-8D4D-17A5CC252BBA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Extras", "SyncFaction.Extras\SyncFaction.Extras.csproj", "{4C7EC22D-97C9-435E-A29C-83D988128D13}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.ModManager", "SyncFaction.ModManager\SyncFaction.ModManager.csproj", "{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}"
 EndProject
 Global
@@ -41,14 +37,6 @@ Global
 		{A0B7A163-29E1-428C-9C18-B16548048785}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0B7A163-29E1-428C-9C18-B16548048785}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0B7A163-29E1-428C-9C18-B16548048785}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FE704D94-2669-4314-8D4D-17A5CC252BBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FE704D94-2669-4314-8D4D-17A5CC252BBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FE704D94-2669-4314-8D4D-17A5CC252BBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FE704D94-2669-4314-8D4D-17A5CC252BBA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4C7EC22D-97C9-435E-A29C-83D988128D13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4C7EC22D-97C9-435E-A29C-83D988128D13}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4C7EC22D-97C9-435E-A29C-83D988128D13}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4C7EC22D-97C9-435E-A29C-83D988128D13}.Release|Any CPU.Build.0 = Release|Any CPU
 		{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}.Release|Any CPU.ActiveCfg = Release|Any CPU

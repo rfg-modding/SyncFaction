@@ -25,7 +25,7 @@ public partial class MainWindow : Window, IViewAccessor
 
         DataContext = viewModel;
         InitializeComponent();
-        Title = Extras.Title.Value;
+        Title = "SyncFaction";
 
         markdownRender.Init(Markdown);
         markdownRender.Append("# Welcome!");

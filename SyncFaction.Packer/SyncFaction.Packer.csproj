@@ -11,9 +11,5 @@
       <PackageReference Include="KaitaiStruct.Runtime.CSharp" Version="0.10.0" />
       <PackageReference Include="SharpZipLib" Version="1.4.0" />
     </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\SyncFaction.Extras\SyncFaction.Extras.csproj" />
-    </ItemGroup>
     
 </Project>
