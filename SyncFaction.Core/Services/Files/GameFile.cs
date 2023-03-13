@@ -278,7 +278,7 @@ public class GameFile
         };
     }
 
-    private IFileInfo FileInfo { get; }
+    internal IFileInfo FileInfo { get; }
 
     private IGameStorage Storage { get; }
 

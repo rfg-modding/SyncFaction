@@ -152,16 +152,120 @@ public class GameFileTests
     [TestCase("nonexistent.file", null)]
     [TestCase("data/nonexistent.data", null)]
     [TestCase("rfg.exe", "x:\\bak\\rfg.exe")]
+    [TestCase("data/table.vpp_pc", "x:\\bak\\data\\table.vpp_pc")]
     public void CopyToBackup_KnownFile_CleanState(string fileName, string expectedAbsPath)
     {
-        // state that matters: IsKnown; Exists; bak exists; patchBak exists
-        // also test contents: if stuff is actually copied and owerwritten (or not)
-        TODO more tests!
+
         var gf = new GameFile(Storage, fileName, fileSystem);
 
         var dst = gf.CopyToBackup(false, false);
 
         gf.IsKnown.Should().BeTrue();
         dst?.FullName.Should().Be(expectedAbsPath, ToJson(fileSystem.AllPaths));
+    }
+
+    // state that matters: IsKnown; Exists; bak exists; patchBak exists
+    // also test contents: if stuff is actually copied and owerwritten (or not)
+
+    [TestCase("rfg.exe", "x:\\bak\\rfg.exe")]
+    [TestCase("data/table.vpp_pc", "x:\\bak\\data\\table.vpp_pc")]
+    public void CopyToVanillaBackup_KnownFile_Throws(string fileName, string expectedAbsPath)
+    {
+        var data1 = "test1";
+        var data2 = "test2";
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        CreateFile(fileSystem, gf.AbsolutePath);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data1);
+        }
+        var _ = gf.CopyToBackup(false, false);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data2);
+        }
+
+        var action = () => gf.CopyToBackup(true, false);
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestCase("rfg.exe", "x:\\patch_bak\\rfg.exe")]
+    [TestCase("data/table.vpp_pc", "x:\\patch_bak\\data\\table.vpp_pc")]
+    public void CopyToPatchBackup_KnownFile_Works(string fileName, string expectedAbsPath)
+    {
+        var data1 = "test1";
+        var data2 = "test2";
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        CreateFile(fileSystem, gf.AbsolutePath);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data1);
+        }
+        var _ = gf.CopyToBackup(false, false);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data2);
+        }
+
+        var dst = gf.CopyToBackup(true, true);
+
+        dst?.FullName.Should().Be(expectedAbsPath, ToJson(fileSystem.AllPaths));
+        using (var s = dst.OpenRead())
+        {
+            using var x = new StreamReader(s);
+            x.ReadToEnd().Should().Be(data2);
+        }
+    }
+
+    [TestCase("rfg.exe", "x:\\bak\\rfg.exe")]
+    [TestCase("data/table.vpp_pc", "x:\\bak\\data\\table.vpp_pc")]
+    public void CopyToBackupOnUpdate_KnownFile_Works(string fileName, string expectedAbsPath)
+    {
+        var data1 = "test1";
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        CreateFile(fileSystem, gf.AbsolutePath);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data1);
+        }
+
+        var dst = gf.CopyToBackup(true, true);
+
+        dst?.FullName.Should().Be(expectedAbsPath, ToJson(fileSystem.AllPaths));
+        using (var s = dst.OpenRead())
+        {
+            using var x = new StreamReader(s);
+            x.ReadToEnd().Should().Be(data1);
+        }
+    }
+
+    [TestCase("rfg.exe", "x:\\patch_bak\\rfg.exe")]
+    [TestCase("data/table.vpp_pc", "x:\\patch_bak\\data\\table.vpp_pc")]
+    public void CopyToPatchBackup_KnownFile_Overwrites(string fileName, string expectedAbsPath)
+    {
+        var data1 = "test1";
+        var data2 = "test2";
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        CreateFile(fileSystem, gf.AbsolutePath);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data1);
+        }
+        gf.CopyToBackup(false, false);
+        gf.CopyToBackup(true, true);
+        using (var s = gf.FileInfo.CreateText())
+        {
+            s.Write(data2);
+        }
+
+        var dst = gf.CopyToBackup(true, true);
+
+        dst?.FullName.Should().Be(expectedAbsPath, ToJson(fileSystem.AllPaths));
+        using (var s = dst.OpenRead())
+        {
+            using var x = new StreamReader(s);
+            x.ReadToEnd().Should().Be(data2);
+        }
     }
 }
