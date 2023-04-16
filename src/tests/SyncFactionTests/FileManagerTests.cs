@@ -1,13 +1,10 @@
-using System.Collections.Immutable;
-using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.ModManager;
+using static SyncFactionTests.Fs;
 
 namespace SyncFactionTests;
 
@@ -22,17 +19,13 @@ public class FileManagerTests
     [Test]
     public async Task ForgetUpdates_Works()
     {
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-        };
-        var hashes = new Dictionary<string, string>().ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
+        var fs = Init();
+        var hashes = Hashes.Empty;
         var storage = new GameStorage(gameDir, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var subdir = storage.PatchBak.CreateSubdirectory("test");
         var dummy = fs.FileInfo.New("/game/.keep");
+        dummy.Create();
         var copy1 = dummy.CopyTo(fs.Path.Combine(storage.PatchBak.FullName, ".keep"));
         var copy2 = dummy.CopyTo(fs.Path.Combine(subdir.FullName, ".keep"));
         copy1.Exists.Should().BeTrue();
@@ -54,13 +47,8 @@ public class FileManagerTests
     [Test]
     public async Task ForgetUpdates_NoDirectory_Fails()
     {
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-        };
-        var hashes = new Dictionary<string, string>().ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
+        var fs = Init();
+        var hashes = Hashes.Empty;
         var storage = new GameStorage(gameDir, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         storage.PatchBak.Exists.Should().BeTrue();
@@ -73,80 +61,116 @@ public class FileManagerTests
     }
 
     [Test]
-    public async Task ApplyModExclusive_EmptyMod_False()
+    public async Task InstallMod_EmptyMod_False()
     {
-        var modMock = new Mock<IMod>();
-        var dirMock = new Mock<IDirectoryInfo>();
-        dirMock.Setup(x => x.EnumerateFiles(It.IsAny<string>(), It.IsAny<SearchOption>()))
-            .Returns(Enumerable.Empty<IFileInfo>());
-        var storageMock = new Mock<IGameStorage>();
-        storageMock.Setup(x => x.GetModDir(It.IsAny<IMod>()))
-            .Returns(dirMock.Object);
-
-        var mod = modMock.Object;
-        var storage = storageMock.Object;
-        var manager = new FileManager(modTools, log);
-
-        var result = await manager.InstallMod(storage, mod, false, token);
-        result.Success.Should().BeFalse();
-    }
-
-    [Test]
-    public async Task ApplyModExclusive_NewFile_True()
-    {
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-
-            {"/game/data/.syncfaction/Mod_22/unknown_file.wtf", new MockFileData("test")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"}
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
+        var fs = Init();
+        var expected = fs.Clone();
+        var hashes = Hashes.Exe;
+        fs.DirectoryInfo.New(ModRoot).Create();
         var storage = new GameStorage(gameDir, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = 22
+            Id = ModId
+        };
+
+        var result = await manager.InstallMod(storage, mod, false, token);
+        result.Success.Should().BeFalse();
+        fs.ShouldHaveSameFilesAs(expected);
+    }
+
+    [Test]
+    public async Task InstallMod_NewFile_True()
+    {
+        var fs = Init(x =>
+        {
+            x.InitFile().Data("new file data").Name("new_file.bin").In(ModRoot);
+            x.InitFile().Data("other file data").Name("other_file").In(ModRoot);
+        });
+        var expected = fs.Clone(x =>
+        {
+            x.InitFile().Name("new_file.bin").In(ManagedRoot)
+                .Data("new file data").In(GameRoot);
+            x.InitFile().Name("other_file").In(ManagedRoot)
+                .Data("other file data").In(GameRoot);
+        });
+        var hashes = Hashes.Exe;
+        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod = new Mod
+        {
+            Id = ModId
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
         result.Success.Should().BeTrue();
+        fs.ShouldHaveSameFilesAs(expected);
     }
-/*
-    [Test]
-    public async Task ApplyModExclusive_UnsupportedFile_False()
-    {
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
 
-            {"/game/test.exe", new MockFileData("test")},
-            {"/game/data/.syncfaction/Mod_22/test.unknown_mod_format", new MockFileData("test")},
-        };
-        var hashes = new Dictionary<string, string>()
+    [Test]
+    public async Task InstallMod_OnlyUnsupportedFiles_False()
+    {
+        var fs = Init(x =>
         {
-            {"test.exe", "123"}
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
+            x.InitFile().Data("1").Name("unsupported1.jpg").In(ModRoot);
+            x.InitFile().Data("2").Name("unsupported2.jPeG").In(ModData);
+            x.InitFile().Data("3").Name("unsupported3.zip").In(ModEtc);
+            x.InitFile().Data("4").Name("unsupported4.7Z").In(ModDataEtc);
+            x.InitFile().Data("5").Name("unsupported5.Txt").In(ModRoot);
+            x.InitFile().Data("6").Name("unsupported6.PNG").In(ModRoot);
+            x.InitFile().Data("7").Name(".mod_unsupported7.vpp_pc").In(ModRoot);
+            x.InitFile().Data("8").Name(".mod_unsupported8.exe").In(ModData);
+        });
+        var expected = fs.Clone(x =>
+        {
+        });
+        var hashes = Hashes.Exe;
         var storage = new GameStorage(gameDir, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = 22
+            Id = ModId
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
         result.Success.Should().BeFalse();
+        fs.ShouldHaveSameFilesAs(expected);
     }
 
+    [Test]
+    public async Task InstallMod_VanillaFilesNoBackups_CreatesVanillaBackup()
+    {
+        var fs = Init(x =>
+        {
+            x.InitFile().Data("original exe").Name("test.exe").In(GameRoot);
+            x.InitFile().Data("original vpp").Name("archive.vpp_pc").In(GameData);
+            x.InitFile().Data("mod exe").Name("test.exe").In(ModRoot);
+            x.InitFile().Data("mod vpp").Name("archive.vpp_pc").In(ModRoot);
+
+        });
+        var expected = fs.Clone(x =>
+        {
+            x.InitFile().Data("original exe").Name("test.exe").In(VanillaRoot);
+            x.InitFile().Data("original vpp").Name("archive.vpp_pc").In(VanillaData);
+            x.InitFile().Data("mod exe").Name("test.exe").In(GameRoot);
+            x.InitFile().Data("mod vpp").Name("archive.vpp_pc").In(GameData);
+        });
+        var hashes = Combine(new []{Hashes.Exe, Hashes.Data.Vpp});
+
+        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod = new Mod
+        {
+            Id = ModId
+        };
+
+        var result = await manager.InstallMod(storage, mod, false, token);
+        fs.ShouldHaveSameFilesAs(expected);
+        result.Success.Should().BeTrue();
+    }
+
+
+/*
     [TestCase("/game/test.exe","/game/data/.syncfaction/Mod_22/test.exe", "/game/data/.syncfaction/.bak_vanilla/test.exe")]
     [TestCase("/game/data/test2.vpp_pc","/game/data/.syncfaction/Mod_22/test2.vpp_pc", "/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc")]
     [TestCase("/game/data/test2.vpp_pc","/game/data/.syncfaction/Mod_22/data/test2.vpp_pc", "/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc")]

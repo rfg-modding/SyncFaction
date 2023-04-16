@@ -1,6 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
-using PleOps.XdeltaSharp.Decoder;
 
 namespace SyncFaction.Core.Services.Files;
 
@@ -22,27 +22,34 @@ public class GameFile
         return new GameFile(storage, relativePath, modFile.FileSystem);
     }
 
+    [ExcludeFromCodeCoverage]
     public string Name => FileInfo.FileSystem.Path.GetFileNameWithoutExtension(FileInfo.Name);
 
+    [ExcludeFromCodeCoverage]
     public string Ext => FileInfo.Extension;
 
+    [ExcludeFromCodeCoverage]
     public string NameExt => FileInfo.Name;
 
     /// <summary>
     /// Directory inside game folder where this file lives: empty string (game root) or "data"
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public string RelativeDirectory => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.DirectoryName!);
 
     /// <summary>
     /// "rfg.exe" or "data/foo.vpp_pc"
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public string RelativePath => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.FullName);
 
     /// <summary>
     /// Full name to file, useful for reading/writing/moving
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public string AbsolutePath => FileInfo.FullName;
 
+    [ExcludeFromCodeCoverage]
     public string? ComputeHash()
     {
         if (!Exists)
@@ -56,6 +63,7 @@ public class GameFile
     /// <summary>
     /// Compute hash and compare with expected value. Works only for vanilla files!
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public bool IsVanillaByHash()
     {
         var expected = Storage.VanillaHashes[RelativePath.Replace("\\", "/")];
@@ -116,6 +124,7 @@ public class GameFile
 
     public bool Exists => FileInfo.Exists;
 
+    [ExcludeFromCodeCoverage]
     public bool BackupExists()
     {
         return FindBackup().Exists;

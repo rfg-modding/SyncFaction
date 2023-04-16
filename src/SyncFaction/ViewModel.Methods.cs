@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows.Controls;
-using Kaitai;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.FactionFiles;
