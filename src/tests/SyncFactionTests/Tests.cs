@@ -79,7 +79,7 @@ public class Tests
         var httpClient = new HttpClient();
         var fs = new FileSystem();
         var client = new FfClient(httpClient, Mock.Of< IStateProvider>(), fs, log);
-        var dstFile = fs.FileInfo.FromFileName("out.bin");
+        var dstFile = fs.FileInfo.New("out.bin");
         dstFile.Delete();
         var url = "https://www.factionfiles.com/ffdownload.php?id=5843";
         var mod = new Mod()

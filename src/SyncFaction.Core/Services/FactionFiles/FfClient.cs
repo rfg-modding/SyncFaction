@@ -139,8 +139,8 @@ public class FfClient
     public OnlineModStatus GetModStatus(Mod item, IGameStorage storage)
     {
         var modDir = storage.GetModDir(item);
-        var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
-        var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
+        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        var descriptionFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
         if (modDir.Exists && !incompleteDataFile.Exists && descriptionFile.Exists)
         {
             return OnlineModStatus.Ready;
@@ -200,7 +200,7 @@ public class FfClient
     public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
     {
         log.LogDebug($"Downloading mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
-        var incompleteDataFile = fileSystem.FileInfo.FromFileName(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
         if (modDir.Exists && !incompleteDataFile.Exists)
         {
             // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
@@ -220,7 +220,7 @@ public class FfClient
             return false;
         }
 
-        var dstFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, remoteFileInfo.FileName));
+        var dstFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, remoteFileInfo.FileName));
 
         var downloadResult = await DownloadWithResume(dstFile, remoteFileInfo.Size, mod, token);
         if (downloadResult == false)
@@ -273,7 +273,7 @@ public class FfClient
     private async Task PersistDescription(IDirectoryInfo modDir, IMod mod)
     {
         // persist info for offline usage
-        var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
+        var descriptionFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
         if (descriptionFile.Exists)
         {
             return;

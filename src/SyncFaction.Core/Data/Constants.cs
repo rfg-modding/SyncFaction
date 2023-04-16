@@ -37,9 +37,11 @@ public static class Constants
     /// </summary>
     public static readonly ImmutableHashSet<string> IgnoredExtensions = new HashSet<string>()
     {
+        ".rfgpatch",
         ".txt",
         ".jpg",
         ".jpeg",
+        ".png",
         ".zip",
         ".rar",
         ".7z",

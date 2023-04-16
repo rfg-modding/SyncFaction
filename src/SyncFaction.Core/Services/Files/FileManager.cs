@@ -134,7 +134,9 @@ public class FileManager
     /// </summary>
     public void Rollback(IGameStorage storage, bool toVanilla, CancellationToken token)
     {
-        var files = storage.EnumerateStockFiles().Concat(storage.EnumerateManagedFiles()).Concat(storage.EnumerateManagedFiles());
+        var files = storage.EnumerateStockFiles()
+            .Concat(storage.EnumerateManagedFiles())
+            .Concat(storage.EnumerateManagedFiles());
         foreach (var gameFile in files)
         {
             token.ThrowIfCancellationRequested();
@@ -152,7 +154,7 @@ public class FileManager
     /// <summary>
     /// When terraform patch is diverged with installed things, nuke them to install from scratch. Otherwise, install only what's new, using patch_bak
     /// </summary>
-    private void ForgetUpdates(IGameStorage storage)
+    internal void ForgetUpdates(IGameStorage storage)
     {
         storage.PatchBak.Delete(true);
         storage.PatchBak.Create();

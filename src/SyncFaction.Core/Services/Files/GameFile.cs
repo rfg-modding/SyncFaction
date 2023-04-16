@@ -9,7 +9,7 @@ public class GameFile
     public GameFile(IGameStorage storage, string relativePath, IFileSystem fileSystem)
     {
         var path = fileSystem.Path.Combine(storage.Game.FullName, relativePath);
-        FileInfo = fileSystem.FileInfo.FromFileName(path);
+        FileInfo = fileSystem.FileInfo.New(path);
         Storage = storage;
     }
 
@@ -31,7 +31,7 @@ public class GameFile
     /// <summary>
     /// Directory inside game folder where this file lives: empty string (game root) or "data"
     /// </summary>
-    public string RelativeDirectory => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.DirectoryName);
+    public string RelativeDirectory => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.DirectoryName!);
 
     /// <summary>
     /// "rfg.exe" or "data/foo.vpp_pc"
@@ -90,17 +90,17 @@ public class GameFile
 
     public IFileInfo GetVanillaBackupLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(FileInfo.FileSystem.Path.Combine(Storage.Bak.FullName, RelativePath));
+        return FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Bak.FullName, RelativePath));
     }
 
     public IFileInfo GetPatchBackupLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(FileInfo.FileSystem.Path.Combine(Storage.PatchBak.FullName, RelativePath));
+        return FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.PatchBak.FullName, RelativePath));
     }
 
     public IFileInfo GetManagedLocation()
     {
-        return FileInfo.FileSystem.FileInfo.FromFileName(FileInfo.FileSystem.Path.Combine(Storage.Managed.FullName, RelativePath));
+        return FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Managed.FullName, RelativePath));
     }
 
     public IFileInfo FindBackup()
@@ -269,12 +269,15 @@ public class GameFile
 
     public async Task<bool> ApplyMod(IFileInfo modFile, ILogger log, CancellationToken token)
     {
+        if (!modFile.IsModContent())
+        {
+            return Skip(modFile, log);
+        }
+
         return modFile.Extension.ToLowerInvariant() switch
         {
             ".xdelta" => await ApplyXdelta(modFile, log, token),
-            ".rfgpatch" or ".txt" or ".jpg" => Skip(modFile, log),  // ignore xml rfgpatch format (unsupported) and common clutter
-            var x when x == Ext => ApplyNewFile(modFile, log),
-            _ => Skip(modFile, log)
+            _ => ApplyNewFile(modFile, log),
         };
     }
 
@@ -320,13 +323,13 @@ public class GameFile
         return relativeModPath;
     }
 
-    private bool Skip(IFileInfo modFile, ILogger log)
+    internal virtual bool Skip(IFileInfo modFile, ILogger log)
     {
         log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
         return true;
     }
 
-    private bool ApplyNewFile(IFileInfo modFile, ILogger log)
+    internal virtual  bool ApplyNewFile(IFileInfo modFile, ILogger log)
     {
         EnsureDirectoriesCreated(FileInfo);
         modFile.CopyTo(FileInfo.FullName, true);
@@ -339,7 +342,7 @@ public class GameFile
         file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
     }
 
-    private async Task<bool> ApplyXdelta(IFileInfo modFile, ILogger log, CancellationToken cancellationToken)
+    internal virtual async Task<bool> ApplyXdelta(IFileInfo modFile, ILogger log, CancellationToken cancellationToken)
     {
         var dstFile = FileInfo;
         if (dstFile.Exists)
@@ -353,7 +356,7 @@ public class GameFile
 
         try
         {
-            using var decoder = new Decoder(srcStream, patchStream, dstStream);
+            using var decoder = XdeltaFactory(srcStream, patchStream, dstStream);
             // TODO log progress
             decoder.ProgressChanged += progress => { cancellationToken.ThrowIfCancellationRequested(); };
             decoder.Run();
@@ -367,27 +370,9 @@ public class GameFile
             throw;
         }
     }
-}
-
-public enum FileKind
-{
-    /// <summary>
-    /// File exists in base game distribution
-    /// </summary>
-    Stock,
 
     /// <summary>
-    /// File is introduced by patch and should be preserved
+    /// For tests
     /// </summary>
-    FromPatch,
-
-    /// <summary>
-    /// File is introduced by mod and should be removed
-    /// </summary>
-    FromMod,
-
-    /// <summary>
-    /// File is created by user or game and should be ignored
-    /// </summary>
-    Unmanaged
+    internal Func<Stream, Stream, Stream,IXdelta> XdeltaFactory = (srcStream, patchStream, dstStream) => new XdeltaWrapper(srcStream, patchStream, dstStream);
 }

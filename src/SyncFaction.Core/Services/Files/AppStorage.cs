@@ -39,7 +39,7 @@ public class AppStorage: IAppStorage {
 	public State? LoadStateFile()
 	{
 
-		var file = fileSystem.FileInfo.FromFileName(Path.Combine(App.FullName, Constants.StateFile));
+		var file = fileSystem.FileInfo.New(Path.Combine(App.FullName, Constants.StateFile));
 		if (!file.Exists)
 		{
             log.LogInformation("State file does not exist");
@@ -52,7 +52,7 @@ public class AppStorage: IAppStorage {
 
 	public void WriteStateFile(State state)
 	{
-		var file = fileSystem.FileInfo.FromFileName(Path.Combine(App.FullName, Constants.StateFile));
+		var file = fileSystem.FileInfo.New(Path.Combine(App.FullName, Constants.StateFile));
 		if (file.Exists)
 		{
 			file.Delete();
@@ -104,7 +104,7 @@ public class AppStorage: IAppStorage {
         {
             //var file = new GameFile(this, kv.Key, fileSystem);
             var path = Path.Combine(Game.FullName, kv.Key);
-            var fileInfo = fileSystem.FileInfo.FromFileName(path);
+            var fileInfo = fileSystem.FileInfo.New(path);
             var expected = kv.Value;
             var hash = fileInfo.Exists ? ComputeHash(fileInfo) : null;
             var isVanilla = (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);

@@ -64,6 +64,9 @@ A lot of functionality is not implemented yet!
 * show warnings if mod edits MP files. also show files to be modified as list
 * rename community patch to terraform patch where possible
 * if both .reg versions are detected, fail auto search and ask to place app in game dir
+* redo fixes from hotfix branch
+  * remove .exe .dll .pdb from hash checks, but not entirely or gog/steam detection will break
+  * ??? check hotfix branch carefully for other stuff
 
 ## Tech info
 
@@ -79,6 +82,9 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 
 ([join Discord!](https://discord.gg/factionfiles))
 
+## Short-term plan 
+
+Or how to get this branch closer to release and not burn out:
 
 0. pause XML merging features (that's the heart of modmanager)
 1. introduce VPP repacking support for mods/updates

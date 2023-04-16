@@ -344,7 +344,7 @@ public class UiCommands
             if (dir.Name.StartsWith("Mod_"))
             {
                 // read mod description from json
-                var descriptionFile = fileSystem.FileInfo.FromFileName(Path.Combine(dir.FullName, Constants.ModDescriptionFile));
+                var descriptionFile = fileSystem.FileInfo.New(Path.Combine(dir.FullName, Constants.ModDescriptionFile));
                 if (!descriptionFile.Exists)
                 {
                     // mod was not downloaded correctly
@@ -387,13 +387,12 @@ public class UiCommands
         var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod"));
         var flags = ModFlags.None;
 
-        // TODO same logic as in GameFile.ApplyMod()
         foreach (var modFile in modFiles)
         {
             var extension = modFile.Extension.ToLowerInvariant();
             var name = modFile.Name.ToLowerInvariant();
 
-            if (extension is ".rfgpatch" or ".txt" or ".jpg")
+            if (!modFile.IsModContent())
             {
                 continue;
             }

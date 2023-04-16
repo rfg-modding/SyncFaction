@@ -11,7 +11,6 @@ using SyncFaction.ModManager;
 
 namespace SyncFactionTests;
 
-/*
 public class FileManagerTests
 {
     private ILogger<FileManager> log = new NullLogger<FileManager>();
@@ -19,6 +18,59 @@ public class FileManagerTests
     private string gameDir = "/game";
 
     private readonly ModTools modTools = new(new NullLogger<ModTools>());
+
+    [Test]
+    public async Task ForgetUpdates_Works()
+    {
+        var fsData = new Dictionary<string, MockFileData>
+        {
+            {"/game/.keep", new MockFileData("i am directory")},
+            {"/game/data/.keep", new MockFileData("i am directory")},
+        };
+        var hashes = new Dictionary<string, string>().ToImmutableDictionary();
+        var fs = new MockFileSystem(fsData);
+        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var subdir = storage.PatchBak.CreateSubdirectory("test");
+        var dummy = fs.FileInfo.New("/game/.keep");
+        var copy1 = dummy.CopyTo(fs.Path.Combine(storage.PatchBak.FullName, ".keep"));
+        var copy2 = dummy.CopyTo(fs.Path.Combine(subdir.FullName, ".keep"));
+        copy1.Exists.Should().BeTrue();
+        copy2.Exists.Should().BeTrue();
+        storage.PatchBak.EnumerateFiles().Should().HaveCount(1);
+        subdir.EnumerateFiles().Should().HaveCount(1);
+
+        manager.ForgetUpdates(storage);
+
+        storage.PatchBak.Refresh();
+        storage.PatchBak.Exists.Should().BeTrue();
+        storage.PatchBak.EnumerateFiles().Should().BeEmpty();
+        copy1.Refresh();
+        copy2.Refresh();
+        copy1.Exists.Should().BeFalse();
+        copy2.Exists.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task ForgetUpdates_NoDirectory_Fails()
+    {
+        var fsData = new Dictionary<string, MockFileData>
+        {
+            {"/game/.keep", new MockFileData("i am directory")},
+            {"/game/data/.keep", new MockFileData("i am directory")},
+        };
+        var hashes = new Dictionary<string, string>().ToImmutableDictionary();
+        var fs = new MockFileSystem(fsData);
+        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        storage.PatchBak.Exists.Should().BeTrue();
+        storage.PatchBak.Delete();
+        storage.PatchBak.Refresh();
+        storage.PatchBak.Exists.Should().BeFalse();
+
+        var action = () => manager.ForgetUpdates(storage);
+        action.Should().Throw<DirectoryNotFoundException>();
+    }
 
     [Test]
     public async Task ApplyModExclusive_EmptyMod_False()
@@ -65,7 +117,7 @@ public class FileManagerTests
         var result = await manager.InstallMod(storage, mod, false, token);
         result.Success.Should().BeTrue();
     }
-
+/*
     [Test]
     public async Task ApplyModExclusive_UnsupportedFile_False()
     {
@@ -299,7 +351,7 @@ public class FileManagerTests
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
         fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
     }
-
+/*
     [Test]
     public async Task  Apply_Patch_Mod()
     {
@@ -1371,5 +1423,5 @@ public class FileManagerTests
             fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
         }
     }
+    */
 }
-*/
