@@ -88,16 +88,11 @@ Or how to get this branch closer to release and not burn out:
 
 0. pause XML merging features (that's the heart of modmanager)
 1. introduce VPP repacking support for mods/updates
-2. rewrite updater
-   * store terraform and rsl updates in separate lists
-   * apply terraform, then rsl
-   * track a list of extra files and delete them on restore
-     * restore to vanilla = delete all extra files
-     * restore to community = should keep files introduced by community patch
-       * probably OK to delete all extra files and then copy all from community backup
-3. track new separate set of search strings from FF - for RSL2
+2. ~~rewrite updater~~
+3. ~~track new separate set of search strings from FF - for RSL2~~
 4. compare gog and steam distributions
 5. release unification patch based on observations and VPP differences
 6. all this stuff will require rebuilding current state of game files from ground up, but since i have cache and backups it won't be a problem for users
-7. people will need to get new SF version though
-   i'd like to make things smooth and will need help testing...
+  * however, migrating from old data structure will introduce more WTFs and require more testing
+  * need to think it through
+  * probably introduce cleanup stage on start?
