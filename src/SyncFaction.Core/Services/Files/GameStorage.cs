@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using SharpCompress;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.FactionFiles;
 
@@ -24,7 +25,11 @@ public class GameStorage : AppStorage, IGameStorage
             .OrderBy(x => x.Key)
             .ToImmutableSortedDictionary();
         dataFiles = VanillaHashes.Keys
-            .Where(x => x.Split('/').Length == 2)
+            .Where(x =>
+            {
+                var tokens = x.Split('/');
+                return tokens.Length == 2 && tokens[0].ToLowerInvariant() == "data";
+            })
             .ToDictionary(x => Path.GetFileNameWithoutExtension(x.Split('/').Last()), x => x)
             .OrderBy(x => x.Key)
             .ToImmutableSortedDictionary();
@@ -65,8 +70,7 @@ public class GameStorage : AppStorage, IGameStorage
     {
         return Managed.EnumerateFiles("*", SearchOption.AllDirectories)
             .Select(x => Path.GetRelativePath(Managed.FullName, x.FullName))
-            .Select(x => new GameFile(this, x, fileSystem))
-            .Where(x => x.Kind is FileKind.FromMod);
+            .Select(x => new GameFile(this, x, fileSystem));
     }
 
     /// <inheritdoc />

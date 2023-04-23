@@ -135,7 +135,7 @@ public class FileManager
     public void Rollback(IGameStorage storage, bool toVanilla, CancellationToken token)
     {
         var files = storage.EnumerateStockFiles()
-            .Concat(storage.EnumerateManagedFiles())
+            .Concat(storage.EnumeratePatchFiles())
             .Concat(storage.EnumerateManagedFiles());
         foreach (var gameFile in files)
         {

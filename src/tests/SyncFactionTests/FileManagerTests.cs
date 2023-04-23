@@ -1,3 +1,4 @@
+using System.IO.Abstractions.TestingHelpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -12,16 +13,102 @@ public class FileManagerTests
 {
     private ILogger<FileManager> log = new NullLogger<FileManager>();
     private CancellationToken token = CancellationToken.None;
-    private string gameDir = "/game";
 
     private readonly ModTools modTools = new(new NullLogger<ModTools>());
+
+    private static void AddDefaultFiles(MockFileSystem x)
+    {
+            // stock
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.REtc, File.Dll, Data.Orig);
+            x.MkFile(Game.DEtc, File.Etc, Data.Orig);
+
+            // unmanaged
+            x.MkFile(Game.Root, File.Vpp, Data.Orig);
+            x.MkFile(Game.Data, File.Dll, Data.Orig);
+            x.MkFile(Game.REtc, File.Etc, Data.Orig);
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig);
+
+            // mod 1
+            x.MkFile(Mod1.Root, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Mod1.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Mod1.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Mod1.Root, File.Vpp, Data.Mod1);
+            x.MkFile(Mod1.Data, File.Dll, Data.Mod1);
+            x.MkFile(Mod1.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Mod1.DEtc, File.Exe, Data.Mod1);
+
+            // mod 2
+            x.MkFile(Mod2.Root, File.Dll, Data.Mod2);
+            x.MkFile(Mod2.Data, File.Etc, Data.Mod2);
+            x.MkFile(Mod2.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Mod2.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Mod2.Root, File.Etc, Data.Mod2);
+            x.MkFile(Mod2.Data, File.Exe, Data.Mod2);
+            x.MkFile(Mod2.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Mod2.DEtc, File.Dll, Data.Mod2);
+
+            // patch 1
+            x.MkFile(Pch1.Root, File.Exe, Data.Pch1);
+            x.MkFile(Pch1.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Pch1.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Pch1.DEtc, File.Etc, Data.Pch1);
+
+            x.MkFile(Pch1.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Pch1.Data, File.Dll, Data.Pch1);
+            x.MkFile(Pch1.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Pch1.DEtc, File.Exe, Data.Pch1);
+
+            // patch 2
+            x.MkFile(Pch2.Root, File.Dll, Data.Pch2);
+            x.MkFile(Pch2.Data, File.Etc, Data.Pch2);
+            x.MkFile(Pch2.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Pch2.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Pch2.Root, File.Etc, Data.Pch2);
+            x.MkFile(Pch2.Data, File.Exe, Data.Pch2);
+            x.MkFile(Pch2.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Pch2.DEtc, File.Dll, Data.Pch2);
+    }
+
+    private void CheckDefaultFileKinds(MockFileSystem fs, IGameStorage storage)
+    {
+        fs.GetGameFile(storage, Game.Root, Names.Exe).Kind.Should().Be(FileKind.Stock);
+        fs.GetGameFile(storage, Game.Data, Names.Vpp).Kind.Should().Be(FileKind.Stock);
+        fs.GetGameFile(storage, Game.REtc, Names.Dll).Kind.Should().Be(FileKind.Stock);
+        fs.GetGameFile(storage, Game.DEtc, Names.Etc).Kind.Should().Be(FileKind.Stock);
+
+        fs.GetGameFile(storage, Game.Root, Names.Vpp).Kind.Should().Be(FileKind.Unmanaged);
+        fs.GetGameFile(storage, Game.Data, Names.Dll).Kind.Should().Be(FileKind.Unmanaged);
+        fs.GetGameFile(storage, Game.REtc, Names.Etc).Kind.Should().Be(FileKind.Unmanaged);
+        fs.GetGameFile(storage, Game.DEtc, Names.Exe).Kind.Should().Be(FileKind.Unmanaged);
+
+        fs.GetGameFile(storage, Game.Root, Names.Dll).Kind.Should().Be(FileKind.FromPatch);
+        fs.GetGameFile(storage, Game.Data, Names.Etc).Kind.Should().Be(FileKind.FromPatch);
+        fs.GetGameFile(storage, Game.REtc, Names.Exe).Kind.Should().Be(FileKind.FromPatch);
+        fs.GetGameFile(storage, Game.DEtc, Names.Vpp).Kind.Should().Be(FileKind.FromPatch);
+
+        fs.GetGameFile(storage, Game.Root, Names.Etc).Kind.Should().Be(FileKind.FromMod);
+        fs.GetGameFile(storage, Game.Data, Names.Exe).Kind.Should().Be(FileKind.FromMod);
+        fs.GetGameFile(storage, Game.REtc, Names.Vpp).Kind.Should().Be(FileKind.FromMod);
+        fs.GetGameFile(storage, Game.DEtc, Names.Dll).Kind.Should().Be(FileKind.FromMod);
+    }
+
+    [SetUp]
+    public void SetUp()
+    {
+    }
 
     [Test]
     public async Task ForgetUpdates_Works()
     {
         var fs = Init();
         var hashes = Hashes.Empty;
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var subdir = storage.PatchBak.CreateSubdirectory("test");
         var dummy = fs.FileInfo.New("/game/.keep");
@@ -49,7 +136,7 @@ public class FileManagerTests
     {
         var fs = Init();
         var hashes = Hashes.Empty;
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         storage.PatchBak.Exists.Should().BeTrue();
         storage.PatchBak.Delete();
@@ -65,13 +152,13 @@ public class FileManagerTests
     {
         var fs = Init();
         var expected = fs.Clone();
-        var hashes = Hashes.Exe;
-        fs.DirectoryInfo.New(ModRoot).Create();
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var hashes = Hashes.ExeDll;
+        fs.DirectoryInfo.New(Mod1.Root).Create();
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = ModId
+            Id = ModId1
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
@@ -84,22 +171,20 @@ public class FileManagerTests
     {
         var fs = Init(x =>
         {
-            x.InitFile().Data("new file data").Name("new_file.bin").In(ModRoot);
-            x.InitFile().Data("other file data").Name("other_file").In(ModRoot);
+            x.MkFile(Mod1.Root, File.Etc, Data.Mod1);
+
         });
         var expected = fs.Clone(x =>
         {
-            x.InitFile().Name("new_file.bin").In(ManagedRoot)
-                .Data("new file data").In(GameRoot);
-            x.InitFile().Name("other_file").In(ManagedRoot)
-                .Data("other file data").In(GameRoot);
+            x.MkFile(Game.Root, File.Etc, Data.Mod1);
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
         });
-        var hashes = Hashes.Exe;
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var hashes = Hashes.ExeDll;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = ModId
+            Id = ModId1
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
@@ -112,24 +197,24 @@ public class FileManagerTests
     {
         var fs = Init(x =>
         {
-            x.InitFile().Data("1").Name("unsupported1.jpg").In(ModRoot);
-            x.InitFile().Data("2").Name("unsupported2.jPeG").In(ModData);
-            x.InitFile().Data("3").Name("unsupported3.zip").In(ModEtc);
-            x.InitFile().Data("4").Name("unsupported4.7Z").In(ModDataEtc);
-            x.InitFile().Data("5").Name("unsupported5.Txt").In(ModRoot);
-            x.InitFile().Data("6").Name("unsupported6.PNG").In(ModRoot);
-            x.InitFile().Data("7").Name(".mod_unsupported7.vpp_pc").In(ModRoot);
-            x.InitFile().Data("8").Name(".mod_unsupported8.exe").In(ModData);
+            x.TestFile().Data("1").Name("unsupported1.jpg").In(Mod1.Root);
+            x.TestFile().Data("2").Name("unsupported2.jPeG").In(Mod1.Data);
+            x.TestFile().Data("3").Name("unsupported3.zip").In(Mod1.REtc);
+            x.TestFile().Data("4").Name("unsupported4.7Z").In(Mod1.DEtc);
+            x.TestFile().Data("5").Name("unsupported5.Txt").In(Mod1.Root);
+            x.TestFile().Data("6").Name("unsupported6.PNG").In(Mod1.Root);
+            x.TestFile().Data("7").Name(".mod_unsupported7.vpp_pc").In(Mod1.Root);
+            x.TestFile().Data("8").Name(".mod_unsupported8.exe").In(Mod1.Data);
         });
         var expected = fs.Clone(x =>
         {
         });
-        var hashes = Hashes.Exe;
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var hashes = Hashes.ExeDll;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = ModId
+            Id = ModId1
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
@@ -142,26 +227,25 @@ public class FileManagerTests
     {
         var fs = Init(x =>
         {
-            x.InitFile().Data("original exe").Name("test.exe").In(GameRoot);
-            x.InitFile().Data("original vpp").Name("archive.vpp_pc").In(GameData);
-            x.InitFile().Data("mod exe").Name("test.exe").In(ModRoot);
-            x.InitFile().Data("mod vpp").Name("archive.vpp_pc").In(ModRoot);
-
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Mod1.Root, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.Root, File.Vpp, Data.Mod1);
         });
         var expected = fs.Clone(x =>
         {
-            x.InitFile().Data("original exe").Name("test.exe").In(VanillaRoot);
-            x.InitFile().Data("original vpp").Name("archive.vpp_pc").In(VanillaData);
-            x.InitFile().Data("mod exe").Name("test.exe").In(GameRoot);
-            x.InitFile().Data("mod vpp").Name("archive.vpp_pc").In(GameData);
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
         });
-        var hashes = Combine(new []{Hashes.Exe, Hashes.Data.Vpp});
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
 
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = ModId
+            Id = ModId1
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
@@ -169,1283 +253,2132 @@ public class FileManagerTests
         result.Success.Should().BeTrue();
     }
 
-
-/*
-    [TestCase("/game/test.exe","/game/data/.syncfaction/Mod_22/test.exe", "/game/data/.syncfaction/.bak_vanilla/test.exe")]
-    [TestCase("/game/data/test2.vpp_pc","/game/data/.syncfaction/Mod_22/test2.vpp_pc", "/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc")]
-    [TestCase("/game/data/test2.vpp_pc","/game/data/.syncfaction/Mod_22/data/test2.vpp_pc", "/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc")]
-    public async Task ApplyModExclusive_CopyOver(string gameFile, string modFile, string bakFile)
+    [Test]
+    public async Task InstallMod_VanillaFilesWithBackups_Overwrites()
     {
-        var originalData = "original";
-        var moddedData = "modded";
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.Root, File.Exe, Data.Drty);
+            x.MkFile(Game.Data, File.Vpp, Data.Drty);
+            x.MkFile(Mod1.Root, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.Root, File.Vpp, Data.Mod1);
 
-            {gameFile, new MockFileData(originalData)},
-            {modFile, new MockFileData(moddedData)},
-        };
-        var hashes = new Dictionary<string, string>()
+        });
+        var expected = fs.Clone(x =>
         {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"}
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+        });
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
+
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = 22
+            Id = ModId1
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
+        fs.ShouldHaveSameFilesAs(expected);
         result.Success.Should().BeTrue();
-        fs.GetFile(gameFile).TextContents.Should().Be(moddedData);
-        fs.GetFile(bakFile).TextContents.Should().Be(originalData);
     }
 
     [Test]
-    public async Task ApplyModExclusive_RestoreFromBackup()
+    public async Task InstallMod_WithSomeVanillaFiles_KeepsModifiedOthers()
     {
-        var gameFile ="/game/test.exe";
-        var modFile="/game/data/.syncfaction/Mod_22/test.wtf";
-        var bakFile = "/game/data/.syncfaction/.bak_vanilla/test.exe";
-        var bakData = "from_backup";
-        var originalData = "original";
-        var moddedData = "modded";
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.Root, File.Exe, Data.Drty);
+            x.MkFile(Game.Data, File.Vpp, Data.Drty);
+            x.MkFile(Game.Root, File.Dll, Data.Orig);
+            x.MkFile(Mod1.Root, File.Dll, Data.Mod1);
+        });
+        var expected = fs.Clone(x =>
+        {
+            x.MkFile(BakV.Root, File.Dll, Data.Orig);
+            x.MkFile(Game.Root, File.Dll, Data.Mod1);
+        });
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
 
-            {bakFile, new MockFileData(bakData)},
-            {gameFile, new MockFileData(originalData)},
-            {modFile, new MockFileData(moddedData)},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
         var mod = new Mod
         {
-            Id = 22
+            Id = ModId1
         };
 
         var result = await manager.InstallMod(storage, mod, false, token);
-        result.Success.Should().BeFalse();
-        fs.GetFile(gameFile).TextContents.Should().Be(bakData);
-        fs.GetFile(bakFile).TextContents.Should().Be(bakData);
-    }
-
-    [Test]
-    public async Task ApplyModExclusive_RestoreFromCommunityBackup()
-    {
-        var gameFile ="/game/test.exe";
-        var modFile="/game/data/.syncfaction/Mod_22/test.wtf";
-        var bakFile = "/game/data/.syncfaction/.bak_vanilla/test.exe";
-        var communityBakFile = "/game/data/.syncfaction/.bak_community/test.exe";
-        var bakData = "from_backup";
-        var communityBakData = "from_community";
-        var originalData = "original";
-        var moddedData = "modded";
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
-
-            {bakFile, new MockFileData(bakData)},
-            {communityBakFile, new MockFileData(communityBakData)},
-            {gameFile, new MockFileData(originalData)},
-            {modFile, new MockFileData(moddedData)},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(modTools, log);
-        var mod = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallMod(storage, mod, false, token);
-        result.Success.Should().BeFalse();
-        fs.GetFile(gameFile).TextContents.Should().Be(communityBakData);
-        fs.GetFile(bakFile).TextContents.Should().Be(bakData);
-        fs.GetFile(communityBakFile).TextContents.Should().Be(communityBakData);
-    }
-
-    [Test]
-    public async Task Apply_Mod()
-    {
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
-
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_mod")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallMod(storage, patch, false, token);
+        fs.ShouldHaveSameFilesAs(expected);
         result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
     }
 
     [Test]
-    public async Task Apply_Mod_Mod()
+    public async Task InstallMod_InstallMod_Overwrites()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
-
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_mod")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_mod2")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_mod2")},
-        };
-        var hashes = new Dictionary<string, string>()
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Mod1.Root, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Mod2.Root, File.Exe, Data.Mod2);
+        });
+        var expected = fs.Clone(x =>
         {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.Root, File.Exe, Data.Mod2);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+        });
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var mod = new Mod
-        {
-            Id = 11
-        };
-        var modResult = await manager.InstallMod(storage, mod, false, token);
-        modResult.Success.Should().BeTrue();
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallMod(storage, mod2, false, token);
 
-        var mod2 = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallMod(storage, mod2, false, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-    }
-/*
-    [Test]
-    public async Task  Apply_Patch_Mod()
-    {
-        var fsData = new Dictionary<string, MockFileData>
-        {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
-
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch1")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch1")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_mod")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
-        var manager = new FileManager(modTools, log);
-
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patch1Result = await manager.InstallUpdate(storage, patch1, token);
-        patch1result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var patch2 = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallMod(storage, patch2, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch()
+    public async Task InstallMod_WithClutter_Works()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            // stock
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.REtc, File.Dll, Data.Orig);
+            x.MkFile(Game.DEtc, File.Etc, Data.Orig);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch")},
-        };
-        var hashes = new Dictionary<string, string>()
+            // unmanaged
+            x.MkFile(Game.Root, File.Vpp, Data.Orig);
+            x.MkFile(Game.Data, File.Dll, Data.Orig);
+            x.MkFile(Game.REtc, File.Etc, Data.Orig);
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig);
+
+            // mod
+            x.MkFile(Mod1.Root, File.Etc, Data.Mod1);
+            x.MkFile(Mod1.Data, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.REtc, File.Vpp, Data.Mod1);
+            x.MkFile(Mod1.DEtc, File.Dll, Data.Mod1);
+        });
+        var expected = fs.Clone(x =>
         {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // modified
+            x.MkFile(Game.Root, File.Etc, Data.Mod1);
+            x.MkFile(Game.Data, File.Exe, Data.Mod1);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod1);
+
+            // managed
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
+        var mod1 = new Mod {Id = ModId1};
 
-        var result = await manager.InstallUpdate(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Mod_Patch()
+    public async Task InstallPatch_WithClutter_Works()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            // stock
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.REtc, File.Dll, Data.Orig);
+            x.MkFile(Game.DEtc, File.Etc, Data.Orig);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_mod")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch")},
-        };
-        var hashes = new Dictionary<string, string>()
+            // unmanaged
+            x.MkFile(Game.Root, File.Vpp, Data.Orig);
+            x.MkFile(Game.Data, File.Dll, Data.Orig);
+            x.MkFile(Game.REtc, File.Etc, Data.Orig);
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig);
+
+            // patch
+            x.MkFile(Mod1.Root, File.Etc, Data.Mod1);
+            x.MkFile(Mod1.Data, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.REtc, File.Vpp, Data.Mod1);
+            x.MkFile(Mod1.DEtc, File.Dll, Data.Mod1);
+        });
+        var expected = fs.Clone(x =>
         {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // modified
+            x.MkFile(Game.Root, File.Etc, Data.Mod1);
+            x.MkFile(Game.Data, File.Exe, Data.Mod1);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod1);
+
+            // bak_patch
+            x.MkFile(BakP.Root, File.Etc, Data.Mod1);
+            x.MkFile(BakP.Data, File.Exe, Data.Mod1);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Mod1);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Mod1);
+        });
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
 
-        var mod = new Mod
-        {
-            Id = 11
-        };
-        var modResult = await manager.InstallMod(storage, mod, false, token);
-        modresult.Success.Should().BeTrue();
+        var result1 = await manager.InstallMod(storage, mod1, true, token);
 
-        var patch = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallUpdate(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Patch()
+    public async Task InstallPatch_InstallPatch_WithClutter_Works()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            // stock
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.REtc, File.Dll, Data.Orig);
+            x.MkFile(Game.DEtc, File.Etc, Data.Orig);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch1")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch1")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch2")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch2")},
-        };
-        var hashes = new Dictionary<string, string>()
+            // unmanaged
+            x.MkFile(Game.Root, File.Vpp, Data.Orig);
+            x.MkFile(Game.Data, File.Dll, Data.Orig);
+            x.MkFile(Game.REtc, File.Etc, Data.Orig);
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig);
+
+            // patch1
+            x.MkFile(Mod1.Root, File.Etc, Data.Mod1);
+            x.MkFile(Mod1.Data, File.Exe, Data.Mod1);
+            x.MkFile(Mod1.REtc, File.Vpp, Data.Mod1);
+            x.MkFile(Mod1.DEtc, File.Dll, Data.Mod1);
+
+            // patch2
+            x.MkFile(Mod2.Root, File.Etc, Data.Mod2);
+            x.MkFile(Mod2.Data, File.Exe, Data.Mod2);
+            x.MkFile(Mod2.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Mod2.DEtc, File.Dll, Data.Mod2);
+        });
+        var expected = fs.Clone(x =>
         {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // modified
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            // bak_patch
+            x.MkFile(BakP.Root, File.Etc, Data.Mod2);
+            x.MkFile(BakP.Data, File.Exe, Data.Mod2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Mod2);
+        });
+        var hashes = Combine(new []{Hashes.ExeDll, Hashes.Data.Vpp});
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patch1Result = await manager.InstallUpdate(storage, patch1, token);
-        patch1result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, mod1, true, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, token);
 
-        var patch2 = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallUpdate(storage, patch2, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update()
+    public async Task CheckAllFileKindsInAllFolders()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd")},
-        };
-        var hashes = new Dictionary<string, string>()
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        CheckDefaultFileKinds(fs, storage);
+    }
+
+
+    [Test]
+    public async Task Patch1()
+    {
+        var fs = Init(x =>
         {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
 
-        var upd = new Mod
-        {
-            Id = 22
-        };
-
-        var result = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update_Update()
+    public async Task Patch1_Patch2()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd1")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd1")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_upd2")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_upd2")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
 
-        var upd1 = new Mod
-        {
-            Id = 22
-        };
-
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
-        result1.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var upd2 = new Mod
-        {
-            Id = 33
-        };
-
-        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd2}, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd2");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update_Patch()
+    public async Task Patch1_Patch2_Mod1()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd1")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd1")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_patch2")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_patch2")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Mod1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
 
-        var upd1 = new Mod
-        {
-            Id = 22
-        };
-
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
-        result1.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var patch2 = new Mod
-        {
-            Id = 33
-        };
-
-        var result2 = await manager.InstallUpdate(storage, patch2, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update_Mod()
+    public async Task Patch1_Patch2_Mod1_Rollback()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd1")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd1")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_mod")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        manager.Rollback(storage, false, token);
 
-        var upd1 = new Mod
-        {
-            Id = 22
-        };
-
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
-        result1.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var mod = new Mod
-        {
-            Id = 33
-        };
-
-        var result2 = await manager.InstallMod(storage, mod, false, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update_Mod_Update()
+    public async Task Patch1_Patch2_Mod1_Rollback_RollbackToVanilla()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // unmanaged
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd1")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd1")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_mod")},
-            {"/game/data/.syncfaction/Mod_44/test.exe", new MockFileData("exe_upd2")},
-            {"/game/data/.syncfaction/Mod_44/test2.vpp_pc", new MockFileData("vpp_upd2")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        manager.Rollback(storage, false, token);
+        manager.Rollback(storage, true, token);
 
-        var upd1 = new Mod
-        {
-            Id = 22
-        };
-
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
-        result1.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var mod = new Mod
-        {
-            Id = 33
-        };
-
-        var result2 = await manager.InstallMod(storage, mod, false, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var upd2 = new Mod
-        {
-            Id = 44
-        };
-
-        var result3 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd2}, token);
-        result3.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd2");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update_Mod_Patch()
+    public async Task Patch1_Patch2_Mod1_RollbackToVanilla()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // unmanaged
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd1")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd1")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_mod")},
-            {"/game/data/.syncfaction/Mod_44/test.exe", new MockFileData("exe_patch2")},
-            {"/game/data/.syncfaction/Mod_44/test2.vpp_pc", new MockFileData("vpp_patch2")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        manager.Rollback(storage, true, token);
 
-        var upd1 = new Mod
-        {
-            Id = 22
-        };
-
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
-        result1.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var mod = new Mod
-        {
-            Id = 33
-        };
-
-        var result2 = await manager.InstallMod(storage, mod, false, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var patch2 = new Mod
-        {
-            Id = 44
-        };
-
-        var result3 = await manager.InstallUpdate(storage, patch2, token);
-        result3.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch2");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
     }
 
     [Test]
-    public async Task Apply_Patch_Update_Mod_Mod()
+    public async Task Patch1_Patch2_Mod1_RollbackToVanilla_Rollback()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_11/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_11/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_upd1")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_upd1")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_mod1")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_mod1")},
-            {"/game/data/.syncfaction/Mod_44/test.exe", new MockFileData("exe_mod2")},
-            {"/game/data/.syncfaction/Mod_44/test2.vpp_pc", new MockFileData("vpp_mod2")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
 
-        var patch1 = new Mod
-        {
-            Id = 11
-        };
-        var patchResult = await manager.InstallUpdate(storage, patch1, token);
-        patchresult.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        manager.Rollback(storage, true, token);
+        manager.Rollback(storage, false, token);
 
-        var upd1 = new Mod
-        {
-            Id = 22
-        };
-
-        var result1 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd1}, token);
-        result1.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var mod = new Mod
-        {
-            Id = 33
-        };
-
-        var result2 = await manager.InstallMod(storage, mod, false, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod1");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        var mod2 = new Mod
-        {
-            Id = 44
-        };
-
-        var result3 = await manager.InstallMod(storage, mod2, token);
-        result3.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod2");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod2");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd1");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task Mod_Restore(bool toVanilla)
+    [Test]
+    public async Task Patch1_Patch2_Mod1_Mod2()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_mod")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Mod1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Mod2);
+            x.MkFile(Game.Data, File.Etc, Data.Mod2);
+            x.MkFile(Game.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+
+            x.MkFile(Mngd.Root, File.Dll, Data.None);
+            x.MkFile(Mngd.Data, File.Etc, Data.None);
+            x.MkFile(Mngd.REtc, File.Exe, Data.None);
+            x.MkFile(Mngd.DEtc, File.Vpp, Data.None);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var result = await manager.InstallMod(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
 
-        await manager.Restore(storage, toVanilla, token);
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").Should().BeNull();
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task Patch_Restore(bool toVanilla)
+    [Test]
+    public async Task Patch1_Patch2_Mod1_Mod2_Rollback()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var result = await manager.InstallUpdate(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
+        manager.Rollback(storage, false, token);
 
-        await manager.Restore(storage, toVanilla, token);
-        if (toVanilla)
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
-        else
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task Patch_Mod_Restore(bool toVanilla)
+    [Test]
+    public async Task Patch1_Patch2_Mod1_Mod2_Rollback_RollbackToVanilla()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // unmanaged
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_mod")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
-        var result = await manager.InstallUpdate(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var mod = new Mod
-        {
-            Id = 33
-        };
-        var result2 = await manager.InstallMod(storage, mod, false, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
+        manager.Rollback(storage, false, token);
+        manager.Rollback(storage, true, token);
 
-        await manager.Restore(storage, toVanilla, token);
-        if (toVanilla)
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
-        else
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task Patch_Update_Restore(bool toVanilla)
+    [Test]
+    public async Task Patch1_Patch2_Mod1_Mod2_RollbackToVanilla()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // unmanaged
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_upd")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_upd")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
-        var result = await manager.InstallUpdate(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var upd = new Mod
-        {
-            Id = 33
-        };
-        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
+        manager.Rollback(storage, true, token);
 
-        await manager.Restore(storage, toVanilla, token);
-        if (toVanilla)
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
-        else
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task Patch_Update_Mod_Restore(bool toVanilla)
+    [Test]
+    public async Task Patch1_Patch2_Mod1_Mod2_RollbackToVanilla_Rollback()
     {
-        var fsData = new Dictionary<string, MockFileData>
+        var fs = Init(x =>
         {
-            {"/game/.keep", new MockFileData("i am directory")},
-            {"/game/data/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_vanilla/.keep", new MockFileData("i am directory")},
-            {"/game/data/.syncfaction/.bak_community/.keep", new MockFileData("i am directory")},
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
 
-            {"/game/test.exe", new MockFileData("exe_original")},
-            {"/game/data/test2.vpp_pc", new MockFileData("vpp_original")},
-            {"/game/data/.syncfaction/Mod_22/test.exe", new MockFileData("exe_patch")},
-            {"/game/data/.syncfaction/Mod_22/test2.vpp_pc", new MockFileData("vpp_patch")},
-            {"/game/data/.syncfaction/Mod_33/test.exe", new MockFileData("exe_upd")},
-            {"/game/data/.syncfaction/Mod_33/test2.vpp_pc", new MockFileData("vpp_upd")},
-            {"/game/data/.syncfaction/Mod_44/test.exe", new MockFileData("exe_mod")},
-            {"/game/data/.syncfaction/Mod_44/test2.vpp_pc", new MockFileData("vpp_mod")},
-        };
-        var hashes = new Dictionary<string, string>()
-        {
-            {"test.exe", "123"},
-            {"data/test2.vpp_pc", "123"},
-        }.ToImmutableDictionary();
-        var fs = new MockFileSystem(fsData);
-        var storage = new GameStorage(gameDir, fs, hashes, log);
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         var manager = new FileManager(modTools, log);
-        var patch = new Mod
-        {
-            Id = 22
-        };
-        var result = await manager.InstallUpdate(storage, patch, token);
-        result.Success.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_patch");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
 
-        var upd = new Mod
-        {
-            Id = 33
-        };
-        var result2 = await manager.InstallCommunityUpdateIncremental(storage, new List<IMod>(){upd}, token);
-        result2.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
+        var result1 = await manager.InstallMod(storage, pch1, true, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
+        manager.Rollback(storage, true, token);
+        manager.Rollback(storage, false, token);
 
-        var mod = new Mod
-        {
-            Id = 44
-        };
-        var result3 = await manager.InstallMod(storage, mod, false, token);
-        result3.Should().BeTrue();
-        fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_mod");
-        fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_mod");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-        fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-
-        await manager.Restore(storage, toVanilla, token);
-        if (toVanilla)
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
-        else
-        {
-            fs.GetFile("/game/test.exe").TextContents.Should().Be("exe_upd");
-            fs.GetFile("/game/data/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test.exe").TextContents.Should().Be("exe_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_community/test2.vpp_pc").TextContents.Should().Be("vpp_upd");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test.exe").TextContents.Should().Be("exe_original");
-            fs.GetFile("/game/data/.syncfaction/.bak_vanilla/test2.vpp_pc").TextContents.Should().Be("vpp_original");
-        }
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
     }
-    */
+
+
+    [Test]
+    public async Task Mod1_()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Rollback()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        manager.Rollback(storage, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_RollbackToVanilla()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        manager.Rollback(storage, true, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Mod2()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Mod2);
+            x.MkFile(Game.Data, File.Etc, Data.Mod2);
+            x.MkFile(Game.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+
+            x.MkFile(Mngd.Root, File.Dll, Data.None);
+            x.MkFile(Mngd.Data, File.Etc, Data.None);
+            x.MkFile(Mngd.REtc, File.Exe, Data.None);
+            x.MkFile(Mngd.DEtc, File.Vpp, Data.None);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallMod(storage, mod2, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Mod2_Rollback()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // unmanaged
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallMod(storage, mod2, false, token);
+        manager.Rollback(storage, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Mod2_RollbackToVanilla()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // unmanaged
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallMod(storage, mod2, false, token);
+        manager.Rollback(storage, true, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Patch1()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var pch1 = new Mod {Id = PchId1};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{mod1}, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Patch1_Rollback()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Pch1);
+            x.MkFile(Game.Data, File.Vpp, Data.Pch1);
+            x.MkFile(Game.REtc, File.Dll, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Pch1);
+            x.MkFile(Game.REtc, File.Etc, Data.Pch1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Pch1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var pch1 = new Mod {Id = PchId1};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{mod1}, token);
+        manager.Rollback(storage, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Patch1_RollbackToVanilla()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.REtc, File.Dll, Data.Orig);
+            x.MkFile(Game.DEtc, File.Etc, Data.Orig);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Orig).Delete();
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var pch1 = new Mod {Id = PchId1};
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{mod1}, token);
+        manager.Rollback(storage, true, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Mod2_Patch1()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Mod2);
+            x.MkFile(Game.Data, File.Etc, Data.Mod2);
+            x.MkFile(Game.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+
+            x.MkFile(Mngd.Root, File.Dll, Data.None);
+            x.MkFile(Mngd.Data, File.Etc, Data.None);
+            x.MkFile(Mngd.REtc, File.Exe, Data.None);
+            x.MkFile(Mngd.DEtc, File.Vpp, Data.None);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+        var pch1 = new Mod {Id = PchId1};
+
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallMod(storage, mod2, false, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{mod1, mod2}, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Mod1_Mod2_Patch1_Patch2()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Mod2);
+            x.MkFile(Game.Data, File.Etc, Data.Mod2);
+            x.MkFile(Game.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+
+            x.MkFile(Mngd.Root, File.Dll, Data.None);
+            x.MkFile(Mngd.Data, File.Etc, Data.None);
+            x.MkFile(Mngd.REtc, File.Exe, Data.None);
+            x.MkFile(Mngd.DEtc, File.Vpp, Data.None);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+
+
+        var result1 = await manager.InstallMod(storage, mod1, false, token);
+        var result2 = await manager.InstallMod(storage, mod2, false, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> {pch1, pch2}, false, new List<IMod>{mod1, mod2}, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Patch1_Mod1_Patch2()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+
+
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{}, token);
+        var result2 = await manager.InstallMod(storage, mod1, false, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> {pch2}, false, new List<IMod>{mod1}, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Patch1_Mod1_Patch2_Mod2()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Mod2);
+            x.MkFile(Game.Data, File.Etc, Data.Mod2);
+            x.MkFile(Game.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+
+            x.MkFile(Mngd.Root, File.Dll, Data.None);
+            x.MkFile(Mngd.Data, File.Etc, Data.None);
+            x.MkFile(Mngd.REtc, File.Exe, Data.None);
+            x.MkFile(Mngd.DEtc, File.Vpp, Data.None);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+
+
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{}, token);
+        var result2 = await manager.InstallMod(storage, mod1, false, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> {pch2}, false, new List<IMod>{mod1}, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Patch1_Patch2_Mod1_Mod2_Incremental()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Mod2);
+            x.MkFile(Game.Data, File.Etc, Data.Mod2);
+            x.MkFile(Game.REtc, File.Exe, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Mod2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Mod2);
+            x.MkFile(Game.Data, File.Exe, Data.Mod2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Mod2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Mod2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 1
+            x.MkFile(BakP.Root, File.Exe, Data.Pch1);
+            x.MkFile(BakP.Data, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Dll, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Etc, Data.Pch1);
+
+            //x.MkFile(BakP.Root, File.Vpp, Data.Pch1);
+            x.MkFile(BakP.Data, File.Dll, Data.Pch1);
+            x.MkFile(BakP.REtc, File.Etc, Data.Pch1);
+            x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+
+            x.MkFile(Mngd.Root, File.Dll, Data.None);
+            x.MkFile(Mngd.Data, File.Etc, Data.None);
+            x.MkFile(Mngd.REtc, File.Exe, Data.None);
+            x.MkFile(Mngd.DEtc, File.Vpp, Data.None);
+
+            x.MkFile(Mngd.Root, File.Etc, Data.None);
+            x.MkFile(Mngd.Data, File.Exe, Data.None);
+            x.MkFile(Mngd.REtc, File.Vpp, Data.None);
+            x.MkFile(Mngd.DEtc, File.Dll, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+
+
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{}, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> {pch2}, false, new List<IMod>{}, token);
+        var result3 = await manager.InstallMod(storage, mod1, false, token);
+        var result4 = await manager.InstallMod(storage, mod2, false, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+        result4.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Patch1_Patch2_FromScratch()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Orig);
+            x.MkFile(Game.Data, File.Vpp, Data.Orig);
+            x.MkFile(Game.REtc, File.Dll, Data.Orig);
+            x.MkFile(Game.DEtc, File.Etc, Data.Orig);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Pch1);
+            x.MkFile(Game.Data, File.Dll, Data.Orig).Delete();
+            x.MkFile(Game.REtc, File.Etc, Data.Orig).Delete();
+            x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+
+
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{}, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> {pch2}, true, new List<IMod>{}, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Patch1_Mod1_Patch2_FromScratch()
+    {
+        var fs = Init(x =>
+        {
+            AddDefaultFiles(x);
+        });
+        var expected = fs.Clone(x =>
+        {
+            // modified
+            x.MkFile(Game.Root, File.Exe, Data.Mod1);
+            x.MkFile(Game.Data, File.Vpp, Data.Mod1);
+            x.MkFile(Game.REtc, File.Dll, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Etc, Data.Mod1);
+
+            //x.MkFile(Game.Root, File.Vpp, Data.Mod1);
+            x.MkFile(Game.Data, File.Dll, Data.Mod1);
+            x.MkFile(Game.REtc, File.Etc, Data.Mod1);
+            x.MkFile(Game.DEtc, File.Exe, Data.Mod1);
+
+            x.MkFile(Game.Root, File.Dll, Data.Pch2);
+            x.MkFile(Game.Data, File.Etc, Data.Pch2);
+            x.MkFile(Game.REtc, File.Exe, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(Game.Root, File.Etc, Data.Pch2);
+            x.MkFile(Game.Data, File.Exe, Data.Pch2);
+            x.MkFile(Game.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(Game.DEtc, File.Dll, Data.Pch2);
+
+            // bak_vanilla
+            x.MkFile(BakV.Root, File.Exe, Data.Orig);
+            x.MkFile(BakV.Data, File.Vpp, Data.Orig);
+            x.MkFile(BakV.REtc, File.Dll, Data.Orig);
+            x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
+
+            // bak_patch 2
+            x.MkFile(BakP.Root, File.Dll, Data.Pch2);
+            x.MkFile(BakP.Data, File.Etc, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Exe, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Vpp, Data.Pch2);
+
+            x.MkFile(BakP.Root, File.Etc, Data.Pch2);
+            x.MkFile(BakP.Data, File.Exe, Data.Pch2);
+            x.MkFile(BakP.REtc, File.Vpp, Data.Pch2);
+            x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
+
+            // managed
+            //x.MkFile(Mngd.Root, File.Vpp, Data.None);
+            x.MkFile(Mngd.Data, File.Dll, Data.None);
+            x.MkFile(Mngd.REtc, File.Etc, Data.None);
+            x.MkFile(Mngd.DEtc, File.Exe, Data.None);
+        });
+        var hashes = Hashes.StockInAllDirs;
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modTools, log);
+        var mod1 = new Mod {Id = ModId1};
+        var mod2 = new Mod {Id = ModId2};
+        var pch1 = new Mod {Id = PchId1};
+        var pch2 = new Mod {Id = PchId2};
+
+
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> {pch1}, false, new List<IMod>{}, token);
+        var result2 = await manager.InstallMod(storage, mod1, false, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> {pch2}, true, new List<IMod>{mod1}, token);
+
+        fs.ShouldHaveSameFilesAs(expected);
+        result1.Success.Should().BeTrue();
+        result2.Success.Should().BeTrue();
+        result3.Success.Should().BeTrue();
+    }
 }

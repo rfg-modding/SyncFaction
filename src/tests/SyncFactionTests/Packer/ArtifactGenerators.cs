@@ -46,7 +46,7 @@ public class ArtifactGenerators
         foreach (var logicalFile in archive.LogicalFiles)
         {
             var dstFile = Path.Combine(subdir.FullName, $"{logicalFile.Order:D5}_" + logicalFile.Name);
-            File.WriteAllBytes(dstFile, logicalFile.Content);
+            System.IO.File.WriteAllBytes(dstFile, logicalFile.Content);
 
             if (logicalFile.Name.ToLower().EndsWith(".str2_pc"))
             {
@@ -156,7 +156,7 @@ public class ArtifactGenerators
     {
         if (AllHashes.Any())
         {
-            File.WriteAllText(TestUtils.ArtifactDir + @"\hashes.json", JsonSerializer.Serialize(AllHashes, new JsonSerializerOptions() {WriteIndented = true}));
+            System.IO.File.WriteAllText(TestUtils.ArtifactDir + @"\hashes.json", JsonSerializer.Serialize(AllHashes, new JsonSerializerOptions() {WriteIndented = true}));
         }
     }
 }

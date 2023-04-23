@@ -132,9 +132,6 @@ public class GameFile
 
     public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
-        ////////////////////////////
-        //TODO FIXME WTF: extra files from patch are not copied to .bak_patch!? same with subdirectories or without!
-        ////////////////////////////
         static FileKind DetermineKind(bool isUpdate, bool isKnown)
         {
             if (isKnown)
@@ -229,6 +226,20 @@ public class GameFile
     /// </summary>
     public bool Rollback(bool vanilla)
     {
+        var result = RollbackInternal(vanilla);
+        var extraModFile = GetManagedLocation();
+        if (extraModFile.Exists)
+        {
+            // we don't need to track it anymore
+            extraModFile.Delete();
+        }
+
+        return result;
+
+    }
+
+    public bool RollbackInternal(bool vanilla)
+    {
         switch (Kind)
         {
             case FileKind.Stock:
@@ -256,9 +267,6 @@ public class GameFile
                 srcPatch.CopyTo(FileInfo.FullName, true);
                 return true;
             case FileKind.FromMod:
-                // forget about this mod file entirely, we don't need it anymore
-                var extraModFile = GetManagedLocation();
-                extraModFile.Delete();
                 if (FileInfo.Exists)
                 {
                     Delete();
@@ -283,11 +291,14 @@ public class GameFile
             return Skip(modFile, log);
         }
 
-        return modFile.Extension.ToLowerInvariant() switch
+        var result = modFile.Extension.ToLowerInvariant() switch
         {
             ".xdelta" => await ApplyXdelta(modFile, log, token),
             _ => ApplyNewFile(modFile, log),
         };
+
+        FileInfo.Refresh();
+        return result;
     }
 
     internal IFileInfo FileInfo { get; }
@@ -312,8 +323,9 @@ public class GameFile
                 return dataPath;
             }
         }
-        var firstRelativeDir = relativeModPath.Split(separator).FirstOrDefault()?.ToLowerInvariant();
-        if (firstRelativeDir == "data")
+
+        var parts = relativeModPath.ToLowerInvariant().Split(separator);
+        if (parts.Length == 2 && parts[0] == "data")
         {
             // it's a file in mod/data directory, probably a replacement or patch for one of known data files
             if (storage.DataFiles.TryGetValue(modNameNoExt, out var dataPath))

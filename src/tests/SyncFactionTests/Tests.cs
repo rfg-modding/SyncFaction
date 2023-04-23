@@ -24,7 +24,7 @@ public class Tests
     [Test]
     public void Delete_FileDoesntExist_Works()
     {
-        var action = () => File.Delete(fileName);
+        var action = () => System.IO.File.Delete(fileName);
         action.Should().NotThrow();
         action.Should().NotThrow();
     }
@@ -32,13 +32,13 @@ public class Tests
     [Test]
     public void FileStreamManipulation_Works()
     {
-        File.Delete(fileName);
-        stream = File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Write);
+        System.IO.File.Delete(fileName);
+        stream = System.IO.File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Write);
         stream.Write(fourBytes);
         stream.Dispose();
         new FileInfo(fileName).Length.Should().Be(4);
 
-        stream = File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Write);
+        stream = System.IO.File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Write);
         stream.Length.Should().Be(4);
         stream.CanSeek.Should().BeTrue();
         stream.Position.Should().Be(0);
@@ -61,7 +61,7 @@ public class Tests
         new FileInfo(fileName).Length.Should().Be(8);
         stream.Dispose();
 
-        using var stream2 = File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Read);
+        using var stream2 = System.IO.File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Read);
         stream2.Seek(0, SeekOrigin.Begin);
         stream2.Position.Should().Be(0);
         var buffer2 = new Span<byte>(new byte[8]);
@@ -110,6 +110,6 @@ public class Tests
 
         }
 
-        File.Delete(fileName);
+        System.IO.File.Delete(fileName);
     }
 }
