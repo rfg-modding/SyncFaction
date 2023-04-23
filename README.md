@@ -97,3 +97,16 @@ Or how to get this branch closer to release and not burn out:
   * need to think it through
   * probably introduce cleanup stage on start?
 7. backport stuff from other branches: user agent? something else?
+
+Things to do after test release:
+
+1. better messages
+  * fix logging
+  * fix formatting
+  * user-friendly messages
+  * proper operations log
+  * fix progress display
+  * sane error formatting/handling
+2. modmanager?
+  * xml merging
+  * tests
