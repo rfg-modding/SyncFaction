@@ -96,3 +96,4 @@ Or how to get this branch closer to release and not burn out:
   * however, migrating from old data structure will introduce more WTFs and require more testing
   * need to think it through
   * probably introduce cleanup stage on start?
+7. backport stuff from other branches: user agent? something else?
