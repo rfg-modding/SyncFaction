@@ -5,9 +5,6 @@ using SyncFaction.ModManager;
 
 namespace SyncFaction.Core.Services.Files;
 
-public record ApplyFileResult(GameFile GameFile, bool Success);
-public record ApplyModResult(IReadOnlyList<GameFile> ModifiedFiles, bool Success);
-
 public class FileManager
 {
     private readonly ModTools modTools;

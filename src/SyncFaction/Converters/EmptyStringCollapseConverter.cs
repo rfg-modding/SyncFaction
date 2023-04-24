@@ -5,14 +5,14 @@ using System.Windows.Data;
 
 namespace SyncFaction.Converters;
 
-public class EmptyStringShowConverter : IValueConverter
+public class EmptyStringCollapseConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         return value switch
         {
-            null or "" => Visibility.Visible,
-            string or _ => Visibility.Collapsed,
+            null or "" => Visibility.Collapsed,
+            string or _ => Visibility.Visible,
         };
     }
 

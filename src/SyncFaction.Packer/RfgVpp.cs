@@ -1,3 +1,4 @@
+using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using SyncFaction.Packer;
 
 namespace Kaitai;
@@ -7,7 +8,7 @@ public partial class RfgVpp
     /// <summary>
     /// Detect alignment size
     /// </summary>
-    public int DetectAlignmentSize()
+    public int DetectAlignmentSize(CancellationToken token)
     {
         if (Entries.Count <= 1)
         {
@@ -21,6 +22,7 @@ public partial class RfgVpp
             var noAlignment = true;
             foreach (var entry in Entries)
             {
+                token.ThrowIfCancellationRequested();
                 if (readingOffset != entry.DataOffset)
                 {
                     noAlignment = false;
@@ -42,6 +44,7 @@ public partial class RfgVpp
         var alignment = 8192;
         while (Entries.All(x => x.DataOffset % alignment == 0) == false)
         {
+            token.ThrowIfCancellationRequested();
             alignment /= 2;
             if (alignment < 16)
             {
@@ -64,10 +67,10 @@ public partial class RfgVpp
         return alignment;
     }
 
-    public void ReadCompactedData()
+    public void ReadCompactedData(CancellationToken token)
     {
-        var alignment = DetectAlignmentSize();
-        var data = Tools.DecompressZlib(BlockCompactData.Value, (int) Header.LenData);
+        var alignment = DetectAlignmentSize(token);
+        var data = DecompressZlib(BlockCompactData.Value, (int) Header.LenData, token);
         var stream = new KaitaiStream(data);
         Header.Flags.OverrideFlagsNone();
         var dataBlock = new EntryDataHolder(stream, this, this);
@@ -77,15 +80,17 @@ public partial class RfgVpp
 
         foreach (var entryData in BlockEntryData.Value)
         {
+            token.ThrowIfCancellationRequested();
             entryData.OverrideAlignmentSize(alignment);
         }
     }
 
-    public void ReadCompressedData()
+    public void ReadCompressedData(CancellationToken token)
     {
         foreach (var entryData in BlockEntryData.Value)
         {
-            var data = Tools.DecompressZlib(entryData.Value.File, (int)entryData.XLenData);
+            token.ThrowIfCancellationRequested();
+            var data = DecompressZlib(entryData.Value.File, (int)entryData.XLenData, token);
             // alignment size is used when creating data, ignoring it
             entryData.OverrideAlignmentSize(0);
             entryData.OverrideDataSize(entryData.XLenData);
@@ -215,7 +220,7 @@ comp data sz: [{LenCompressedData}]
 
         public void OverrideAlignmentSize(int alignment)
         {
-            _padSize = alignment == 0 ? 0 : Tools.GetPadSize((int)DataSize, alignment, IsLast);
+            _padSize = alignment == 0 ? 0 : GetPadSize((int)DataSize, alignment, IsLast);
             f_padSize = true;
         }
 
@@ -236,7 +241,7 @@ comp data sz: [{LenCompressedData}]
             return $@"EntryData:
 index:       [{I}]
 name:        [{XName}]
-hash:        [{Tools.ToHexString(XNameHash)}]
+hash:        [{ToHexString(XNameHash)}]
 data length: [{XLenData}]
 comp length: [{XLenCompressedData}]
 data offset: [{XDataOffset}] (may be broken)
@@ -253,7 +258,7 @@ is last: [{IsLast}]
         public override string ToString()
         {
             return $@"Entry:
-hash:        [{Tools.ToHexString(NameHash)}]
+hash:        [{ToHexString(NameHash)}]
 data length: [{LenData}]
 comp length: [{LenCompressedData}]
 data offset: [{DataOffset}] (may be broken)
@@ -261,4 +266,42 @@ data offset: [{DataOffset}] (may be broken)
         }
     }
 
+    public static byte[] DecompressZlib(byte[] data, int destinationSize, CancellationToken token)
+    {
+        var outputStream = new MemoryStream();
+        using var compressedStream = new MemoryStream(data);
+        using var inputStream = new InflaterInputStream(compressedStream);
+        CopyStream(inputStream, outputStream, destinationSize, token);
+        outputStream.Position = 0;
+        return outputStream.ToArray();
+    }
+
+    public static void CopyStream(Stream input, Stream output, int bytes, CancellationToken token)
+    {
+        var buffer = new byte[32768];
+        int read;
+        while (bytes > 0 && (read = input.Read(buffer, 0, Math.Min(buffer.Length, bytes))) > 0)
+        {
+            token.ThrowIfCancellationRequested();
+            output.Write(buffer, 0, read);
+            bytes -= read;
+        }
+    }
+
+    public static string ToHexString(byte[] bytes, string separator="") => BitConverter.ToString(bytes).Replace("-", separator);
+
+    public static int GetPadSize(long dataSize, int padTo, bool isLast)
+    {
+        if (padTo == 0)
+        {
+            return 0;
+        }
+        var remainder = dataSize % padTo;
+        if (isLast || remainder == 0)
+        {
+            return 0;
+        }
+
+        return (int)(padTo - remainder);
+    }
 }

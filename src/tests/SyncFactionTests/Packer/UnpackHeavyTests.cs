@@ -91,7 +91,7 @@ public class UnpackHeavyTests
 
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
-            Func<byte[]> decompressAction = () => Tools.DecompressZlib(entryData.Value.File, (int)entryData.XLenData);
+            Func<byte[]> decompressAction = () => RfgVpp.DecompressZlib(entryData.Value.File, (int)entryData.XLenData, CancellationToken.None);
             var decompressed = decompressAction.Should().NotThrow(entryData.ToString()).Subject;
             entryData.Value.File.Length.Should().Be((int)entryData.XLenCompressedData);
             decompressed.Length.Should().Be((int)entryData.XLenData);
@@ -116,7 +116,7 @@ public class UnpackHeavyTests
         vpp.BlockEntryData.Should().BeNull();
         vpp.BlockCompactData.Should().NotBeNull();
 
-        vpp.ReadCompactedData();
+        vpp.ReadCompactedData(CancellationToken.None);
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             var file = entryData.Value.File;
@@ -178,7 +178,7 @@ public class UnpackHeavyTests
         uint readingOffset = 0;
         bool suppressNoisyWarning = false;
 
-        var alignmentSize = vpp.DetectAlignmentSize();
+        var alignmentSize = vpp.DetectAlignmentSize(CancellationToken.None);
         foreach (var entry in vpp.Entries)
         {
             var description = $"{i} {entry}";
@@ -198,17 +198,17 @@ public class UnpackHeavyTests
                     suppressNoisyWarning = true;
                 }
 
-                var extraPad = Tools.ReadBytes(inputStream, (int)delta);
+                var extraPad = ReadBytes(inputStream, (int)delta, CancellationToken.None);
                 extraPad.Length.Should().Be((int)delta, description);
                 extraPad.All(x => x == 0).Should().BeTrue(description);
                 readingOffset += delta;
             }
 
-            Func<byte[]> readDataAction = () => Tools.ReadBytes(inputStream, (int)entry.LenData);
+            Func<byte[]> readDataAction = () => ReadBytes(inputStream, (int)entry.LenData, CancellationToken.None);
             var data = readDataAction.Should().NotThrow(description).Subject;
             data.Length.Should().Be((int)entry.LenData, description);
-            var padLength = alignmentSize == 0 ? 0 : Tools.GetPadSize(data.Length, 16, isLast);
-            Func<byte[]> readPadAction = () => Tools.ReadBytes(inputStream, padLength);
+            var padLength = alignmentSize == 0 ? 0 : RfgVpp.GetPadSize(data.Length, 16, isLast);
+            Func<byte[]> readPadAction = () => ReadBytes(inputStream, padLength, CancellationToken.None);
             var pad = readPadAction.Should().NotThrow(description).Subject;
             pad.Length.Should().Be(padLength, description);
             readingOffset.Should().Be(entry.DataOffset, description);
@@ -219,5 +219,18 @@ public class UnpackHeavyTests
         }
 
         readingOffset.Should().Be(vpp.Header.LenData);
+    }
+
+    public static byte[] ReadBytes(Stream stream, int count, CancellationToken cancellationToken)
+    {
+        using var ms = new MemoryStream();
+        RfgVpp.CopyStream(stream, ms, count, cancellationToken);
+        var result = ms.ToArray();
+        if (result.Length != count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, $"Was able to read only {result.Length} from stream");
+        }
+
+        return result;
     }
 }

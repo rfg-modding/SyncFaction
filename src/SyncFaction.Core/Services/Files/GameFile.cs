@@ -375,6 +375,7 @@ public class GameFile
         await using var patchStream = modFile.OpenRead();
         await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
 
+        // TODO make it really async?
         try
         {
             using var decoder = XdeltaFactory(srcStream, patchStream, dstStream);

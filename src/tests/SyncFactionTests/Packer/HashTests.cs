@@ -35,7 +35,7 @@ public class HashTests
         if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
         {
             //Console.WriteLine($"read {key}");
-            var entries = Tools.UnpackVpp(stream, key).LogicalFiles;
+            var entries = new VppReader().Read(stream, key, CancellationToken.None).LogicalFiles;
             foreach (var entry in entries)
             {
                 using var ms = new MemoryStream(entry.Content);

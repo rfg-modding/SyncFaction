@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using SyncFaction.Packer;
 
 namespace SyncFactionTests.Packer;
@@ -14,13 +15,14 @@ public class PackLogicalTests
             Assert.Ignore("Not an archive");
         }
         using var fileStream = fileInfo.OpenRead();
-        var archive = Tools.UnpackVpp(fileStream, fileInfo.Name);
+        var packer = new SyncFaction.Packer.Packer(NullLogger<SyncFaction.Packer.Packer>.Instance);
+        var archive = await packer.UnpackVpp(fileStream, fileInfo.Name, CancellationToken.None);
 
         var dstFile = new FileInfo(Path.Combine(TestUtils.ArtifactDir.FullName, fileInfo.Name + ".repacked"));
         await using (var dstStream = dstFile.OpenWrite())
         {
-            var writer = new VppWriter(archive, CancellationToken.None);
-            await writer.WriteAll(dstStream);
+            var writer = new VppWriter(archive);
+            await writer.WriteAll(dstStream, CancellationToken.None);
         }
 
         dstFile.Refresh();
@@ -30,11 +32,11 @@ public class PackLogicalTests
         }
 
         await using var s = dstFile.OpenRead();
-        var repack = Tools.UnpackVpp(s, dstFile.Name);
+        var repack = await packer.UnpackVpp(s, dstFile.Name, CancellationToken.None);
         repack.Mode.Should().Be(archive.Mode);
         var i = 0;
         fileStream.Position = 0;
-        var src2 = Tools.UnpackVpp(fileStream, fileInfo.Name);
+        var src2 = await packer.UnpackVpp(fileStream, fileInfo.Name, CancellationToken.None);
         var srcFiles = src2.LogicalFiles.ToList();
         foreach (var repackLogicalFile in repack.LogicalFiles)
         {

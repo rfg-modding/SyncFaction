@@ -11,7 +11,7 @@ public class ArtifactGenerators
     public async Task RepackAll(FileInfo fileInfo)
     {
         await using var fileStream = fileInfo.OpenRead();
-        var archive = Tools.UnpackVpp(fileStream, fileInfo.Name);
+        var archive = new VppReader().Read(fileStream, fileInfo.Name, CancellationToken.None);
         var patchedFiles = PatchFiles(archive.LogicalFiles);
         var patched = archive with {LogicalFiles = patchedFiles};
 
@@ -20,8 +20,8 @@ public class ArtifactGenerators
         var dstFile = new FileInfo(Path.Combine(dir.FullName, fileInfo.Name));
         dstFile.Delete();
         await using var dstStream = dstFile.OpenWrite();
-        var writer = new VppWriter(patched, CancellationToken.None);
-        await writer.WriteAll(dstStream);
+        var writer = new VppWriter(patched);
+        await writer.WriteAll(dstStream, CancellationToken.None);
     }
 
     [Explicit("For debugging")]
@@ -39,7 +39,7 @@ public class ArtifactGenerators
     public void UnpackVpp(FileInfo fileInfo)
     {
         using var stream = fileInfo.OpenRead();
-        var archive = Tools.UnpackVpp(stream, fileInfo.Name);
+        var archive = new VppReader().Read(stream, fileInfo.Name, CancellationToken.None);
         var subdir = TestUtils.UnpackDir.CreateSubdirectory("_" + fileInfo.Name);
         subdir.Delete(true);
         subdir.Create();
@@ -81,7 +81,7 @@ public class ArtifactGenerators
         {
             // this is just for reading flags. actual data is read later
             var vpp = new RfgVpp(new KaitaiStream(stream));
-            var alignment = vpp.DetectAlignmentSize();
+            var alignment = vpp.DetectAlignmentSize(CancellationToken.None);
             var zlibInfo = "none";
             if (vpp.Header.Flags.Mode is RfgVpp.HeaderBlock.Mode.Compressed or RfgVpp.HeaderBlock.Mode.Compacted && vpp.Entries.Any())
             {
@@ -99,7 +99,7 @@ public class ArtifactGenerators
         if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
         {
             Console.WriteLine($"read {key}");
-            var entries = Tools.UnpackVpp(stream, key).LogicalFiles;
+            var entries = new VppReader().Read(stream, key, CancellationToken.None).LogicalFiles;
             foreach (var entry in entries)
             {
                 using var ms = new MemoryStream(entry.Content);
@@ -128,10 +128,10 @@ public class ArtifactGenerators
     {
         Console.WriteLine($"repacking {logicalFile.Name}");
         var ms = new MemoryStream(logicalFile.Content);
-        var archive = Tools.UnpackVpp(ms, logicalFile.Name);
+        var archive = new VppReader().Read(ms, logicalFile.Name, CancellationToken.None);
         using var dstStream = new MemoryStream();
-        var writer = new VppWriter(archive, CancellationToken.None);
-        writer.WriteAll(dstStream).GetAwaiter().GetResult();
+        var writer = new VppWriter(archive);
+        writer.WriteAll(dstStream, CancellationToken.None).GetAwaiter().GetResult();
         return dstStream.ToArray();
     }
 
