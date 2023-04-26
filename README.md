@@ -87,7 +87,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 Or how to get this branch closer to release and not burn out:
 
 0. pause XML merging features (that's the heart of modmanager)
-1. introduce VPP repacking support for mods/updates
+1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
 4. compare gog and steam distributions

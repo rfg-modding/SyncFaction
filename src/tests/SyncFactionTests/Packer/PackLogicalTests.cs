@@ -15,7 +15,7 @@ public class PackLogicalTests
             Assert.Ignore("Not an archive");
         }
         using var fileStream = fileInfo.OpenRead();
-        var packer = new SyncFaction.Packer.Packer(NullLogger<SyncFaction.Packer.Packer>.Instance);
+        var packer = new SyncFaction.Packer.VppArchiver(NullLogger<SyncFaction.Packer.VppArchiver>.Instance);
         var archive = await packer.UnpackVpp(fileStream, fileInfo.Name, CancellationToken.None);
 
         var dstFile = new FileInfo(Path.Combine(TestUtils.ArtifactDir.FullName, fileInfo.Name + ".repacked"));

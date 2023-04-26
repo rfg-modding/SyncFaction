@@ -2,11 +2,11 @@ using Microsoft.Extensions.Logging;
 
 namespace SyncFaction.Packer;
 
-public class Packer : IPacker
+public class VppArchiver : IVppArchiver
 {
-    private readonly ILogger<Packer> log;
+    private readonly ILogger<VppArchiver> log;
 
-    public Packer(ILogger<Packer> log)
+    public VppArchiver(ILogger<VppArchiver> log)
     {
         this.log = log;
     }
@@ -21,7 +21,7 @@ public class Packer : IPacker
     public async Task PackVpp(LogicalArchive logicalArchive, Stream destination, CancellationToken token)
     {
         log.LogDebug("Packing vpp: {name}", logicalArchive.Name);
-        var writer = new VppWriter(logicalArchive);
+        using var writer = new VppWriter(logicalArchive);
         await writer.WriteAll(destination, token);
     }
 }

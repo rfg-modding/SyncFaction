@@ -22,18 +22,18 @@ public class VppReader
             yield break;
         }
 
-        Action? fixupAction = vpp.Header.Flags.Mode switch
+        Action<CancellationToken> fixupAction = vpp.Header.Flags.Mode switch
         {
-            RfgVpp.HeaderBlock.Mode.Compacted => () => vpp.ReadCompactedData(token),
-            RfgVpp.HeaderBlock.Mode.Compressed => () => vpp.ReadCompressedData(token),
+            RfgVpp.HeaderBlock.Mode.Normal => _ => { },
+            RfgVpp.HeaderBlock.Mode.Compacted => vpp.ReadCompactedData,
+            RfgVpp.HeaderBlock.Mode.Compressed => vpp.ReadCompressedData,
             RfgVpp.HeaderBlock.Mode.Condensed => throw new NotImplementedException("Condensed-only mode is not present in vanilla files and is not supported"),
-            RfgVpp.HeaderBlock.Mode.Normal => null,
             _ => throw new ArgumentOutOfRangeException()
         };
 
         try
         {
-            fixupAction?.Invoke();
+            fixupAction.Invoke(token);
         }
         catch (SharpZipBaseException e)
         {

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
+using System.Runtime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -145,6 +146,8 @@ public class UiCommands
         foreach (var vm in modsToApply)
         {
             var result = await fileManager.InstallMod(storage, vm.Mod, false, token);
+
+
             if (!result.Success)
             {
                 return false;

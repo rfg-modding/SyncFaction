@@ -5,9 +5,9 @@ using Kaitai;
 
 namespace SyncFaction.Packer;
 
-public class VppWriter
+public class VppWriter : IDisposable
 {
-    private readonly IReadOnlyList<LogicalFile> logicalFiles;
+    private readonly IList<LogicalFile> logicalFiles;
     private readonly RfgVpp.HeaderBlock.Mode mode;
     private readonly LogicalArchive logicalArchive;
 
@@ -332,6 +332,13 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         return BitConverter.GetBytes(result);
     }
 
+    public void Dispose()
+    {
+        // GC magic!
+        this.logicalFiles.Clear();
+    }
+
     private byte[] HeaderMagic = new byte[] {206, 10, 137, 81};
+
     private byte[] HeaderVersion = new byte[] {3, 0, 0, 0};
 }

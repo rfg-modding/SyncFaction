@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Packer;
 
 namespace SyncFaction.Core.Services.Files;
 
@@ -16,7 +17,7 @@ public class GameFile
     /// <summary>
     /// Map mod files to target files. Mod files can be "rfg.exe", "foo.vpp_pc", "data/foo.vpp_pc", "foo.xdelta", "foo.rfgpatch" and so on
     /// </summary>
-    public static GameFile GuessTargetByModFile(IGameStorage storage, IFileInfo modFile, IDirectoryInfo modDir)
+    public static GameFile GuessTarget(IGameStorage storage, IFileSystemInfo modFile, IDirectoryInfo modDir)
     {
         var relativePath = GuessRelativePath(storage, modFile, modDir);
         return new GameFile(storage, relativePath, modFile.FileSystem);
@@ -301,11 +302,74 @@ public class GameFile
         return result;
     }
 
+    public async Task<bool> ApplyMod(IDirectoryInfo vppDir, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
+    {
+        var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
+        LogicalArchive archive;
+        List<LogicalFile> logicalFiles;
+        await using (var src = FileInfo.OpenRead())
+        {
+            log.LogInformation("Unpacking {vpp}", NameExt);
+            archive = await vppArchiver.UnpackVpp(src, FileInfo.Name, token);
+            var usedKeys = new HashSet<string>();
+            var order = 0;
+
+            async IAsyncEnumerable<LogicalFile> WalkArchive()
+            {
+                // modifying stuff in ram while reading. do we have 2 copies now?
+                foreach (var logicalFile in archive.LogicalFiles)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var key = logicalFile.Name;
+                    order = logicalFile.Order;
+                    if (modFiles.TryGetValue(key, out var modFile))
+                    {
+                        log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
+                        usedKeys.Add(key);
+                        await using var modSrc = modFile.OpenRead();
+                        await using var ms = new MemoryStream();
+                        await modSrc.CopyToAsync(ms, token);
+                        yield return logicalFile with {Content = ms.ToArray()};
+                    }
+                    else
+                    {
+                        yield return logicalFile;
+                    }
+                }
+            }
+
+            logicalFiles = await WalkArchive().ToListAsync(token);
+            // append new files
+            var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(x => x);
+            foreach (var key in newFileKeys)
+            {
+                log.LogInformation("Adding file {file} in {vpp}", key, archive.Name);
+                order++;
+                var modFile = modFiles[key];
+                await using var modSrc = modFile.OpenRead();
+                await using var ms = new MemoryStream();
+                await modSrc.CopyToAsync(ms, token);
+                logicalFiles.Add(new LogicalFile(ms.ToArray(), key, order));
+            }
+        }
+
+        // write
+        await using var dst = FileInfo.Open(FileMode.Truncate);
+        log.LogInformation("Packing {vpp}", NameExt);
+        await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
+        log.LogInformation("Finished with {vpp}", NameExt);
+        // GC magic!
+        logicalFiles.Clear();
+        GC.Collect();
+        return true;
+    }
+
+
     internal IFileInfo FileInfo { get; }
 
     private IGameStorage Storage { get; }
 
-    private static string GuessRelativePath(IGameStorage storage, IFileInfo modFile, IDirectoryInfo modDir)
+    private static string GuessRelativePath(IGameStorage storage, IFileSystemInfo modFile, IDirectoryInfo modDir)
     {
         var separator = modFile.FileSystem.Path.DirectorySeparatorChar;
         var relativeModPath = modFile.FileSystem.Path.GetRelativePath(modDir.FullName, modFile.FullName);
