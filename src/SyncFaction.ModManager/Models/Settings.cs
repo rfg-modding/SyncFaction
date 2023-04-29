@@ -1,3 +1,5 @@
+using SyncFaction.ModManager.XmlModels;
+
 namespace SyncFaction.ModManager;
 
 public class Settings
@@ -14,5 +16,4 @@ public class Settings
         public int SelectedIndex { get; set; }
         public string? CustomValue { get; set; }
     }
-
 }

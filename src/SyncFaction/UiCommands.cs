@@ -190,7 +190,7 @@ public class UiCommands
 
         if (mvm is LocalModViewModel lvm)
         {
-            viewModel.XmlView2 = JsonConvert.SerializeObject(lvm.Mod.ModInfo, Formatting.Indented);
+            //viewModel.XmlView2 = JsonConvert.SerializeObject(lvm.Mod.ModInfo, Formatting.Indented);
         }
 
         return true;

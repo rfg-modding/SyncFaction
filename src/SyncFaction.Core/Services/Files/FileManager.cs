@@ -1,8 +1,10 @@
+using System.Collections.Immutable;
 using System.Runtime;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.ModManager;
+using SyncFaction.ModManager.Models;
 using SyncFaction.Packer;
 
 namespace SyncFaction.Core.Services.Files;
@@ -34,26 +36,45 @@ public class FileManager
 
         if (mod.ModInfo is not null)
         {
-            foreach (var f in modTools.GetReferencedFiles(mod.ModInfo).Select(x => x.FullName.ToLowerInvariant()))
+            var operations = modTools.BuildOperations(mod.ModInfo);
+
+            excludeFiles.Add(modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).First().FullName.ToLowerInvariant());
+            foreach (var op in operations.FileSwaps)
             {
-                excludeFiles.Add(f);
+                // NOTE: this won't exclude files mentioned in selectbox inputs!
+                // to avoid clutter, instruct users to place modinfo.xml and all relative stuff into a subfolder
+                excludeFiles.Add(op.Target.FullName.ToLowerInvariant());
             }
 
             var modInfoDir = mod.ModInfo.WorkDir.FullName.ToLowerInvariant();
             if (modDir.FullName.ToLowerInvariant() != modInfoDir)
             {
+                // excluded recursively
                 excludeDirs.Add(modInfoDir);
             }
 
-            var json = JsonConvert.SerializeObject(mod, Formatting.Indented);
-            log.LogDebug("Applying mod: {mod}", json);
-            // TODO unpack, edit xml and files, etc
-            throw new NotImplementedException();
+            //var json = JsonConvert.SerializeObject(mod, Formatting.Indented);
+            //log.LogDebug("Applying mod: {mod}", json);
+
+            foreach (var vppOps in operations.VppOperations)
+            {
+                var dataVpp = vppOps.Key;
+                var fakeVppFile = modDir.FileSystem.FileInfo.New(modDir.FileSystem.Path.Combine(modDir.FullName, dataVpp));
+                var gameFile = GameFile.GuessTarget(storage, fakeVppFile, modDir);
+                if (!gameFile.Exists)
+                {
+                    throw new ArgumentException($"ModInfo references nonexistent vpp: [{dataVpp}]");
+                }
+
+                var applyResult = await gameFile.ApplyModInfo(vppOps.Value, vppArchiver, log, token);
+                var result = new ApplyFileResult(gameFile, applyResult);
+                modified.Add(result);
+            }
         }
 
         var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories)
             .Where(x => !x.Directory.FullName.ToLowerInvariant().EndsWith(".vpp_pc"))
-            .Where(x => !excludeDirs.Contains(x.Directory.FullName.ToLowerInvariant()))
+            .Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex)))
             .Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant()))
             .Where(x => x.IsModContent());
 
@@ -62,7 +83,7 @@ public class FileManager
             token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTarget(storage, modFile, modDir);
             gameFile.CopyToBackup(false, isUpdate);
-            var applyResult = await gameFile.ApplyMod(modFile, log, token);
+            var applyResult = await gameFile.ApplyFileMod(modFile, log, token);
             var result = new ApplyFileResult(gameFile, applyResult);
             modified.Add(result);
         }
@@ -72,12 +93,10 @@ public class FileManager
             .Where(x => x.EnumerateFiles("*", SearchOption.AllDirectories).Any());
         foreach (var vppDir in repackVppDirectories)
         {
-            var el = new SimpleEventListener(log);
-
             token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTarget(storage, vppDir, modDir);
             gameFile.CopyToBackup(false, isUpdate);
-            var applyResult = await gameFile.ApplyMod(vppDir, vppArchiver, log, token);
+            var applyResult = await gameFile.ApplyVppDirectoryMod(vppDir, vppArchiver, log, token);
 
             var result = new ApplyFileResult(gameFile, applyResult);
             modified.Add(result);

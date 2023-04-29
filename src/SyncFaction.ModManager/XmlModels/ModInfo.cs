@@ -36,7 +36,6 @@ public class ModInfo
     [XmlArray("Changes")]
     [XmlArrayItem(typeof(Replace))]
     [XmlArrayItem(typeof(Edit))]
-    [XmlArrayItem(typeof(Add))]
     public IList ChangesXmlHack
     {
         get => changes;

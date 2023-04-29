@@ -27,7 +27,7 @@ public class VppReader
             RfgVpp.HeaderBlock.Mode.Normal => _ => { },
             RfgVpp.HeaderBlock.Mode.Compacted => vpp.ReadCompactedData,
             RfgVpp.HeaderBlock.Mode.Compressed => vpp.ReadCompressedData,
-            RfgVpp.HeaderBlock.Mode.Condensed => throw new NotImplementedException("Condensed-only mode is not present in vanilla files and is not supported"),
+            RfgVpp.HeaderBlock.Mode.Condensed => throw new InvalidOperationException("Condensed-only mode is not present in vanilla files and is not supported"),
             _ => throw new ArgumentOutOfRangeException()
         };
 

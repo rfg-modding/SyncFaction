@@ -1,7 +1,9 @@
-﻿using System.IO.Abstractions;
+﻿using System.Collections.Immutable;
+using System.IO.Abstractions;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
+using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction.ModManager;
@@ -88,17 +90,103 @@ public class ModTools
         }
     }
 
-    /// <summary>
-    /// Returns list of all unique files used by this modinfo
-    /// </summary>
-    public IEnumerable<IFileInfo> GetReferencedFiles(ModInfo modInfo)
+    private static string SanitizePath(string path)
     {
-        return Enumerable.Empty<IFileInfo>();
-        // TODO iterate over changes
-        // TODO iterate over user inputs?
-        //TODO xml can have referenced files there as relative paths. remove all ".." from relative paths to jail references to xml directory
+        return path
+                .Replace("//", "")
+                .Replace("..", "")
+                .Replace(":", "")
+                .ToLowerInvariant()
+            ;
+    }
+
+    public ModInfoOperations BuildOperations(ModInfo modInfo)
+    {
+        // ApplyUserInput is expected to be called before, we expect actual state here
+        // not using FileUserInput because they are be copied to File already, same with NewFile
+
+        // map relative paths "foo/bar.xtbl" to FileInfo
+        var fs = modInfo.WorkDir.FileSystem;
+        var relativeModFiles = modInfo.WorkDir
+            .EnumerateFiles("*", SearchOption.AllDirectories)
+            .ToImmutableDictionary(x => fs.Path.GetRelativePath(modInfo.WorkDir.FullName, x.FullName.ToLowerInvariant()));
+
+        // map replacements inside vpp to relative paths
+        var references = modInfo.Changes
+            .OfType<Replace>()
+            .Select(x => new {vppPath = GetPaths(fs, x.File), target = SanitizePath(x.NewFile)})
+            .Where(x => !string.IsNullOrWhiteSpace(x.target))
+            .ToImmutableDictionary(x => x.vppPath, x => x.target);
+
+        var referencedFiles = references
+            .Select(x => new {vppPath = x.Key, target = x.Value, fileInfo = relativeModFiles!.GetValueOrDefault(x.Value, null)})
+            .ToList();
+        var missing = referencedFiles
+            .Where(x => x.fileInfo is null)
+            .ToList();
+        if (missing.Any())
+        {
+            var files = string.Join(", ", missing.Select(x => x.target));
+            throw new ArgumentException($"ModInfo references {missing.Count} nonexistent files: [{files}]");
+        }
+
+        var referencedFilesDict = referencedFiles.ToImmutableDictionary(x => x.vppPath, x => x.fileInfo!);
+        var replaceOperations = modInfo.Changes
+            .OfType<Replace>()
+            .Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict))
+            .ToList();
+        var editOperations = modInfo.Changes
+            .OfType<Edit>()
+            .Select((x, i) => ConvertToOperation(x, i, fs))
+            .ToList();
+        return new ModInfoOperations(replaceOperations, editOperations);
+    }
+
+    private FileSwapOperation ConvertToOperation(Replace replace, int index, IFileSystem fs, IImmutableDictionary<VppPath, IFileInfo> referencedFiles)
+    {
+        return new FileSwapOperation(index, GetPaths(fs, replace.File), referencedFiles[GetPaths(fs, replace.File)]);
+    }
+
+    private XmlEditOperation ConvertToOperation(Edit edit, int index, IFileSystem fs)
+    {
+        return new XmlEditOperation(index, GetPaths(fs, edit.File), edit.LIST_ACTION, edit.NestedXml.ToList());
+    }
+
+    /// <summary>
+    /// Check, sanitize and split path from Change to "data/vpp" + "relative/file/path"
+    /// </summary>
+    private VppPath GetPaths(IFileSystem fs, string rawPath)
+    {
+        var path = SanitizePath(rawPath.ToLowerInvariant());
+        var parts = path.Split('\\', '/');
+        if (parts.Length < 3)
+        {
+            throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should be 'data\\something.vpp_pc\\...'");
+        }
+
+        var data = parts[0];
+        if (data != "data")
+        {
+            throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should start with 'data'");
+        }
+
+        var vpp = parts[1];
+        if (vpp.EndsWith(".vpp"))
+        {
+            vpp += "_pc";
+        }
+        if (!vpp.EndsWith(".vpp_pc"))
+        {
+            throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should reference vpp_pc archive");
+        }
+
+        var dataVpp = fs.Path.Combine(data, vpp);
+        var archiveRelativePath = fs.Path.Combine(parts[2..]);
+
+        return new (dataVpp, archiveRelativePath);
     }
 }
+
 
 
 /*

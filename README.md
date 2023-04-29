@@ -86,7 +86,11 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 
 Or how to get this branch closer to release and not burn out:
 
-0. pause XML merging features (that's the heart of modmanager)
+0. XML merging features
+  * stream read-write vpp to avoid high memory usage
+  * write to tmp, then delete src and rename tmp to src
+  * file add/replace logic should be the same for folder and modinfo mods
+  * implement LIST_ACTIONs from MM decompiled logic
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
@@ -110,3 +114,5 @@ Things to do after test release:
 2. modmanager?
   * xml merging
   * tests
+  * streaming repack vpp to a temp file, then switch-rename
+  * cleanup on any failure to last known state?

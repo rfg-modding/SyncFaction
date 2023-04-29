@@ -1,6 +1,8 @@
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using SyncFaction.ModManager.Models;
 using SyncFaction.Packer;
 
 namespace SyncFaction.Core.Services.Files;
@@ -285,7 +287,7 @@ public class GameFile
         FileInfo.Delete();
     }
 
-    public async Task<bool> ApplyMod(IFileInfo modFile, ILogger log, CancellationToken token)
+    public async Task<bool> ApplyFileMod(IFileInfo modFile, ILogger log, CancellationToken token)
     {
         if (!modFile.IsModContent())
         {
@@ -302,7 +304,7 @@ public class GameFile
         return result;
     }
 
-    public async Task<bool> ApplyMod(IDirectoryInfo vppDir, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
+    public async Task<bool> ApplyVppDirectoryMod(IDirectoryInfo vppDir, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
     {
         var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
         LogicalArchive archive;
@@ -364,6 +366,22 @@ public class GameFile
         return true;
     }
 
+    public async Task<bool> ApplyModInfo(VppOperations vppOperations, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
+    {
+        // NOTE: it's important to swap files first, then edit xml contents!
+        log.LogDebug("Operations to apply to {vpp}:", AbsolutePath);
+
+        foreach (var operation in vppOperations.FileSwaps)
+        {
+            log.LogDebug("swap [{key}] [{value}]", operation.Key, operation.Value.Target);
+        }
+        foreach (var operation in vppOperations.XmlEdits)
+        {
+            log.LogDebug("edit [{key}] [{value}]", operation.Key, operation.Value.Action);
+        }
+
+        return true;
+    }
 
     internal IFileInfo FileInfo { get; }
 
