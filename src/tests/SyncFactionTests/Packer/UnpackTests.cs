@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Kaitai;
 using SyncFaction.Packer;
+using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
 

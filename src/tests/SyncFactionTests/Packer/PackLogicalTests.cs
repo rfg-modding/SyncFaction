@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using SyncFaction.Packer;
+using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
 
@@ -15,7 +16,7 @@ public class PackLogicalTests
             Assert.Ignore("Not an archive");
         }
         using var fileStream = fileInfo.OpenRead();
-        var packer = new SyncFaction.Packer.VppArchiver(NullLogger<SyncFaction.Packer.VppArchiver>.Instance);
+        var packer = new VppRamArchiver(NullLogger<VppRamArchiver>.Instance);
         var archive = await packer.UnpackVppRam(fileStream, fileInfo.Name, CancellationToken.None);
 
         var dstFile = new FileInfo(Path.Combine(TestUtils.ArtifactDir.FullName, fileInfo.Name + ".repacked"));

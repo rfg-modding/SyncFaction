@@ -1,7 +1,7 @@
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using SyncFaction.Packer;
+using Kaitai;
 
-namespace Kaitai;
+namespace SyncFactionTests.VppRam;
 
 public partial class RfgVpp
 {

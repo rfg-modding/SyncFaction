@@ -3,6 +3,7 @@ using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
 using SyncFaction.Packer;
+using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
 

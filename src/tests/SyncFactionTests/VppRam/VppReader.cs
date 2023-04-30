@@ -1,7 +1,7 @@
 using ICSharpCode.SharpZipLib;
 using Kaitai;
 
-namespace SyncFaction.Packer;
+namespace SyncFactionTests.VppRam;
 
 public class VppReader
 {

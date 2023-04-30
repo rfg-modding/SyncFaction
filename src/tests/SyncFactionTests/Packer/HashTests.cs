@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
 using SyncFaction.Packer;
+using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
 

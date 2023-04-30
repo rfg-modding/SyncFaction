@@ -1,9 +1,9 @@
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using Kaitai;
+using SyncFaction.Packer;
 
-namespace SyncFaction.Packer;
+namespace SyncFactionTests.VppRam;
 
 public class VppWriter : IDisposable
 {
