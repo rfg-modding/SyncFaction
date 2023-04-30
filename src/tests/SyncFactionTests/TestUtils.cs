@@ -18,8 +18,8 @@ public static class TestUtils
     public static IEnumerable<TestCaseData> AllVppFiles()
     {
         return AllVppFilesOnce
-                .Where(x => ((FileInfo) x.OriginalArguments[0]).Name.Contains(@"table.vpp_pc"))
-                //.OrderByDescending(x => ((FileInfo) x.OriginalArguments[0]).Length)
+                //.Where(x => ((FileInfo) x.OriginalArguments[0]).Name.Contains(@"table.vpp_pc"))
+                .OrderByDescending(x => ((FileInfo) x.OriginalArguments[0]).Length)
                 //.Skip(10)
             ;
     }
@@ -34,14 +34,14 @@ public static class TestUtils
         return AllModInfosOnce;
     }
 
-    public const string DefaultPath = @"C:\Program Files (x86)\Steam\steamapps\common\Red Faction Guerrilla Re-MARS-tered";
+    public const string DefaultPath = @"C:\Program Files (x86)\GOG Galaxy\Games\Red Faction Guerrilla Re-Mars-tered";
     public static readonly DirectoryInfo ArtifactDir = new(Path.Combine(DefaultPath, @"data\.syncfaction\test_artifacts"));
     public static readonly DirectoryInfo UnpackDir = new(Path.Combine(DefaultPath, @"data\.syncfaction\test_artifacts\unpack"));
 
     private static List<TestCaseData> AllExtractedOnce = InitAllExtractedOnce();
 
     private static readonly IEnumerable<TestCaseData> AllVppFilesOnce = Hashes.Vpp
-        .Concat(Hashes.Steam)
+        .Concat(Hashes.Gog)
         .Select(x => x.Key)
         .Where(x => x.ToLowerInvariant().EndsWith(".vpp_pc"))
         //.Where(x => x.Contains("table") || x.Contains("anims"))

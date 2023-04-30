@@ -16,7 +16,7 @@ public class PackLogicalTests
         }
         using var fileStream = fileInfo.OpenRead();
         var packer = new SyncFaction.Packer.VppArchiver(NullLogger<SyncFaction.Packer.VppArchiver>.Instance);
-        var archive = await packer.UnpackVpp(fileStream, fileInfo.Name, CancellationToken.None);
+        var archive = await packer.UnpackVppRam(fileStream, fileInfo.Name, CancellationToken.None);
 
         var dstFile = new FileInfo(Path.Combine(TestUtils.ArtifactDir.FullName, fileInfo.Name + ".repacked"));
         await using (var dstStream = dstFile.OpenWrite())
@@ -32,11 +32,11 @@ public class PackLogicalTests
         }
 
         await using var s = dstFile.OpenRead();
-        var repack = await packer.UnpackVpp(s, dstFile.Name, CancellationToken.None);
+        var repack = await packer.UnpackVppRam(s, dstFile.Name, CancellationToken.None);
         repack.Mode.Should().Be(archive.Mode);
         var i = 0;
         fileStream.Position = 0;
-        var src2 = await packer.UnpackVpp(fileStream, fileInfo.Name, CancellationToken.None);
+        var src2 = await packer.UnpackVppRam(fileStream, fileInfo.Name, CancellationToken.None);
         var srcFiles = src2.LogicalFiles.ToList();
         foreach (var repackLogicalFile in repack.LogicalFiles)
         {

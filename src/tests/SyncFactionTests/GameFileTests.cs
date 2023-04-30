@@ -663,7 +663,7 @@ public class GameFileTests
         var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
-        await gf.ApplyMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
 
         gfMock.Verify();
     }
@@ -692,7 +692,7 @@ public class GameFileTests
         var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
-        await gf.ApplyMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
 
         gfMock.Verify();
     }
@@ -713,7 +713,7 @@ public class GameFileTests
         var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(".mod_" + fileName + modExt);
 
-        await gf.ApplyMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
 
         gfMock.Verify();
     }
@@ -746,7 +746,7 @@ public class GameFileTests
         var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
-        await gf.ApplyMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
 
         gfMock.Verify();
     }
@@ -768,7 +768,7 @@ public class GameFileTests
         var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName);
 
-        await gf.ApplyMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
 
         gfMock.Verify();
     }

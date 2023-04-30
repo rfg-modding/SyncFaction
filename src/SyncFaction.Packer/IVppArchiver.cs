@@ -2,6 +2,6 @@ namespace SyncFaction.Packer;
 
 public interface IVppArchiver
 {
-    Task<LogicalArchive> UnpackVpp(Stream source, string name, CancellationToken token);
-    Task PackVpp(LogicalArchive logicalArchive, Stream destination, CancellationToken token);
+    Task<LogicalArchiveStreamed> UnpackVpp(Stream source, string name, CancellationToken token);
+    Task PackVpp(LogicalArchiveStreamed logicalArchive, Stream destination, CancellationToken token);
 }

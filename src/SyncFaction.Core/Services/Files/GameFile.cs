@@ -307,8 +307,8 @@ public class GameFile
     public async Task<bool> ApplyVppDirectoryMod(IDirectoryInfo vppDir, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
     {
         var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
-        LogicalArchive archive;
-        List<LogicalFile> logicalFiles;
+        LogicalArchiveStreamed archive;
+        List<LogicalFileStreamed> logicalFiles;
         await using (var src = FileInfo.OpenRead())
         {
             log.LogInformation("Unpacking {vpp}", NameExt);
@@ -316,7 +316,7 @@ public class GameFile
             var usedKeys = new HashSet<string>();
             var order = 0;
 
-            async IAsyncEnumerable<LogicalFile> WalkArchive()
+            async IAsyncEnumerable<LogicalFileStreamed> WalkArchive()
             {
                 // modifying stuff in ram while reading. do we have 2 copies now?
                 foreach (var logicalFile in archive.LogicalFiles)
@@ -328,10 +328,8 @@ public class GameFile
                     {
                         log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
                         usedKeys.Add(key);
-                        await using var modSrc = modFile.OpenRead();
-                        await using var ms = new MemoryStream();
-                        await modSrc.CopyToAsync(ms, token);
-                        yield return logicalFile with {Content = ms.ToArray()};
+                        var modSrc = modFile.OpenRead();
+                        yield return logicalFile with {Content = modSrc};
                     }
                     else
                     {
@@ -348,10 +346,8 @@ public class GameFile
                 log.LogInformation("Adding file {file} in {vpp}", key, archive.Name);
                 order++;
                 var modFile = modFiles[key];
-                await using var modSrc = modFile.OpenRead();
-                await using var ms = new MemoryStream();
-                await modSrc.CopyToAsync(ms, token);
-                logicalFiles.Add(new LogicalFile(ms.ToArray(), key, order));
+                var modSrc = modFile.OpenRead();
+                logicalFiles.Add(new LogicalFileStreamed(modSrc, key, order));
             }
         }
 
