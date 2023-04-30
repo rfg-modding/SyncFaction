@@ -347,7 +347,7 @@ public class GameFile
                 order++;
                 var modFile = modFiles[key];
                 var modSrc = modFile.OpenRead();
-                logicalFiles.Add(new LogicalFileStreamed(modSrc, key, order));
+                logicalFiles.Add(new LogicalFileStreamed(modSrc, key, order, null));
             }
         }
 

@@ -24,7 +24,7 @@ public class VppReaderStreamed
 
         Action<CancellationToken> fixupAction = vpp.Header.Flags.Mode switch
         {
-            RfgVppStreamed.HeaderBlock.Mode.Normal => _ => { },
+            RfgVppStreamed.HeaderBlock.Mode.Normal => vpp.FixOffsetOverflow,
             RfgVppStreamed.HeaderBlock.Mode.Compacted => vpp.ReadCompactedData,
             RfgVppStreamed.HeaderBlock.Mode.Compressed => vpp.ReadCompressedData,
             RfgVppStreamed.HeaderBlock.Mode.Condensed => throw new InvalidOperationException("Condensed-only mode is not present in vanilla files and is not supported"),
@@ -49,7 +49,7 @@ public class VppReaderStreamed
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
-            yield return new LogicalFileStreamed(entryData.GetDataStream(), entryData.XName, entryData.I);
+            yield return new LogicalFileStreamed(entryData.GetDataStream(), entryData.XName, entryData.I, entryData.ToString());
         }
     }
 }

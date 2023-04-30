@@ -49,7 +49,7 @@ public class VppReader
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
-            yield return new LogicalFile(entryData.Value.File, entryData.XName, entryData.I);
+            yield return new LogicalFile(entryData.Value.File, entryData.XName, entryData.I, entryData.ToString());
             entryData.DisposeAndFreeMemory();
         }
     }

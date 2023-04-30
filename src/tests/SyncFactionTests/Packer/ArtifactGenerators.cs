@@ -1,4 +1,6 @@
 using System.Text.Json;
+using FluentAssertions;
+using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
 using SyncFaction.Packer;
 using SyncFactionTests.VppRam;
@@ -69,6 +71,59 @@ public class ArtifactGenerators
         var key = fileInfo.Name;
         using var fileStream = fileInfo.OpenRead();
         HashRecursive(fileStream, key, null);
+    }
+
+    [Explicit("Reads files from vpp into ram and compares with streamed unpacker")]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    public void CompareUnpackers(FileInfo fileInfo)
+    {
+        using var fileForRamReading = fileInfo.OpenRead();
+        var ramArchive = new VppReader().Read(fileForRamReading, fileInfo.Name, CancellationToken.None);
+
+        using var fileForStreaming = fileInfo.OpenRead();
+        var streamedArchive = new VppReaderStreamed().Read(fileForStreaming, fileInfo.Name, CancellationToken.None);
+        var archiveInfo = $"{ramArchive.Name} {ramArchive.Mode}";
+        Console.WriteLine(archiveInfo);
+
+        var files = ramArchive.LogicalFiles.Zip(streamedArchive.LogicalFiles);
+        foreach ((LogicalFile ram, LogicalFileStreamed streamed) file in files)
+        {
+            var length = file.streamed.Content is InflaterInputStream ? "unsupported" : file.streamed.Content.Length.ToString();
+            var info = @$"{file.ram.Order} {file.ram.Name}
+ram len={file.ram.Content.Length} stream len={length}
+{file.streamed.Content.ToString()}";
+            try
+            {
+                //Console.WriteLine($"{file.ram.Order} {file.ram.Name}");
+                file.streamed.Name.Should().Be(file.ram.Name, info);
+                file.streamed.Offset.Should().Be(file.ram.Offset, info);
+                file.streamed.Order.Should().Be(file.ram.Order, info);
+                file.streamed.CompressedSize.Should().Be(file.ram.CompressedSize, info);
+                file.streamed.NameCString.Value.Should().Equal(file.ram.NameCString.Value, info);
+
+                using var ms = new MemoryStream();
+                file.streamed.Content.Position.Should().Be(0, info);
+                file.streamed.Content.CopyTo(ms);
+                var fromStream = ms.ToArray();
+                fromStream.Length.Should().Be(file.ram.Content.Length, info);
+                fromStream.Should().Equal(file.ram.Content, info);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("failed on file:");
+                Console.WriteLine(info);
+                Console.WriteLine("last state:");
+                Console.WriteLine(file.streamed.Content.ToString());
+                Console.WriteLine($"pos={file.streamed.Content.Position}");
+                Console.WriteLine("======================");
+                Console.WriteLine($"{file.ram.Info}");
+                Console.WriteLine("======================");
+                Console.WriteLine($"{file.streamed.Info}");
+                Console.WriteLine("======================");
+                Console.WriteLine(e.ToString());
+                Assert.Fail();
+            }
+        }
     }
 
     public void HashRecursive(Stream stream, string name, string? parentKey)

@@ -2,7 +2,7 @@ using System.Text;
 
 namespace SyncFaction.Packer;
 
-public record LogicalFileStreamed(Stream Content, string Name, int Order)
+public record LogicalFileStreamed(Stream Content, string Name, int Order, string Info)
 {
     public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
 

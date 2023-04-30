@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
 
@@ -70,6 +71,7 @@ public partial class RfgVpp
     public void ReadCompactedData(CancellationToken token)
     {
         var alignment = DetectAlignmentSize(token);
+        token.ThrowIfCancellationRequested();
         var data = DecompressZlib(BlockCompactData.Value, (int) Header.LenData, token);
         var stream = new KaitaiStream(data);
         Header.Flags.OverrideFlagsNone();
@@ -245,6 +247,7 @@ hash:        [{ToHexString(XNameHash)}]
 data length: [{XLenData}]
 comp length: [{XLenCompressedData}]
 data offset: [{XDataOffset}] (may be broken)
+block offst: [{M_Root.BlockOffset}]
 
 data:    [{DataSize}]
 pad:     [{PadSize}]

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using SyncFaction.Packer;
 
@@ -80,22 +82,17 @@ public partial class RfgVppStreamed
         var blockOffset = BlockOffset;
         var rootStream = M_Io.BaseStream;
         var fileLength = rootStream.Length;
-        var endOfFile = fileLength - blockOffset;
-        var compressedStream = new StreamView(rootStream, blockOffset, endOfFile);
+        var blockLength = fileLength - blockOffset;
+        var compressedStream = new StreamView(rootStream, blockOffset, blockLength);
         var inflaterStream = new InflaterInputStream(compressedStream);
         var decompressedLength = Header.LenData;
         var view = new StreamView(inflaterStream, 0, decompressedLength);
-
-        var stream = new KaitaiStream(view);
         Header.Flags.OverrideFlagsNone();
-        var dataBlock = new EntryDataHolder(stream, this, this);
-        _blockEntryData = dataBlock;
-        f_blockEntryData = true;
-
         foreach (var entryData in BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
             entryData.OverrideAlignmentSize(alignment);
+            entryData.OverrideData(new StreamView(view, entryData.XDataOffset, entryData.XLenData));
         }
     }
 
@@ -104,26 +101,47 @@ public partial class RfgVppStreamed
     /// </summary>
     public void ReadCompressedData(CancellationToken token)
     {
+        var offset = BlockOffset;
         foreach (var entryData in BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
 
-            var compressedLength = entryData.DataSize;
-            var offset = entryData.XDataOffset;
-            var blockOffset = BlockOffset;
-            var rootStream = M_Io.BaseStream;
             // TODO maybe get rid of some views here?
-            var compressedStream = new StreamView(rootStream, blockOffset + offset, compressedLength);
+            var compressedLength = entryData.DataSize;
+            // NOTE: important to calculate it before all overrides
+            var totalCompressedLength = entryData.TotalSize;
+            var rootStream = M_Io.BaseStream;
+            var compressedStream = new StreamView(rootStream, offset, compressedLength);
             var inflaterStream = new InflaterInputStream(compressedStream);
             var decompressedLength = entryData.XLenData;
             var view = new StreamView(inflaterStream, 0, decompressedLength);
+
 
             // alignment size is used when creating data, ignoring it
             entryData.OverrideAlignmentSize(0);
             entryData.OverrideDataSize(entryData.XLenData);
             entryData.OverrideData(view);
+            offset += totalCompressedLength;
         }
         Header.Flags.OverrideFlagsNone();
+    }
+
+    public void FixOffsetOverflow(CancellationToken token)
+    {
+        long previousValue = 0;
+        foreach (var entryData in BlockEntryData.Value)
+        {
+            token.ThrowIfCancellationRequested();
+            var longOffset = (long) entryData.XDataOffset;
+            if (longOffset < previousValue)
+            {
+                longOffset += uint.MaxValue;
+                longOffset++;
+            }
+
+            entryData.LongOffset = longOffset;
+            previousValue = longOffset;
+        }
     }
 
     /// <summary>
@@ -230,6 +248,8 @@ comp data sz: [{LenCompressedData}]
 
     public partial class EntryData
     {
+        public long LongOffset { get; set; }
+
         /// <summary>
         /// This stream is used for compacted/compressed data and is expected to have only current entry
         /// </summary>
@@ -243,10 +263,9 @@ comp data sz: [{LenCompressedData}]
             }
 
             var length = DataSize;
-            var offset = XDataOffset;
-            var blockOffset = M_Root.BlockOffset;
             var rootStream = M_Root.M_Io.BaseStream;
-            return new StreamView(rootStream, blockOffset + offset, length);
+            var viewStart = M_Root.BlockOffset + LongOffset;
+            return new StreamView(rootStream, viewStart, length);
         }
 
         public void OverrideAlignmentSize(int alignment)
@@ -274,7 +293,9 @@ name:        [{XName}]
 hash:        [{ToHexString(XNameHash)}]
 data length: [{XLenData}]
 comp length: [{XLenCompressedData}]
-data offset: [{XDataOffset}] (may be broken)
+data offset: [{XDataOffset}] (broken if zlib)
+long offset: [{LongOffset}] (broken if zlib)
+block offst: [{M_Root.BlockOffset}]
 
 data:    [{DataSize}]
 pad:     [{PadSize}]

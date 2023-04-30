@@ -1,3 +1,6 @@
+using System.Buffers;
+using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+
 namespace SyncFaction.Packer;
 
 /// <summary>
@@ -34,7 +37,14 @@ public sealed class StreamView : Stream
             ? (int) (Position + count - viewLength)
             : 0;
 
-        stream.Seek(viewStart + Position, SeekOrigin.Begin);
+        if (stream.Position != viewStart + Position)
+        {
+            if (stream is not InflaterInputStream)
+            {
+                stream.Seek(viewStart + Position, SeekOrigin.Begin);
+            }
+        }
+
         var result = stream.Read(buffer, offset, count-extraBytes);
         if (result > 0)
         {
@@ -50,7 +60,11 @@ public sealed class StreamView : Stream
             return -1;
         }
 
-        stream.Seek(viewStart + Position, SeekOrigin.Begin);
+        if (stream.Position != viewStart + Position)
+        {
+            stream.Seek(viewStart + Position, SeekOrigin.Begin);
+        }
+
         var result = stream.ReadByte();
         if (result > 0)
         {
@@ -70,6 +84,22 @@ public sealed class StreamView : Stream
                     throw new InvalidOperationException($"Out of bounds: offset is {offset}, origin is {origin}, max length is {viewLength}");
                 }
 
+                if (stream is InflaterInputStream)
+                {
+                    // hack to avoid seeking but still allow fast-forwarding
+                    var delta = (int)(offset - Position);
+                    if (delta < 0)
+                    {
+                        throw new InvalidOperationException("Can't seek back to rewind InflaterInputStream");
+                    }
+
+                    var pool = ArrayPool<byte>.Shared;
+                    var buf = pool.Rent(delta);
+                    Position = offset;
+                    var read = stream.Read(buf, 0, delta);
+                    pool.Return(buf);
+                    return read;
+                }
                 Position = offset;
                 return stream.Seek(viewStart + offset, SeekOrigin.Begin);
             case SeekOrigin.Current:
@@ -113,4 +143,10 @@ public sealed class StreamView : Stream
     public override long Length => viewLength;
 
     public override long Position { get; set; }
+
+    public override string ToString()
+    {
+        var length = stream is InflaterInputStream ? "unsupported" : stream.Length.ToString();
+        return $"stream: len={length} pos={stream.Position}, view: start={viewStart}, len={viewLength}, pos={Position}";
+    }
 }

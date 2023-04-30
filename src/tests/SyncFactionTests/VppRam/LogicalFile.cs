@@ -2,7 +2,7 @@ using System.Text;
 
 namespace SyncFactionTests.VppRam;
 
-public record LogicalFile(byte[] Content, string Name, int Order)
+public record LogicalFile(byte[] Content, string Name, int Order, string Info)
 {
     public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
 
