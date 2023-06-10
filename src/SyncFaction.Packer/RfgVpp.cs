@@ -5,7 +5,7 @@ using SyncFaction.Packer;
 
 namespace Kaitai;
 
-public partial class RfgVppStreamed
+public partial class RfgVpp
 {
     /// <summary>
     /// Detect alignment size using heuristics to account for badly aligned files

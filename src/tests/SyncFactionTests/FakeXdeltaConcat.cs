@@ -3,7 +3,7 @@ using SyncFaction.Core.Services.Files;
 
 namespace SyncFactionTests;
 
-internal class FakeXdeltaConcat : IXdelta
+public class FakeXdeltaConcat : IXdelta
 {
     private readonly Stream srcStream;
     private readonly Stream patchStream;

@@ -1,7 +1,7 @@
 using ICSharpCode.SharpZipLib;
 using Kaitai;
 
-namespace SyncFactionTests.VppRam;
+namespace SyncFaction.Packer;
 
 public class VppReader
 {
@@ -24,7 +24,7 @@ public class VppReader
 
         Action<CancellationToken> fixupAction = vpp.Header.Flags.Mode switch
         {
-            RfgVpp.HeaderBlock.Mode.Normal => _ => { },
+            RfgVpp.HeaderBlock.Mode.Normal => vpp.FixOffsetOverflow,
             RfgVpp.HeaderBlock.Mode.Compacted => vpp.ReadCompactedData,
             RfgVpp.HeaderBlock.Mode.Compressed => vpp.ReadCompressedData,
             RfgVpp.HeaderBlock.Mode.Condensed => throw new InvalidOperationException("Condensed-only mode is not present in vanilla files and is not supported"),
@@ -49,8 +49,7 @@ public class VppReader
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
-            yield return new LogicalFile(entryData.Value.File, entryData.XName, entryData.I, entryData.ToString());
-            entryData.DisposeAndFreeMemory();
+            yield return new LogicalFile(entryData.GetDataStream(), entryData.XName, entryData.I, entryData.ToString());
         }
     }
 }

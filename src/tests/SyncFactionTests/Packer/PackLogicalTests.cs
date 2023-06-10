@@ -16,13 +16,13 @@ public class PackLogicalTests
             Assert.Ignore("Not an archive");
         }
         using var fileStream = fileInfo.OpenRead();
-        var packer = new VppRamArchiver(NullLogger<VppRamArchiver>.Instance);
+        var packer = new VppInMemoryArchiver(NullLogger<VppInMemoryArchiver>.Instance);
         var archive = await packer.UnpackVppRam(fileStream, fileInfo.Name, CancellationToken.None);
 
         var dstFile = new FileInfo(Path.Combine(TestUtils.ArtifactDir.FullName, fileInfo.Name + ".repacked"));
         await using (var dstStream = dstFile.OpenWrite())
         {
-            var writer = new VppWriter(archive);
+            var writer = new VppInMemoryWriter(archive);
             await writer.WriteAll(dstStream, CancellationToken.None);
         }
 

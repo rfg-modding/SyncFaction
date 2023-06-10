@@ -5,21 +5,20 @@ using Newtonsoft.Json;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.Models;
-using SyncFaction.Packer;
 
 namespace SyncFaction.Core.Services.Files;
 
 public class FileManager
 {
     private readonly ModTools modTools;
-    private readonly IVppArchiver vppArchiver;
+    private readonly IModInstaller modInstaller;
 
     private readonly ILogger log;
 
-    public FileManager(ModTools modTools, IVppArchiver vppArchiver, ILogger<FileManager> log)
+    public FileManager(ModTools modTools, IModInstaller modInstaller, ILogger<FileManager> log)
     {
         this.modTools = modTools;
-        this.vppArchiver = vppArchiver;
+        this.modInstaller = modInstaller;
         this.log = log;
     }
 
@@ -66,7 +65,7 @@ public class FileManager
                     throw new ArgumentException($"ModInfo references nonexistent vpp: [{dataVpp}]");
                 }
 
-                var applyResult = await gameFile.ApplyModInfo(vppOps.Value, vppArchiver, log, token);
+                var applyResult = await modInstaller.ApplyModInfo(gameFile, vppOps.Value, token);
                 var result = new ApplyFileResult(gameFile, applyResult);
                 modified.Add(result);
             }
@@ -83,7 +82,7 @@ public class FileManager
             token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTarget(storage, modFile, modDir);
             gameFile.CopyToBackup(false, isUpdate);
-            var applyResult = await gameFile.ApplyFileMod(modFile, log, token);
+            var applyResult = await modInstaller.ApplyFileMod(gameFile, modFile, token);
             var result = new ApplyFileResult(gameFile, applyResult);
             modified.Add(result);
         }
@@ -96,7 +95,7 @@ public class FileManager
             token.ThrowIfCancellationRequested();
             var gameFile = GameFile.GuessTarget(storage, vppDir, modDir);
             gameFile.CopyToBackup(false, isUpdate);
-            var applyResult = await gameFile.ApplyVppDirectoryMod(vppDir, vppArchiver, log, token);
+            var applyResult = await modInstaller.ApplyVppDirectoryMod(gameFile, vppDir, token);
 
             var result = new ApplyFileResult(gameFile, applyResult);
             modified.Add(result);

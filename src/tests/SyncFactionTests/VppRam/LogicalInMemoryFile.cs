@@ -1,8 +1,8 @@
 using System.Text;
 
-namespace SyncFaction.Packer;
+namespace SyncFactionTests.VppRam;
 
-public record LogicalFileStreamed(Stream Content, string Name, int Order, string Info)
+public record LogicalInMemoryFile(byte[] Content, string Name, int Order, string Info)
 {
     public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
 

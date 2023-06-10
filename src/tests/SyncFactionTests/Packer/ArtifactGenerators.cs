@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
@@ -13,19 +14,94 @@ public class ArtifactGenerators
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
     public async Task RepackAll(FileInfo fileInfo)
     {
-        await using var fileStream = fileInfo.OpenRead();
-        var archive = new VppReader().Read(fileStream, fileInfo.Name, CancellationToken.None);
-        var patchedFiles = PatchFiles(archive.LogicalFiles);
-        var patched = archive with {LogicalFiles = patchedFiles};
-
         var dir = new DirectoryInfo(Path.Combine(TestUtils.ArtifactDir.FullName, "repack"));
         dir.Create();
         var dstFile = new FileInfo(Path.Combine(dir.FullName, fileInfo.Name));
         dstFile.Delete();
+
+        await using var fileStream = fileInfo.OpenRead();
+        var archive = new VppInMemoryReader().Read(fileStream, fileInfo.Name, CancellationToken.None);
+        var patchedFiles = PatchFiles(archive.LogicalFiles);
+        var patched = archive with {LogicalFiles = patchedFiles};
+
         await using var dstStream = dstFile.OpenWrite();
-        var writer = new VppWriter(patched);
+        var writer = new VppInMemoryWriter(patched);
         await writer.WriteAll(dstStream, CancellationToken.None);
     }
+
+    [Explicit("Creates new vpp archives with same flags and contents. Repacks str2 files too")]
+    [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
+    public async Task CompareRepackAll(FileInfo fileInfo)
+    {
+        var dir = new DirectoryInfo(Path.Combine(TestUtils.ArtifactDir.FullName, "repack"));
+        dir.Create();
+        var dstFileInMemory = new FileInfo(Path.Combine(dir.FullName, fileInfo.Name + ".inmemory"));
+        var dstFileStreamed = new FileInfo(Path.Combine(dir.FullName, fileInfo.Name + ".streamed"));
+        dstFileInMemory.Delete();
+        dstFileStreamed.Delete();
+
+        //===============================
+
+        await using var fileStream1 = fileInfo.OpenRead();
+        var archive1 = new VppInMemoryReader().Read(fileStream1, fileInfo.Name, CancellationToken.None);
+        var patchedFiles1 = PatchFiles(archive1.LogicalFiles);
+        var patched1 = archive1 with {LogicalFiles = patchedFiles1};
+
+        await using (var dstStream1 = dstFileInMemory.OpenWrite())
+        {
+            var writer1 = new VppInMemoryWriter(patched1);
+            await writer1.WriteAll(dstStream1, CancellationToken.None);
+        }
+
+        //===============================
+
+        await using var fileStream2 = fileInfo.OpenRead();
+        var archive2 = new VppReader().Read(fileStream2, fileInfo.Name, CancellationToken.None);
+        var patchedFiles2 = PatchFiles(archive2.LogicalFiles);
+        var patched2 = archive2 with {LogicalFiles = patchedFiles2};
+
+        await using (var dstStream2 = dstFileStreamed.OpenWrite())
+        {
+            var writer2 = new VppWriter(patched2);
+            await writer2.WriteAll(dstStream2, CancellationToken.None);
+        }
+
+
+        //===============================
+
+        dstFileInMemory.Refresh();
+        dstFileStreamed.Refresh();
+
+        dstFileStreamed.Length.Should().Be(dstFileInMemory.Length);
+
+        //===============================
+        string hashInMemory;
+        string hashStreamed;
+
+        using var sha1 = SHA256.Create();
+        using (var readStream1 = dstFileInMemory.Open(FileMode.Open))
+        {
+            readStream1.Position = 0;
+            var hashValue1 = sha1.ComputeHash(readStream1);
+            hashInMemory = BitConverter.ToString(hashValue1).Replace("-", "");
+        }
+
+        using var sha2 = SHA256.Create();
+        using (var readStream2 = dstFileStreamed.Open(FileMode.Open))
+        {
+            readStream2.Position = 0;
+            var hashValue2 = sha2.ComputeHash(readStream2);
+            hashStreamed = BitConverter.ToString(hashValue2).Replace("-", "");
+        }
+
+        //===============================
+
+        hashStreamed.Should().Be(hashInMemory);
+
+        dstFileInMemory.Delete();
+        dstFileStreamed.Delete();
+    }
+
 
     [Explicit("For debugging")]
     [TestCase("edfbarricade_vehicle_a.rfgchunkx.str2_pc")]
@@ -42,7 +118,7 @@ public class ArtifactGenerators
     public void UnpackVpp(FileInfo fileInfo)
     {
         using var stream = fileInfo.OpenRead();
-        var archive = new VppReader().Read(stream, fileInfo.Name, CancellationToken.None);
+        var archive = new VppInMemoryReader().Read(stream, fileInfo.Name, CancellationToken.None);
         var subdir = TestUtils.UnpackDir.CreateSubdirectory("_" + fileInfo.Name);
         subdir.Delete(true);
         subdir.Create();
@@ -78,15 +154,15 @@ public class ArtifactGenerators
     public void CompareUnpackers(FileInfo fileInfo)
     {
         using var fileForRamReading = fileInfo.OpenRead();
-        var ramArchive = new VppReader().Read(fileForRamReading, fileInfo.Name, CancellationToken.None);
+        var ramArchive = new VppInMemoryReader().Read(fileForRamReading, fileInfo.Name, CancellationToken.None);
 
         using var fileForStreaming = fileInfo.OpenRead();
-        var streamedArchive = new VppReaderStreamed().Read(fileForStreaming, fileInfo.Name, CancellationToken.None);
+        var streamedArchive = new VppReader().Read(fileForStreaming, fileInfo.Name, CancellationToken.None);
         var archiveInfo = $"{ramArchive.Name} {ramArchive.Mode}";
         Console.WriteLine(archiveInfo);
 
         var files = ramArchive.LogicalFiles.Zip(streamedArchive.LogicalFiles);
-        foreach ((LogicalFile ram, LogicalFileStreamed streamed) file in files)
+        foreach ((LogicalInMemoryFile ram, LogicalFile streamed) file in files)
         {
             var length = file.streamed.Content is InflaterInputStream ? "unsupported" : file.streamed.Content.Length.ToString();
             var info = @$"{file.ram.Order} {file.ram.Name}
@@ -136,10 +212,10 @@ ram len={file.ram.Content.Length} stream len={length}
         if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
         {
             // this is just for reading flags. actual data is read later
-            var vpp = new RfgVpp(new KaitaiStream(stream));
+            var vpp = new RfgVppInMemory(new KaitaiStream(stream));
             var alignment = vpp.DetectAlignmentSize(CancellationToken.None);
             var zlibInfo = "none";
-            if (vpp.Header.Flags.Mode is RfgVpp.HeaderBlock.Mode.Compressed or RfgVpp.HeaderBlock.Mode.Compacted && vpp.Entries.Any())
+            if (vpp.Header.Flags.Mode is RfgVppInMemory.HeaderBlock.Mode.Compressed or RfgVppInMemory.HeaderBlock.Mode.Compacted && vpp.Entries.Any())
             {
                 var compressionLevel = vpp.DetectCompressionLevel();
                 var zlib = vpp.BlockCompactData?.ZlibHeader ?? vpp.BlockEntryData.Value.First().Value.ZlibHeader;
@@ -155,11 +231,27 @@ ram len={file.ram.Content.Length} stream len={length}
         if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
         {
             Console.WriteLine($"read {key}");
-            var entries = new VppReader().Read(stream, key, CancellationToken.None).LogicalFiles;
+            var entries = new VppInMemoryReader().Read(stream, key, CancellationToken.None).LogicalFiles;
             foreach (var entry in entries)
             {
                 using var ms = new MemoryStream(entry.Content);
                 HashRecursive(ms, entry.Name, key);
+            }
+        }
+    }
+
+    public static IEnumerable<LogicalInMemoryFile> PatchFiles(IEnumerable<LogicalInMemoryFile> files)
+    {
+        foreach (var logicalFile in files)
+        {
+            if (Path.GetExtension(logicalFile.Name).ToLower() == ".str2_pc")
+            {
+                var repackStr2 = RepackStr2(logicalFile);
+                yield return logicalFile with {Content = repackStr2};
+            }
+            else
+            {
+                yield return logicalFile;
             }
         }
     }
@@ -180,15 +272,27 @@ ram len={file.ram.Content.Length} stream len={length}
         }
     }
 
-    private static byte[] RepackStr2(LogicalFile logicalFile)
+    private static byte[] RepackStr2(LogicalInMemoryFile logicalInMemoryFile)
     {
-        Console.WriteLine($"repacking {logicalFile.Name}");
-        var ms = new MemoryStream(logicalFile.Content);
-        var archive = new VppReader().Read(ms, logicalFile.Name, CancellationToken.None);
+        Console.WriteLine($"repacking {logicalInMemoryFile.Name}");
+        var ms = new MemoryStream(logicalInMemoryFile.Content);
+        var archive = new VppInMemoryReader().Read(ms, logicalInMemoryFile.Name, CancellationToken.None);
         using var dstStream = new MemoryStream();
-        var writer = new VppWriter(archive);
+        var writer = new VppInMemoryWriter(archive);
         writer.WriteAll(dstStream, CancellationToken.None).GetAwaiter().GetResult();
         return dstStream.ToArray();
+    }
+
+    private static Stream RepackStr2(LogicalFile logicalFile)
+    {
+        Console.WriteLine($"repacking {logicalFile.Name}");
+        var contentStream = logicalFile.Content;
+        var archive = new VppReader().Read(contentStream, logicalFile.Name, CancellationToken.None);
+        var dstStream = new MemoryStream();
+        var writer = new VppWriter(archive);
+        writer.WriteAll(dstStream, CancellationToken.None).GetAwaiter().GetResult();
+        dstStream.Seek(0, SeekOrigin.Begin);
+        return dstStream;
     }
 
     public static readonly Dictionary<string,string> AllHashes = new();

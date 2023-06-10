@@ -1,8 +1,8 @@
 ﻿// This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
-using Kaitai;
+using System.Collections.Generic;
 
-namespace SyncFactionTests.VppRam
+namespace Kaitai
 {
 
     /// <summary>
@@ -397,10 +397,10 @@ namespace SyncFactionTests.VppRam
                 f_xNameHash = false;
                 f_isLast = false;
                 f_padSize = false;
+                f_zlibHeader = false;
                 f_xLenData = false;
                 f_dataSize = false;
                 f_totalSize = false;
-                f_value = false;
                 f_xName = false;
                 _read();
             }
@@ -472,6 +472,26 @@ namespace SyncFactionTests.VppRam
                     return _padSize;
                 }
             }
+            private bool f_zlibHeader;
+            private Zlib _zlibHeader;
+            public Zlib ZlibHeader
+            {
+                get
+                {
+                    if (f_zlibHeader)
+                        return _zlibHeader;
+                    if ( ((M_Root.Header.Flags.Compressed) && (M_Root.Header.Flags.Condensed == false)) ) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(0);
+                        __raw_zlibHeader = m_io.ReadBytes(4);
+                        var io___raw_zlibHeader = new KaitaiStream(__raw_zlibHeader);
+                        _zlibHeader = new Zlib(io___raw_zlibHeader, this, m_root);
+                        m_io.Seek(_pos);
+                        f_zlibHeader = true;
+                    }
+                    return _zlibHeader;
+                }
+            }
             private bool f_xLenData;
             private uint _xLenData;
             public uint XLenData
@@ -511,22 +531,6 @@ namespace SyncFactionTests.VppRam
                     return _totalSize;
                 }
             }
-            private bool f_value;
-            private EntryContent _value;
-            public EntryContent Value
-            {
-                get
-                {
-                    if (f_value)
-                        return _value;
-                    KaitaiStream io = M_Root.BlockEntryData.M_Io;
-                    __raw_value = io.ReadBytes(TotalSize);
-                    var io___raw_value = new KaitaiStream(__raw_value);
-                    _value = new EntryContent(io___raw_value, this, m_root);
-                    f_value = true;
-                    return _value;
-                }
-            }
             private bool f_xName;
             private string _xName;
             public string XName
@@ -543,11 +547,11 @@ namespace SyncFactionTests.VppRam
             private int _i;
             private RfgVpp m_root;
             private RfgVpp.EntryDataHolder m_parent;
-            private byte[] __raw_value;
+            private byte[] __raw_zlibHeader;
             public int I { get { return _i; } }
             public RfgVpp M_Root { get { return m_root; } }
             public RfgVpp.EntryDataHolder M_Parent { get { return m_parent; } }
-            public byte[] M_RawValue { get { return __raw_value; } }
+            public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
         }
         public partial class CompressedDataHolder : KaitaiStruct
         {
@@ -730,89 +734,6 @@ namespace SyncFactionTests.VppRam
             private RfgVpp m_parent;
             public RfgVpp M_Root { get { return m_root; } }
             public RfgVpp M_Parent { get { return m_parent; } }
-        }
-        public partial class EntryContent : KaitaiStruct
-        {
-            public static EntryContent FromFile(string fileName)
-            {
-                return new EntryContent(new KaitaiStream(fileName));
-            }
-
-            public EntryContent(KaitaiStream p__io, RfgVpp.EntryData p__parent = null, RfgVpp p__root = null) : base(p__io)
-            {
-                m_parent = p__parent;
-                m_root = p__root;
-                f_relativeOffsetAfter = false;
-                f_relativeOffsetBefore = false;
-                f_zlibHeader = false;
-                _read();
-            }
-            private void _read()
-            {
-                if (RelativeOffsetAfter > 0) {
-                    __unnamed0 = m_io.ReadBytes(0);
-                }
-                _file = m_io.ReadBytes(M_Parent.DataSize);
-                _padding = m_io.ReadBytes(M_Parent.PadSize);
-            }
-            private bool f_relativeOffsetAfter;
-            private int _relativeOffsetAfter;
-            public int RelativeOffsetAfter
-            {
-                get
-                {
-                    if (f_relativeOffsetAfter)
-                        return _relativeOffsetAfter;
-                    _relativeOffsetAfter = (int) (M_Parent.M_Io.Pos);
-                    f_relativeOffsetAfter = true;
-                    return _relativeOffsetAfter;
-                }
-            }
-            private bool f_relativeOffsetBefore;
-            private int _relativeOffsetBefore;
-            public int RelativeOffsetBefore
-            {
-                get
-                {
-                    if (f_relativeOffsetBefore)
-                        return _relativeOffsetBefore;
-                    _relativeOffsetBefore = (int) ((RelativeOffsetAfter - M_Parent.TotalSize));
-                    f_relativeOffsetBefore = true;
-                    return _relativeOffsetBefore;
-                }
-            }
-            private bool f_zlibHeader;
-            private Zlib _zlibHeader;
-            public Zlib ZlibHeader
-            {
-                get
-                {
-                    if (f_zlibHeader)
-                        return _zlibHeader;
-                    if ( ((M_Root.Header.Flags.Compressed) && (M_Root.Header.Flags.Condensed == false)) ) {
-                        long _pos = m_io.Pos;
-                        m_io.Seek(0);
-                        __raw_zlibHeader = m_io.ReadBytes(4);
-                        var io___raw_zlibHeader = new KaitaiStream(__raw_zlibHeader);
-                        _zlibHeader = new Zlib(io___raw_zlibHeader, this, m_root);
-                        m_io.Seek(_pos);
-                        f_zlibHeader = true;
-                    }
-                    return _zlibHeader;
-                }
-            }
-            private byte[] __unnamed0;
-            private byte[] _file;
-            private byte[] _padding;
-            private RfgVpp m_root;
-            private RfgVpp.EntryData m_parent;
-            private byte[] __raw_zlibHeader;
-            public byte[] Unnamed_0 { get { return __unnamed0; } }
-            public byte[] File { get { return _file; } }
-            public byte[] Padding { get { return _padding; } }
-            public RfgVpp M_Root { get { return m_root; } }
-            public RfgVpp.EntryData M_Parent { get { return m_parent; } }
-            public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
         }
         private bool f_blockOffset;
         private int _blockOffset;

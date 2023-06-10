@@ -38,6 +38,8 @@ public partial class App : Application
         services.AddSingleton<ModTools>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IVppArchiver, VppArchiver>();
+        services.AddSingleton<IModInstaller, ModInstaller>();
+        services.AddSingleton<IXdeltaFactory, XdeltaFactory>();
         services.AddLogging(x =>
         {
             x.ClearProviders();

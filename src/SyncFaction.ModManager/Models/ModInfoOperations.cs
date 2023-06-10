@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.IO.Abstractions;
-using System.Xml;
+using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.Models;
 
@@ -20,26 +19,10 @@ public record ModInfoOperations(IReadOnlyList<FileSwapOperation> FileSwaps, IRea
 
         return allArchives.ToDictionary(v => v, v =>
         {
+            // TODO support multiple sequential edits for a given file?
             var sw = swaps[v].ToImmutableDictionary(x => x.VppPath.File);
             var ed = edits[v].ToImmutableDictionary(x => x.VppPath.File);
             return new VppOperations(sw, ed);
         });
     }
 }
-
-public record VppOperations(IImmutableDictionary<string, FileSwapOperation> FileSwaps, IImmutableDictionary<string, XmlEditOperation> XmlEdits);
-
-public interface IOperation
-{
-    public int Index { get; }
-    public VppPath VppPath { get; }
-}
-
-public record FileSwapOperation(int Index, VppPath VppPath, IFileInfo Target) : IOperation;
-
-// TODO enum Action
-public record XmlEditOperation(int Index, VppPath VppPath, string Action, List<XmlNode> Xml) : IOperation;
-
-/// <param name="Archive">Path to vpp like "data/foo.vpp_pc"</param>
-/// <param name="File">Path to a file inside vpp: foo/bar/baz.str2</param>
-public record VppPath(string Archive, string File);

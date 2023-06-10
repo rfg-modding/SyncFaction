@@ -3,7 +3,7 @@ using PleOps.XdeltaSharp.Decoder;
 
 namespace SyncFaction.Core.Services.Files;
 
-class XdeltaWrapper : IXdelta
+public class XdeltaWrapper : IXdelta
 {
     public XdeltaWrapper(Stream srcStream, Stream patchStream, Stream dstStream)
     {
@@ -11,6 +11,7 @@ class XdeltaWrapper : IXdelta
     }
 
     private readonly Decoder decoder;
+
     public void Dispose()
     {
         decoder.Dispose();

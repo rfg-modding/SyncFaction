@@ -4,7 +4,7 @@ using Kaitai;
 
 namespace SyncFactionTests.VppRam;
 
-public partial class RfgVpp
+public partial class RfgVppInMemory
 {
     /// <summary>
     /// Detect alignment size

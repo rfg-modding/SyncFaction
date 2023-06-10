@@ -11,32 +11,32 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadHeader(FileInfo fileInfo)
     {
-        var header = RfgVpp.HeaderBlock.FromFile(fileInfo.FullName);
+        var header = RfgVppInMemory.HeaderBlock.FromFile(fileInfo.FullName);
         header.Should().NotBeNull();
     }
 
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadBasics(FileInfo fileInfo)
     {
-        var header = RfgVpp.HeaderBlock.FromFile(fileInfo.FullName);
-        RfgVpp vpp = null!;
-        Action action = () => vpp = RfgVpp.FromFile(fileInfo.FullName);
+        var header = RfgVppInMemory.HeaderBlock.FromFile(fileInfo.FullName);
+        RfgVppInMemory vppInMemory = null!;
+        Action action = () => vppInMemory = RfgVppInMemory.FromFile(fileInfo.FullName);
         action.Should().NotThrow(header.ToString());
-        vpp.Header.Should().NotBeNull();
-        vpp.Entries.Should().NotBeNull();
-        vpp.EntryNames.Should().NotBeNull();
-        Console.WriteLine(vpp.Header);
+        vppInMemory.Header.Should().NotBeNull();
+        vppInMemory.Entries.Should().NotBeNull();
+        vppInMemory.EntryNames.Should().NotBeNull();
+        Console.WriteLine(vppInMemory.Header);
 
-        if (vpp.Header.LenFileTotal != fileInfo.Length)
+        if (vppInMemory.Header.LenFileTotal != fileInfo.Length)
         {
-            Assert.Warn($"Header filesize {vpp.Header.LenFileTotal} does not match actual filesize {fileInfo.Length}. IsLarge={vpp.Header.IsLarge}");
+            Assert.Warn($"Header filesize {vppInMemory.Header.LenFileTotal} does not match actual filesize {fileInfo.Length}. IsLarge={vppInMemory.Header.IsLarge}");
         }
     }
 
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadMetadata(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
 
         vpp.Entries.Select(x => x.NameOffset).Should().BeInAscendingOrder();
 
@@ -58,13 +58,13 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestHashNames(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         var pairs = vpp.EntryNames.Values
             .Select(x => x.Value)
             .Zip(vpp.Entries.Select(x => x.NameHash));
         foreach (var pair in pairs)
         {
-            var hash = VppWriterStreamed.CircularHash(pair.First);
+            var hash = VppWriter.CircularHash(pair.First);
             hash.Should().BeEquivalentTo(pair.Second);
         }
     }
@@ -72,7 +72,7 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadDataOffsets(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");

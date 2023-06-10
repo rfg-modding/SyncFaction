@@ -3,9 +3,10 @@ using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.Packer;
 
 namespace SyncFactionTests;
 
@@ -651,21 +652,21 @@ public class GameFileTests
     [TestCase("file.vpp_pc", ".XDELTA")]
     public async Task ApplyMod_Xdelta_CallsApplyXdelta(string fileName, string modExt)
     {
-        var gfMock = new Mock<GameFile>(Storage, fileName, fileSystem)
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
         {
             CallBase = true
         };
-        gfMock
-            .Setup(x => x.ApplyXdelta(It.IsAny<IFileInfo>(), It.IsAny<ILogger>(), It.IsAny<CancellationToken>()))
+        modInstallerMock
+            .Setup(x => x.ApplyXdelta(gf, It.IsAny<IFileInfo>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Verifiable();
 
-        var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
-        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstallerMock.Object.ApplyFileMod(gf, modFile, CancellationToken.None);
 
-        gfMock.Verify();
+        modInstallerMock.Verify();
     }
 
     [TestCase("file", ".rfgpatch")]
@@ -680,42 +681,42 @@ public class GameFileTests
     [TestCase("file.vpp_pc", ".RFGPATCH")]
     public async Task ApplyMod_RfgPatch_CallsSkip(string fileName, string modExt)
     {
-        var gfMock = new Mock<GameFile>(Storage, fileName, fileSystem)
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
         {
             CallBase = true
         };
-        gfMock
-            .Setup(x => x.Skip(It.IsAny<IFileInfo>(), It.IsAny<ILogger>()))
+        modInstallerMock
+            .Setup(x => x.Skip(gf, It.IsAny<IFileInfo>()))
             .Returns(true)
             .Verifiable();
 
-        var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
-        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstallerMock.Object.ApplyFileMod(gf, modFile, CancellationToken.None);
 
-        gfMock.Verify();
+        modInstallerMock.Verify();
     }
 
     [TestCase("file", ".xdelta")]
     [TestCase("file.vpp_pc", ".xdelta")]
     public async Task ApplyMod_DotModFile_CallsSkip(string fileName, string modExt)
     {
-        var gfMock = new Mock<GameFile>(Storage, fileName, fileSystem)
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
         {
             CallBase = true
         };
-        gfMock
-            .Setup(x => x.Skip(It.IsAny<IFileInfo>(), It.IsAny<ILogger>()))
+        modInstallerMock
+            .Setup(x => x.Skip(gf, It.IsAny<IFileInfo>()))
             .Returns(true)
             .Verifiable();
 
-        var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(".mod_" + fileName + modExt);
 
-        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstallerMock.Object.ApplyFileMod(gf, modFile, CancellationToken.None);
 
-        gfMock.Verify();
+        modInstallerMock.Verify();
     }
 
     [TestCase("file", ".txt")]
@@ -734,21 +735,21 @@ public class GameFileTests
     [TestCase("file.vpp_pc", ".RAR")]
     public async Task ApplyMod_Clutter_CallsSkip(string fileName, string modExt)
     {
-        var gfMock = new Mock<GameFile>(Storage, fileName, fileSystem)
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
         {
             CallBase = true
         };
-        gfMock
-            .Setup(x => x.Skip(It.IsAny<IFileInfo>(), It.IsAny<ILogger>()))
+        modInstallerMock
+            .Setup(x => x.Skip(gf, It.IsAny<IFileInfo>()))
             .Returns(true)
             .Verifiable();
 
-        var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
-        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstallerMock.Object.ApplyFileMod(gf, modFile, CancellationToken.None);
 
-        gfMock.Verify();
+        modInstallerMock.Verify();
     }
 
     [TestCase("file.bin")]
@@ -756,38 +757,46 @@ public class GameFileTests
     [TestCase("file.foo.bar")]
     public async Task ApplyMod_Xdelta_CallsApplyNewFile(string fileName)
     {
-        var gfMock = new Mock<GameFile>(Storage, fileName, fileSystem)
+        var gf = new GameFile(Storage, fileName, fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
         {
             CallBase = true
         };
-        gfMock
-            .Setup(x => x.ApplyNewFile(It.IsAny<IFileInfo>(), It.IsAny<ILogger>()))
+        modInstallerMock
+            .Setup(x => x.ApplyNewFile(gf, It.IsAny<IFileInfo>()))
             .Returns(true)
             .Verifiable();
 
-        var gf = gfMock.Object;
         var modFile = fileSystem.FileInfo.New(fileName);
 
-        await gf.ApplyFileMod(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstallerMock.Object.ApplyFileMod(gf, modFile, CancellationToken.None);
 
-        gfMock.Verify();
+        modInstallerMock.Verify();
     }
 
     [Test]
     public void Skip_ReturnsTrue()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
-        gf.Skip(Mock.Of<IFileInfo>(), Mock.Of<ILogger>()).Should().BeTrue();
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
+        {
+            CallBase = true
+        };
+        modInstallerMock.Object.Skip(gf, Mock.Of<IFileInfo>()).Should().BeTrue();
     }
 
     [Test]
     public async Task ApplyNewFile_FileExists_Overwrites()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
+        {
+            CallBase = true
+        };
         var modFile = fileSystem.FileInfo.New("mod");
         Write(gf.AbsolutePath, DirtyData);
         Write(modFile.FullName, ModData);
-        gf.ApplyNewFile(modFile, Mock.Of<ILogger>());
+        modInstallerMock.Object.ApplyNewFile(gf, modFile);
         Read(gf.FileInfo).Should().Be(ModData);
     }
 
@@ -795,9 +804,13 @@ public class GameFileTests
     public async Task ApplyNewFile_FileDoesNotExist_Copies()
     {
         var gf = new GameFile(Storage, "data/test", fileSystem);
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>())
+        {
+            CallBase = true
+        };
         var modFile = fileSystem.FileInfo.New("mod");
         Write(modFile.FullName, ModData);
-        gf.ApplyNewFile(modFile, Mock.Of<ILogger>());
+        modInstallerMock.Object.ApplyNewFile(gf, modFile);
         Read(gf.FileInfo).Should().Be(ModData);
     }
 
@@ -805,15 +818,9 @@ public class GameFileTests
     [TestCase(false)]
     public async Task ApplyXdelta_VanillaBakExists_OverwritesFromVanilla(bool srcExists)
     {
-        FakeXdeltaConcat? fakeXdelta = null;
-        var gf = new GameFile(Storage, "test", fileSystem)
-        {
-            XdeltaFactory = (src, patch, dst) =>
-            {
-                fakeXdelta = new FakeXdeltaConcat(src, patch, dst);
-                return fakeXdelta;
-            }
-        };
+        var gf = new GameFile(Storage, "test", fileSystem);
+        var fakeXdeltaFactory = new FakeXdeltaFactory();
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         if (srcExists)
@@ -824,24 +831,18 @@ public class GameFileTests
         Write(gf.GetVanillaBackupLocation().FullName, VanillaData);
         Write(modFile.FullName, ModData);
 
-        await gf.ApplyXdelta(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
         Read(gf.FileInfo).Should().Be(VanillaData + ModData);
-        fakeXdelta!.disposed.Should().BeTrue();
+        fakeXdeltaFactory.instance!.disposed.Should().BeTrue();
     }
 
     [TestCase(true)]
     [TestCase(false)]
     public async Task ApplyXdelta_PatchBakExists_OverwritesFromPatch(bool srcExists)
     {
-        FakeXdeltaConcat? fakeXdelta = null;
-        var gf = new GameFile(Storage, "test", fileSystem)
-        {
-            XdeltaFactory = (src, patch, dst) =>
-            {
-                fakeXdelta = new FakeXdeltaConcat(src, patch, dst);
-                return fakeXdelta;
-            }
-        };
+        var gf = new GameFile(Storage, "test", fileSystem);
+        var fakeXdeltaFactory = new FakeXdeltaFactory();
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         if (srcExists)
@@ -852,24 +853,18 @@ public class GameFileTests
         Write(gf.GetPatchBackupLocation().FullName, PatchData);
         Write(modFile.FullName, ModData);
 
-        await gf.ApplyXdelta(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
         Read(gf.FileInfo).Should().Be(PatchData + ModData);
-        fakeXdelta!.disposed.Should().BeTrue();
+        fakeXdeltaFactory.instance.disposed.Should().BeTrue();
     }
 
     [TestCase(true)]
     [TestCase(false)]
     public async Task ApplyXdelta_BothBakExist_OverwritesFromPatch(bool srcExists)
     {
-        FakeXdeltaConcat? fakeXdelta = null;
-        var gf = new GameFile(Storage, "test", fileSystem)
-        {
-            XdeltaFactory = (src, patch, dst) =>
-            {
-                fakeXdelta = new FakeXdeltaConcat(src, patch, dst);
-                return fakeXdelta;
-            }
-        };
+        var gf = new GameFile(Storage, "test", fileSystem);
+        var fakeXdeltaFactory = new FakeXdeltaFactory();
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         if (srcExists)
@@ -881,9 +876,9 @@ public class GameFileTests
         Write(gf.GetPatchBackupLocation().FullName, PatchData);
         Write(modFile.FullName, ModData);
 
-        await gf.ApplyXdelta(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
         Read(gf.FileInfo).Should().Be(PatchData + ModData);
-        fakeXdelta!.disposed.Should().BeTrue();
+        fakeXdeltaFactory.instance!.disposed.Should().BeTrue();
     }
 
     [TestCase(true)]
@@ -891,14 +886,8 @@ public class GameFileTests
     public async Task ApplyXdelta_NoBakExists_Throws(bool srcExists)
     {
         FakeXdeltaConcat? fakeXdelta = null;
-        var gf = new GameFile(Storage, "test", fileSystem)
-        {
-            XdeltaFactory = (src, patch, dst) =>
-            {
-                fakeXdelta = new FakeXdeltaConcat(src, patch, dst);
-                return fakeXdelta;
-            }
-        };
+        var gf = new GameFile(Storage, "test", fileSystem);
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         if (srcExists)
@@ -908,7 +897,7 @@ public class GameFileTests
         }
         Write(modFile.FullName, ModData);
 
-        Func<Task> action = async () => await gf.ApplyXdelta(modFile, Mock.Of<ILogger>(), CancellationToken.None);
+        Func<Task> action = async () => await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
 
         await action.Should().ThrowAsync<FileNotFoundException>();
     }
@@ -918,14 +907,8 @@ public class GameFileTests
     public async Task ApplyXdelta_Canceled_Throws(bool srcExists)
     {
         FakeXdeltaConcat? fakeXdelta = null;
-        var gf = new GameFile(Storage, "test", fileSystem)
-        {
-            XdeltaFactory = (src, patch, dst) =>
-            {
-                fakeXdelta = new FakeXdeltaConcat(src, patch, dst);
-                return fakeXdelta;
-            }
-        };
+        var gf = new GameFile(Storage, "test", fileSystem);
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         if (srcExists)
@@ -936,7 +919,7 @@ public class GameFileTests
         Write(gf.GetVanillaBackupLocation().FullName, VanillaData);
         Write(modFile.FullName, ModData);
 
-        Func<Task> action = async () => await gf.ApplyXdelta(modFile, Mock.Of<ILogger>(), new CancellationToken(true));
+        Func<Task> action = async () => await modInstaller.ApplyXdelta(gf, modFile, new CancellationToken(true));
 
         await action.Should().ThrowAsync<OperationCanceledException>();
     }

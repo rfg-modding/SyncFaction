@@ -19,7 +19,7 @@ public static class TestUtils
     {
         return AllVppFilesOnce
                 //.Where(x => ((FileInfo) x.OriginalArguments[0]).Name.Contains(@"table.vpp_pc"))
-                .OrderByDescending(x => ((FileInfo) x.OriginalArguments[0]).Length)
+                .OrderBy(x => ((FileInfo) x.OriginalArguments[0]).Length)
                 //.Skip(10)
             ;
     }

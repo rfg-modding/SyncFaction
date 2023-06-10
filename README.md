@@ -101,6 +101,17 @@ Or how to get this branch closer to release and not burn out:
   * need to think it through
   * probably introduce cleanup stage on start?
 7. backport stuff from other branches: user agent? something else?
+8. hash checks
+  * button to generate json of all files
+    * record last modified time (probably others too)
+    * byte size
+    * hash
+    * order dictionary by file names and attributes so it's always easy to compare
+    * make a list of all files in game dir?
+  * use hashlist file from mod/patch to verify after install
+  * rollback if hashlist check failed? need to do something here
+  * remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing
+  * instruct users to copy-paste to help troubleshoot
 
 Things to do after test release:
 
@@ -116,3 +127,7 @@ Things to do after test release:
   * tests
   * streaming repack vpp to a temp file, then switch-rename
   * cleanup on any failure to last known state?
+3. port/network checker?
+  * inspect how game uses network for client and host modes
+  * check if traffic can flow as required by either mode
+  * need a server side app for this

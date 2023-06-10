@@ -234,4 +234,21 @@ public class ModTools
 		* <add file> tag
 
 
+
+
+    in 139 mods from FF, Nexus and ModDb, i have found these LIST_ACTIONs in modinfo.xml:
+        ADD
+        COMBINE_BY_FIELD:Name
+        COMBINE_BY_FIELD:Name,Unique_ID
+        COMBINE_BY_FIELD:Name,_Editor\Category
+        REPLACE
+        nothing specified, meaning it's default action, like <Edit File="...">
+
+    NOTES
+        * MM uses xtbl.root.Table as starting element
+        * default LIST_ACTION is ADD
+        * MM copies attributes, except for root level
+        *
+
+
 */

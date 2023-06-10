@@ -1,9 +1,9 @@
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using SyncFaction.Packer;
+using Kaitai;
 
-namespace SyncFactionTests.VppRam;
+namespace SyncFaction.Packer;
 
 public class VppWriter : IDisposable
 {
@@ -126,7 +126,7 @@ public class VppWriter : IDisposable
                 }
                 else
                 {
-                    await Write(output, logicalFile.Content, token);
+                    await WriteStream(output, logicalFile.Content, token);
                     await output.FlushAsync(token);
                     offset += (uint)logicalFile.Content.Length;
                     if (compressOutput)
@@ -269,6 +269,11 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         return buffer;
     }
 
+    private async Task WriteStream(Stream stream, Stream src, CancellationToken token)
+    {
+        await src.CopyToAsync(stream, token);
+    }
+
     private async Task Write(Stream stream, byte[] value, CancellationToken token)
     {
         await stream.WriteAsync(value, token);
@@ -310,10 +315,10 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         return destination;
     }
 
-    private static async Task CompressZlib(byte[] data, int compressionLevel, Stream destinationStream, CancellationToken token)
+    private static async Task CompressZlib(Stream src, int compressionLevel, Stream destinationStream, CancellationToken token)
     {
         await using var deflater = new DeflaterOutputStream(destinationStream, new Deflater(compressionLevel)) {IsStreamOwner = false};
-        await deflater.WriteAsync(data, token);
+        await src.CopyToAsync(deflater, token);
     }
 
     public static byte[] CircularHash(string input)

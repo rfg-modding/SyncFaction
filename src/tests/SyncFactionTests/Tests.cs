@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.Xml;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -98,6 +99,17 @@ public class Tests
         result.Should().BeTrue();
     }
 
+    [Test]
+    public void TestXml()
+    {
+        var doc = new XmlDocument();
+        doc.Load(@"C:\vault\rfg\downloaded_mods\filtered\Vehicle Camera Options v1.01\modinfo.xml");
+        doc.DocumentElement.Name.Should().Be("Mod");
+        var changes = doc.DocumentElement["Changes"];
+        var name = changes.SelectSingleNode("/Edit/Tweak_Table_Entry/Name");
+        name.Should().NotBeNull();
+    }
+
     [TearDown]
     public void TearDown()
     {
@@ -112,4 +124,5 @@ public class Tests
 
         System.IO.File.Delete(fileName);
     }
+
 }

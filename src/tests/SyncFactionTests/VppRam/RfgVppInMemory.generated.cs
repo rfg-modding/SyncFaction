@@ -1,8 +1,8 @@
 ﻿// This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
-using System.Collections.Generic;
+using Kaitai;
 
-namespace Kaitai
+namespace SyncFactionTests.VppRam
 {
 
     /// <summary>
@@ -11,14 +11,14 @@ namespace Kaitai
     /// <remarks>
     /// Reference: <a href="https://github.com/Moneyl/RfgToolsPlusPlus/blob/master/Documentation/Packfile.md">Source</a>
     /// </remarks>
-    public partial class RfgVppStreamed : KaitaiStruct
+    public partial class RfgVppInMemory : KaitaiStruct
     {
-        public static RfgVppStreamed FromFile(string fileName)
+        public static RfgVppInMemory FromFile(string fileName)
         {
-            return new RfgVppStreamed(new KaitaiStream(fileName));
+            return new RfgVppInMemory(new KaitaiStream(fileName));
         }
 
-        public RfgVppStreamed(KaitaiStream p__io, KaitaiStruct p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+        public RfgVppInMemory(KaitaiStream p__io, KaitaiStruct p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
         {
             m_parent = p__parent;
             m_root = p__root ?? this;
@@ -56,7 +56,7 @@ namespace Kaitai
                 return new Align(new KaitaiStream(fileName));
             }
 
-            public Align(KaitaiStream p__io, RfgVppStreamed p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public Align(KaitaiStream p__io, RfgVppInMemory p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -81,11 +81,11 @@ namespace Kaitai
                 }
             }
             private byte[] __unnamed0;
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed m_parent;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory m_parent;
             public byte[] Unnamed_0 { get { return __unnamed0; } }
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed M_Parent { get { return m_parent; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Parent { get { return m_parent; } }
         }
         public partial class Entry : KaitaiStruct
         {
@@ -94,7 +94,7 @@ namespace Kaitai
                 return new Entry(new KaitaiStream(fileName));
             }
 
-            public Entry(KaitaiStream p__io, RfgVppStreamed p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public Entry(KaitaiStream p__io, RfgVppInMemory p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -117,8 +117,8 @@ namespace Kaitai
             private uint _lenData;
             private uint _lenCompressedData;
             private byte[] __unnamed6;
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed m_parent;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory m_parent;
 
             /// <summary>
             /// Entry name byte offset inside entry names block
@@ -146,8 +146,8 @@ namespace Kaitai
             /// </summary>
             public uint LenCompressedData { get { return _lenCompressedData; } }
             public byte[] Unnamed_6 { get { return __unnamed6; } }
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed M_Parent { get { return m_parent; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Parent { get { return m_parent; } }
         }
         public partial class HeaderBlock : KaitaiStruct
         {
@@ -156,7 +156,7 @@ namespace Kaitai
                 return new HeaderBlock(new KaitaiStream(fileName));
             }
 
-            public HeaderBlock(KaitaiStream p__io, RfgVppStreamed p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public HeaderBlock(KaitaiStream p__io, RfgVppInMemory p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -194,7 +194,7 @@ namespace Kaitai
                     return new HeaderFlags(new KaitaiStream(fileName));
                 }
 
-                public HeaderFlags(KaitaiStream p__io, RfgVppStreamed.HeaderBlock p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+                public HeaderFlags(KaitaiStream p__io, RfgVppInMemory.HeaderBlock p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
                 {
                     m_parent = p__parent;
                     m_root = p__root;
@@ -214,8 +214,8 @@ namespace Kaitai
                 private bool _compressed;
                 private bool _condensed;
                 private byte[] _unknownFlags;
-                private RfgVppStreamed m_root;
-                private RfgVppStreamed.HeaderBlock m_parent;
+                private RfgVppInMemory m_root;
+                private RfgVppInMemory.HeaderBlock m_parent;
 
                 /// <summary>
                 /// file uses ZLIB compression
@@ -227,8 +227,8 @@ namespace Kaitai
                 /// </summary>
                 public bool Condensed { get { return _condensed; } }
                 public byte[] UnknownFlags { get { return _unknownFlags; } }
-                public RfgVppStreamed M_Root { get { return m_root; } }
-                public RfgVppStreamed.HeaderBlock M_Parent { get { return m_parent; } }
+                public RfgVppInMemory M_Root { get { return m_root; } }
+                public RfgVppInMemory.HeaderBlock M_Parent { get { return m_parent; } }
             }
             private bool f_isLarge;
             private bool _isLarge;
@@ -260,8 +260,8 @@ namespace Kaitai
             private uint _lenNames;
             private uint _lenData;
             private uint _lenCompressedData;
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed m_parent;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory m_parent;
             public byte[] Magic { get { return _magic; } }
             public byte[] Version { get { return _version; } }
 
@@ -307,8 +307,8 @@ namespace Kaitai
             /// Size of compressed entry data in bytes. Includes padding bytes between entry data
             /// </summary>
             public uint LenCompressedData { get { return _lenCompressedData; } }
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed M_Parent { get { return m_parent; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Parent { get { return m_parent; } }
         }
         public partial class EntryNamesHolder : KaitaiStruct
         {
@@ -317,7 +317,7 @@ namespace Kaitai
                 return new EntryNamesHolder(new KaitaiStream(fileName));
             }
 
-            public EntryNamesHolder(KaitaiStream p__io, RfgVppStreamed p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public EntryNamesHolder(KaitaiStream p__io, RfgVppInMemory p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -344,14 +344,14 @@ namespace Kaitai
                     return _values;
                 }
             }
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed m_parent;
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed M_Parent { get { return m_parent; } }
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory m_parent;
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Parent { get { return m_parent; } }
         }
         public partial class EntryName : KaitaiStruct
         {
-            public EntryName(int p_i, KaitaiStream p__io, RfgVppStreamed.EntryNamesHolder p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public EntryName(int p_i, KaitaiStream p__io, RfgVppInMemory.EntryNamesHolder p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -379,15 +379,15 @@ namespace Kaitai
                 }
             }
             private int _i;
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed.EntryNamesHolder m_parent;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory.EntryNamesHolder m_parent;
             public int I { get { return _i; } }
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed.EntryNamesHolder M_Parent { get { return m_parent; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory.EntryNamesHolder M_Parent { get { return m_parent; } }
         }
         public partial class EntryData : KaitaiStruct
         {
-            public EntryData(int p_i, KaitaiStream p__io, RfgVppStreamed.EntryDataHolder p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public EntryData(int p_i, KaitaiStream p__io, RfgVppInMemory.EntryDataHolder p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -397,10 +397,10 @@ namespace Kaitai
                 f_xNameHash = false;
                 f_isLast = false;
                 f_padSize = false;
-                f_zlibHeader = false;
                 f_xLenData = false;
                 f_dataSize = false;
                 f_totalSize = false;
+                f_value = false;
                 f_xName = false;
                 _read();
             }
@@ -472,26 +472,6 @@ namespace Kaitai
                     return _padSize;
                 }
             }
-            private bool f_zlibHeader;
-            private Zlib _zlibHeader;
-            public Zlib ZlibHeader
-            {
-                get
-                {
-                    if (f_zlibHeader)
-                        return _zlibHeader;
-                    if ( ((M_Root.Header.Flags.Compressed) && (M_Root.Header.Flags.Condensed == false)) ) {
-                        long _pos = m_io.Pos;
-                        m_io.Seek(0);
-                        __raw_zlibHeader = m_io.ReadBytes(4);
-                        var io___raw_zlibHeader = new KaitaiStream(__raw_zlibHeader);
-                        _zlibHeader = new Zlib(io___raw_zlibHeader, this, m_root);
-                        m_io.Seek(_pos);
-                        f_zlibHeader = true;
-                    }
-                    return _zlibHeader;
-                }
-            }
             private bool f_xLenData;
             private uint _xLenData;
             public uint XLenData
@@ -531,6 +511,22 @@ namespace Kaitai
                     return _totalSize;
                 }
             }
+            private bool f_value;
+            private EntryContent _value;
+            public EntryContent Value
+            {
+                get
+                {
+                    if (f_value)
+                        return _value;
+                    KaitaiStream io = M_Root.BlockEntryData.M_Io;
+                    __raw_value = io.ReadBytes(TotalSize);
+                    var io___raw_value = new KaitaiStream(__raw_value);
+                    _value = new EntryContent(io___raw_value, this, m_root);
+                    f_value = true;
+                    return _value;
+                }
+            }
             private bool f_xName;
             private string _xName;
             public string XName
@@ -545,13 +541,13 @@ namespace Kaitai
                 }
             }
             private int _i;
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed.EntryDataHolder m_parent;
-            private byte[] __raw_zlibHeader;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory.EntryDataHolder m_parent;
+            private byte[] __raw_value;
             public int I { get { return _i; } }
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed.EntryDataHolder M_Parent { get { return m_parent; } }
-            public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory.EntryDataHolder M_Parent { get { return m_parent; } }
+            public byte[] M_RawValue { get { return __raw_value; } }
         }
         public partial class CompressedDataHolder : KaitaiStruct
         {
@@ -560,7 +556,7 @@ namespace Kaitai
                 return new CompressedDataHolder(new KaitaiStream(fileName));
             }
 
-            public CompressedDataHolder(KaitaiStream p__io, RfgVppStreamed p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public CompressedDataHolder(KaitaiStream p__io, RfgVppInMemory p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -602,11 +598,11 @@ namespace Kaitai
                     return _zlibHeader;
                 }
             }
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed m_parent;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory m_parent;
             private byte[] __raw_zlibHeader;
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed M_Parent { get { return m_parent; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Parent { get { return m_parent; } }
             public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
         }
         public partial class Zlib : KaitaiStruct
@@ -616,7 +612,7 @@ namespace Kaitai
                 return new Zlib(new KaitaiStream(fileName));
             }
 
-            public Zlib(KaitaiStream p__io, KaitaiStruct p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public Zlib(KaitaiStream p__io, KaitaiStruct p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -666,7 +662,7 @@ namespace Kaitai
             private ulong _fcheck;
             private bool _fdict;
             private ulong _flevel;
-            private RfgVppStreamed m_root;
+            private RfgVppInMemory m_root;
             private KaitaiStruct m_parent;
 
             /// <summary>
@@ -693,7 +689,7 @@ namespace Kaitai
             /// Compression level
             /// </summary>
             public ulong Flevel { get { return _flevel; } }
-            public RfgVppStreamed M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
             public KaitaiStruct M_Parent { get { return m_parent; } }
         }
         public partial class EntryDataHolder : KaitaiStruct
@@ -703,7 +699,7 @@ namespace Kaitai
                 return new EntryDataHolder(new KaitaiStream(fileName));
             }
 
-            public EntryDataHolder(KaitaiStream p__io, RfgVppStreamed p__parent = null, RfgVppStreamed p__root = null) : base(p__io)
+            public EntryDataHolder(KaitaiStream p__io, RfgVppInMemory p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
             {
                 m_parent = p__parent;
                 m_root = p__root;
@@ -730,10 +726,93 @@ namespace Kaitai
                     return _value;
                 }
             }
-            private RfgVppStreamed m_root;
-            private RfgVppStreamed m_parent;
-            public RfgVppStreamed M_Root { get { return m_root; } }
-            public RfgVppStreamed M_Parent { get { return m_parent; } }
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory m_parent;
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory M_Parent { get { return m_parent; } }
+        }
+        public partial class EntryContent : KaitaiStruct
+        {
+            public static EntryContent FromFile(string fileName)
+            {
+                return new EntryContent(new KaitaiStream(fileName));
+            }
+
+            public EntryContent(KaitaiStream p__io, RfgVppInMemory.EntryData p__parent = null, RfgVppInMemory p__root = null) : base(p__io)
+            {
+                m_parent = p__parent;
+                m_root = p__root;
+                f_relativeOffsetAfter = false;
+                f_relativeOffsetBefore = false;
+                f_zlibHeader = false;
+                _read();
+            }
+            private void _read()
+            {
+                if (RelativeOffsetAfter > 0) {
+                    __unnamed0 = m_io.ReadBytes(0);
+                }
+                _file = m_io.ReadBytes(M_Parent.DataSize);
+                _padding = m_io.ReadBytes(M_Parent.PadSize);
+            }
+            private bool f_relativeOffsetAfter;
+            private int _relativeOffsetAfter;
+            public int RelativeOffsetAfter
+            {
+                get
+                {
+                    if (f_relativeOffsetAfter)
+                        return _relativeOffsetAfter;
+                    _relativeOffsetAfter = (int) (M_Parent.M_Io.Pos);
+                    f_relativeOffsetAfter = true;
+                    return _relativeOffsetAfter;
+                }
+            }
+            private bool f_relativeOffsetBefore;
+            private int _relativeOffsetBefore;
+            public int RelativeOffsetBefore
+            {
+                get
+                {
+                    if (f_relativeOffsetBefore)
+                        return _relativeOffsetBefore;
+                    _relativeOffsetBefore = (int) ((RelativeOffsetAfter - M_Parent.TotalSize));
+                    f_relativeOffsetBefore = true;
+                    return _relativeOffsetBefore;
+                }
+            }
+            private bool f_zlibHeader;
+            private Zlib _zlibHeader;
+            public Zlib ZlibHeader
+            {
+                get
+                {
+                    if (f_zlibHeader)
+                        return _zlibHeader;
+                    if ( ((M_Root.Header.Flags.Compressed) && (M_Root.Header.Flags.Condensed == false)) ) {
+                        long _pos = m_io.Pos;
+                        m_io.Seek(0);
+                        __raw_zlibHeader = m_io.ReadBytes(4);
+                        var io___raw_zlibHeader = new KaitaiStream(__raw_zlibHeader);
+                        _zlibHeader = new Zlib(io___raw_zlibHeader, this, m_root);
+                        m_io.Seek(_pos);
+                        f_zlibHeader = true;
+                    }
+                    return _zlibHeader;
+                }
+            }
+            private byte[] __unnamed0;
+            private byte[] _file;
+            private byte[] _padding;
+            private RfgVppInMemory m_root;
+            private RfgVppInMemory.EntryData m_parent;
+            private byte[] __raw_zlibHeader;
+            public byte[] Unnamed_0 { get { return __unnamed0; } }
+            public byte[] File { get { return _file; } }
+            public byte[] Padding { get { return _padding; } }
+            public RfgVppInMemory M_Root { get { return m_root; } }
+            public RfgVppInMemory.EntryData M_Parent { get { return m_parent; } }
+            public byte[] M_RawZlibHeader { get { return __raw_zlibHeader; } }
         }
         private bool f_blockOffset;
         private int _blockOffset;
@@ -791,7 +870,7 @@ namespace Kaitai
         private EntryNamesHolder _entryNames;
         private Align _padBeforeData;
         private byte[] __unnamed6;
-        private RfgVppStreamed m_root;
+        private RfgVppInMemory m_root;
         private KaitaiStruct m_parent;
         private byte[] __raw_entryNames;
         public HeaderBlock Header { get { return _header; } }
@@ -805,7 +884,7 @@ namespace Kaitai
         /// hack to remember current position
         /// </summary>
         public byte[] Unnamed_6 { get { return __unnamed6; } }
-        public RfgVppStreamed M_Root { get { return m_root; } }
+        public RfgVppInMemory M_Root { get { return m_root; } }
         public KaitaiStruct M_Parent { get { return m_parent; } }
         public byte[] M_RawEntryNames { get { return __raw_entryNames; } }
     }

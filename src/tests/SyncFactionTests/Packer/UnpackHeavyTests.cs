@@ -13,7 +13,7 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadData(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
@@ -39,7 +39,7 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestDataContents(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
@@ -75,7 +75,7 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestDataDecompress(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
@@ -92,7 +92,7 @@ public class UnpackHeavyTests
 
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
-            Func<byte[]> decompressAction = () => RfgVpp.DecompressZlib(entryData.Value.File, (int)entryData.XLenData, CancellationToken.None);
+            Func<byte[]> decompressAction = () => RfgVppInMemory.DecompressZlib(entryData.Value.File, (int)entryData.XLenData, CancellationToken.None);
             var decompressed = decompressAction.Should().NotThrow(entryData.ToString()).Subject;
             entryData.Value.File.Length.Should().Be((int)entryData.XLenCompressedData);
             decompressed.Length.Should().Be((int)entryData.XLenData);
@@ -104,7 +104,7 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestCompactDataDecompressBlob(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (!vpp.Header.Flags.Compressed || !vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("This file contains normal data");
@@ -158,7 +158,7 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestCompactDataDecompressOneByOne(FileInfo fileInfo)
     {
-        var vpp  = RfgVpp.FromFile(fileInfo.FullName);
+        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (!vpp.Header.Flags.Compressed || !vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("This file contains normal data");
@@ -208,7 +208,7 @@ public class UnpackHeavyTests
             Func<byte[]> readDataAction = () => ReadBytes(inputStream, (int)entry.LenData, CancellationToken.None);
             var data = readDataAction.Should().NotThrow(description).Subject;
             data.Length.Should().Be((int)entry.LenData, description);
-            var padLength = alignmentSize == 0 ? 0 : RfgVpp.GetPadSize(data.Length, 16, isLast);
+            var padLength = alignmentSize == 0 ? 0 : RfgVppInMemory.GetPadSize(data.Length, 16, isLast);
             Func<byte[]> readPadAction = () => ReadBytes(inputStream, padLength, CancellationToken.None);
             var pad = readPadAction.Should().NotThrow(description).Subject;
             pad.Length.Should().Be(padLength, description);
@@ -225,7 +225,7 @@ public class UnpackHeavyTests
     public static byte[] ReadBytes(Stream stream, int count, CancellationToken cancellationToken)
     {
         using var ms = new MemoryStream();
-        RfgVpp.CopyStream(stream, ms, count, cancellationToken);
+        RfgVppInMemory.CopyStream(stream, ms, count, cancellationToken);
         var result = ms.ToArray();
         if (result.Length != count)
         {

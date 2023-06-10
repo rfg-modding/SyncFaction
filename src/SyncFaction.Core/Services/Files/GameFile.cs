@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
+using System.Xml;
+using AngleSharp.Common;
 using Microsoft.Extensions.Logging;
 using SyncFaction.ModManager.Models;
 using SyncFaction.Packer;
@@ -287,98 +289,6 @@ public class GameFile
         FileInfo.Delete();
     }
 
-    public async Task<bool> ApplyFileMod(IFileInfo modFile, ILogger log, CancellationToken token)
-    {
-        if (!modFile.IsModContent())
-        {
-            return Skip(modFile, log);
-        }
-
-        var result = modFile.Extension.ToLowerInvariant() switch
-        {
-            ".xdelta" => await ApplyXdelta(modFile, log, token),
-            _ => ApplyNewFile(modFile, log),
-        };
-
-        FileInfo.Refresh();
-        return result;
-    }
-
-    public async Task<bool> ApplyVppDirectoryMod(IDirectoryInfo vppDir, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
-    {
-        var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
-        LogicalArchiveStreamed archive;
-        List<LogicalFileStreamed> logicalFiles;
-        await using (var src = FileInfo.OpenRead())
-        {
-            log.LogInformation("Unpacking {vpp}", NameExt);
-            archive = await vppArchiver.UnpackVpp(src, FileInfo.Name, token);
-            var usedKeys = new HashSet<string>();
-            var order = 0;
-
-            async IAsyncEnumerable<LogicalFileStreamed> WalkArchive()
-            {
-                // modifying stuff in ram while reading. do we have 2 copies now?
-                foreach (var logicalFile in archive.LogicalFiles)
-                {
-                    token.ThrowIfCancellationRequested();
-                    var key = logicalFile.Name;
-                    order = logicalFile.Order;
-                    if (modFiles.TryGetValue(key, out var modFile))
-                    {
-                        log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
-                        usedKeys.Add(key);
-                        var modSrc = modFile.OpenRead();
-                        yield return logicalFile with {Content = modSrc};
-                    }
-                    else
-                    {
-                        yield return logicalFile;
-                    }
-                }
-            }
-
-            logicalFiles = await WalkArchive().ToListAsync(token);
-            // append new files
-            var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(x => x);
-            foreach (var key in newFileKeys)
-            {
-                log.LogInformation("Adding file {file} in {vpp}", key, archive.Name);
-                order++;
-                var modFile = modFiles[key];
-                var modSrc = modFile.OpenRead();
-                logicalFiles.Add(new LogicalFileStreamed(modSrc, key, order, null));
-            }
-        }
-
-        // write
-        await using var dst = FileInfo.Open(FileMode.Truncate);
-        log.LogInformation("Packing {vpp}", NameExt);
-        await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
-        log.LogInformation("Finished with {vpp}", NameExt);
-        // GC magic!
-        logicalFiles.Clear();
-        GC.Collect();
-        return true;
-    }
-
-    public async Task<bool> ApplyModInfo(VppOperations vppOperations, IVppArchiver vppArchiver, ILogger log, CancellationToken token)
-    {
-        // NOTE: it's important to swap files first, then edit xml contents!
-        log.LogDebug("Operations to apply to {vpp}:", AbsolutePath);
-
-        foreach (var operation in vppOperations.FileSwaps)
-        {
-            log.LogDebug("swap [{key}] [{value}]", operation.Key, operation.Value.Target);
-        }
-        foreach (var operation in vppOperations.XmlEdits)
-        {
-            log.LogDebug("edit [{key}] [{value}]", operation.Key, operation.Value.Action);
-        }
-
-        return true;
-    }
-
     internal IFileInfo FileInfo { get; }
 
     private IGameStorage Storage { get; }
@@ -422,57 +332,8 @@ public class GameFile
         return relativeModPath;
     }
 
-    internal virtual bool Skip(IFileInfo modFile, ILogger log)
-    {
-        log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
-        return true;
-    }
-
-    internal virtual  bool ApplyNewFile(IFileInfo modFile, ILogger log)
-    {
-        EnsureDirectoriesCreated(FileInfo);
-        modFile.CopyTo(FileInfo.FullName, true);
-        log.LogInformation($"+ Copied `{modFile.Name}`");
-        return true;
-    }
-
     private void EnsureDirectoriesCreated(IFileInfo file)
     {
         file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
     }
-
-    internal virtual async Task<bool> ApplyXdelta(IFileInfo modFile, ILogger log, CancellationToken cancellationToken)
-    {
-        var dstFile = FileInfo;
-        if (dstFile.Exists)
-        {
-            dstFile.Delete();
-        }
-        var srcFile = FindBackup();
-        await using var srcStream = srcFile.OpenRead();
-        await using var patchStream = modFile.OpenRead();
-        await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
-
-        // TODO make it really async?
-        try
-        {
-            using var decoder = XdeltaFactory(srcStream, patchStream, dstStream);
-            // TODO log progress
-            decoder.ProgressChanged += progress => { cancellationToken.ThrowIfCancellationRequested(); };
-            decoder.Run();
-
-            log.LogInformation($"+ **Patched** `{modFile.Name}`");
-            return true;
-        }
-        catch (Exception e)
-        {
-            log.LogError(e, $"XDelta failed: [{srcFile.FullName}] + [{modFile.FullName}] -> [{dstFile.FullName}]");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// For tests
-    /// </summary>
-    internal Func<Stream, Stream, Stream,IXdelta> XdeltaFactory = (srcStream, patchStream, dstStream) => new XdeltaWrapper(srcStream, patchStream, dstStream);
 }

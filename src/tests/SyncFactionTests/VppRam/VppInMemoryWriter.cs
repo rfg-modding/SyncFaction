@@ -1,21 +1,21 @@
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using Kaitai;
+using SyncFaction.Packer;
 
-namespace SyncFaction.Packer;
+namespace SyncFactionTests.VppRam;
 
-public class VppWriterStreamed : IDisposable
+public class VppInMemoryWriter : IDisposable
 {
-    private readonly IList<LogicalFileStreamed> logicalFiles;
-    private readonly RfgVppStreamed.HeaderBlock.Mode mode;
-    private readonly LogicalArchiveStreamed logicalArchive;
+    private readonly IList<LogicalInMemoryFile> logicalFiles;
+    private readonly RfgVppInMemory.HeaderBlock.Mode mode;
+    private readonly LogicalInMemoryArchive logicalInMemoryArchive;
 
-    public VppWriterStreamed(LogicalArchiveStreamed logicalArchive)
+    public VppInMemoryWriter(LogicalInMemoryArchive logicalInMemoryArchive)
     {
-        this.logicalArchive = logicalArchive;
-        this.logicalFiles = logicalArchive.LogicalFiles.ToList(); // TODO optimize for streaming?
-        this.mode = logicalArchive.Mode;
+        this.logicalInMemoryArchive = logicalInMemoryArchive;
+        this.logicalFiles = logicalInMemoryArchive.LogicalFiles.ToList(); // TODO optimize for streaming?
+        this.mode = logicalInMemoryArchive.Mode;
     }
 
     public async Task WriteAll(Stream s, CancellationToken token)
@@ -45,10 +45,10 @@ public class VppWriterStreamed : IDisposable
 
         // this is only to get entries block size. offsets and sizes are not computed yet
         var fakeEntriesBlock = await GetEntries(token);
-        var entriesPad = RfgVppStreamed.GetPadSize(fakeEntriesBlock.LongLength, 2048, false);
+        var entriesPad = RfgVppInMemory.GetPadSize(fakeEntriesBlock.LongLength, 2048, false);
 
         var entryNamesBlock = await GetEntryNames(token);
-        var entryNamesPad = RfgVppStreamed.GetPadSize(entryNamesBlock.LongLength, 2048, false);
+        var entryNamesPad = RfgVppInMemory.GetPadSize(entryNamesBlock.LongLength, 2048, false);
 
         var entriesBlockSize = fakeEntriesBlock.Length + entriesPad;
         var entryNamesBlockSize = entryNamesBlock.Length + entryNamesPad;
@@ -81,7 +81,7 @@ public class VppWriterStreamed : IDisposable
             * compacted vpp (both flags, 16)
         */
 
-        var ext = Path.GetExtension(logicalArchive.Name).ToLower();
+        var ext = Path.GetExtension(logicalInMemoryArchive.Name).ToLower();
         // all str2 are the same
         if (ext == ".str2_pc")
         {
@@ -91,10 +91,10 @@ public class VppWriterStreamed : IDisposable
         // vpp can be different
         return mode switch
         {
-            RfgVppStreamed.HeaderBlock.Mode.Normal => await WriteDataInternal(s, false, false, 0, 2048, token),
-            RfgVppStreamed.HeaderBlock.Mode.Compressed => await WriteDataInternal(s, true, false, 9, 2048, token),
-            RfgVppStreamed.HeaderBlock.Mode.Compacted => await WriteDataInternal(s, false, true, 9, 16, token),
-            RfgVppStreamed.HeaderBlock.Mode.Condensed => throw new InvalidOperationException("Condensed-only mode is not present in vanilla files and is not supported"),
+            RfgVppInMemory.HeaderBlock.Mode.Normal => await WriteDataInternal(s, false, false, 0, 2048, token),
+            RfgVppInMemory.HeaderBlock.Mode.Compressed => await WriteDataInternal(s, true, false, 9, 2048, token),
+            RfgVppInMemory.HeaderBlock.Mode.Compacted => await WriteDataInternal(s, false, true, 9, 16, token),
+            RfgVppInMemory.HeaderBlock.Mode.Condensed => throw new InvalidOperationException("Condensed-only mode is not present in vanilla files and is not supported"),
         };
     }
 
@@ -126,7 +126,7 @@ public class VppWriterStreamed : IDisposable
                 }
                 else
                 {
-                    await WriteStream(output, logicalFile.Content, token);
+                    await Write(output, logicalFile.Content, token);
                     await output.FlushAsync(token);
                     offset += (uint)logicalFile.Content.Length;
                     if (compressOutput)
@@ -138,7 +138,7 @@ public class VppWriterStreamed : IDisposable
                 if (i < logicalFiles.Count - 1)
                 {
                     // align if not last entry
-                    var padSize = RfgVppStreamed.GetPadSize(offset, individualAlignment, false);
+                    var padSize = RfgVppInMemory.GetPadSize(offset, individualAlignment, false);
                     await WriteZeroes(output, padSize, token);
                     await output.FlushAsync(token);
                     offset += (uint) padSize;
@@ -170,9 +170,9 @@ public class VppWriterStreamed : IDisposable
                 throw new ArgumentOutOfRangeException(nameof(logicalFile), logicalFile.Name, $"Invalid name, expected meaningful string");
             }
 
-            if (string.IsNullOrWhiteSpace(logicalArchive.Name))
+            if (string.IsNullOrWhiteSpace(logicalInMemoryArchive.Name))
             {
-                throw new ArgumentOutOfRangeException(nameof(logicalFile), logicalArchive.Name, $"Invalid container name, expected meaningful string");
+                throw new ArgumentOutOfRangeException(nameof(logicalFile), logicalInMemoryArchive.Name, $"Invalid container name, expected meaningful string");
             }
 
             i++;
@@ -269,11 +269,6 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         return buffer;
     }
 
-    private async Task WriteStream(Stream stream, Stream src, CancellationToken token)
-    {
-        await src.CopyToAsync(stream, token);
-    }
-
     private async Task Write(Stream stream, byte[] value, CancellationToken token)
     {
         await stream.WriteAsync(value, token);
@@ -315,10 +310,10 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         return destination;
     }
 
-    private static async Task CompressZlib(Stream src, int compressionLevel, Stream destinationStream, CancellationToken token)
+    private static async Task CompressZlib(byte[] data, int compressionLevel, Stream destinationStream, CancellationToken token)
     {
         await using var deflater = new DeflaterOutputStream(destinationStream, new Deflater(compressionLevel)) {IsStreamOwner = false};
-        await src.CopyToAsync(deflater, token);
+        await deflater.WriteAsync(data, token);
     }
 
     public static byte[] CircularHash(string input)
