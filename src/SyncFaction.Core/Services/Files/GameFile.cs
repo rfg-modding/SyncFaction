@@ -49,7 +49,7 @@ public class GameFile
     public string RelativePath => FileInfo.FileSystem.Path.GetRelativePath(Storage.Game.FullName, FileInfo.FullName);
 
     /// <summary>
-    /// Full name to file, useful for reading/writing/moving
+    /// Full name of file, useful for reading/writing/moving
     /// </summary>
     [ExcludeFromCodeCoverage]
     public string AbsolutePath => FileInfo.FullName;
@@ -125,6 +125,21 @@ public class GameFile
         }
 
         return GetVanillaBackupLocation();
+    }
+
+    /// <summary>
+    /// Get temp file, eg "/data/foo.vpp.tmp". File should not exist!
+    /// </summary>
+    public IFileInfo GetTmpFile()
+    {
+        var tmpName = NameExt + ".tmp";
+        var fullPath = FileInfo.FileSystem.Path.Join(FileInfo.Directory.FullName, tmpName);
+        var fileInfo = FileInfo.FileSystem.FileInfo.New(fullPath);
+        if (fileInfo.Exists)
+        {
+            throw new InvalidOperationException($"Tmp file [{fullPath}] already exists");
+        }
+        return fileInfo;
     }
 
     public bool Exists => FileInfo.Exists;

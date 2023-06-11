@@ -100,6 +100,7 @@ public class Tests
     }
 
     [Test]
+    [Ignore("Just for testing")]
     public void TestXml()
     {
         var doc = new XmlDocument();

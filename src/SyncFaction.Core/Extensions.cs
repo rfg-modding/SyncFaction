@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
+using System.Text;
+using System.Xml;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Data;
 
@@ -43,4 +45,28 @@ public static class Extensions
             yield return item;
         }
     }
+
+    /// <summary>
+    /// Writes xmldoc without declaration to a memory stream. Stream is kept open and rewound to begin
+    /// </summary>
+    public static MemoryStream SerializeToMemoryStream(this XmlDocument document)
+    {
+        var ms = new MemoryStream();
+        using (var tw = XmlWriter.Create(ms, new XmlWriterSettings()
+               {
+                   CloseOutput = false,
+                   Indent = true,
+                   Encoding = Utf8NoBom,
+                   OmitXmlDeclaration = true
+               }))
+        {
+            document.WriteTo(tw);
+        }
+        //document.Save(ms);
+
+        ms.Seek(0, SeekOrigin.Begin);
+        return ms;
+    }
+
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
 }

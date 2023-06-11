@@ -91,6 +91,7 @@ Or how to get this branch closer to release and not burn out:
   * write to tmp, then delete src and rename tmp to src
   * file add/replace logic should be the same for folder and modinfo mods
   * implement LIST_ACTIONs from MM decompiled logic
+  * restore vpp files from backup
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
@@ -112,6 +113,13 @@ Or how to get this branch closer to release and not burn out:
   * rollback if hashlist check failed? need to do something here
   * remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing
   * instruct users to copy-paste to help troubleshoot
+9. optional compatibility toggle
+  * separate button or a checkbox to run game with recommended settings
+  * edit %APPDATA%\kaiko\rfg\config.ini and set windows_mode=2 (exclusive fullscreen)
+  * find a way to set up windows compatibility settings for game exe
+    * registry?
+    * bat file?
+    * create .lnk and edit it programmatically?
 
 Things to do after test release:
 

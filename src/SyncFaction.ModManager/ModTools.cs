@@ -103,7 +103,7 @@ public class ModTools
     public ModInfoOperations BuildOperations(ModInfo modInfo)
     {
         // ApplyUserInput is expected to be called before, we expect actual state here
-        // not using FileUserInput because they are be copied to File already, same with NewFile
+        // not using FileUserInput because they are copied to File already, same with NewFile
 
         // map relative paths "foo/bar.xtbl" to FileInfo
         var fs = modInfo.WorkDir.FileSystem;
@@ -242,7 +242,7 @@ public class ModTools
         COMBINE_BY_FIELD:Name,Unique_ID
         COMBINE_BY_FIELD:Name,_Editor\Category
         REPLACE
-        nothing specified, meaning it's default action, like <Edit File="...">
+        nothing specified == CopyNodeToTargetIfNeeded
 
     NOTES
         * MM uses xtbl.root.Table as starting element

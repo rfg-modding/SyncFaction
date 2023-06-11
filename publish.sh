@@ -1,5 +1,5 @@
 # /bin/bash -ex
 rm -rf publish
-dotnet clean
-dotnet test || exit 1
-dotnet publish SyncFaction -o publish
+dotnet clean src
+dotnet test src || exit 1
+dotnet publish src/SyncFaction -o publish

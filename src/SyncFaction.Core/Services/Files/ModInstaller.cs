@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.IO.Abstractions;
+using System.Text;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using SyncFaction.ModManager;
@@ -144,21 +146,33 @@ public class ModInstaller : IModInstaller
 
     public async Task<bool> ApplyModInfo(GameFile gameFile, VppOperations vppOperations, CancellationToken token)
     {
-        await using var src = gameFile.FileInfo.OpenRead();
-        var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
-        var disposables = new List<IDisposable>();
-        try
+        var tmpFile = gameFile.GetTmpFile();
+        await using (var src = gameFile.FileInfo.OpenRead())
         {
-            var logicalFiles = archive.LogicalFiles.Select(x => ApplyPatches(x, vppOperations, disposables, token));
-        }
-
-        finally
-        {
-            foreach (var disposable in disposables)
+            var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
+            var disposables = new List<IDisposable>();
+            try
             {
-                disposable.Dispose();
+                var logicalFiles = archive.LogicalFiles.Select(x => ApplyPatches(x, vppOperations, disposables, token));
+
+                await using (var dst = tmpFile.OpenWrite())
+                {
+                    await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
+                }
+
+            }
+
+            finally
+            {
+                foreach (var disposable in disposables)
+                {
+                    disposable.Dispose();
+                }
             }
         }
+        tmpFile.Refresh();
+        tmpFile.MoveTo(gameFile.AbsolutePath, true);
+        log.LogInformation("Patched xmls inside [{file}]", gameFile.RelativePath);
 
         return true;
     }
@@ -168,30 +182,31 @@ public class ModInstaller : IModInstaller
         file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
     }
 
-    private LogicalFile ApplyPatches(LogicalFile logicalFile, VppOperations vppOperations, List<IDisposable> disposables, CancellationToken token)
+    private LogicalFile ApplyPatches(LogicalFile file, VppOperations vppOperations, List<IDisposable> disposables, CancellationToken token)
     {
-        var result = logicalFile;
         // NOTE: it's important to swap files first, then edit xml contents!
-        if (vppOperations.FileSwaps.TryGetValue(logicalFile.Name, out var swap))
+        if (vppOperations.FileSwaps.TryGetValue(file.Name, out var swap))
         {
-            log.LogDebug("swap [{key}] [{value}]", logicalFile.Name, swap.Target);
+            log.LogDebug("swap [{key}] [{value}]", file.Name, swap.Target);
             var stream = swap.Target.OpenRead();
             disposables.Add(stream);
-            result = logicalFile with {Content = stream};
+            file = file with {Content = stream};
         }
 
-        if (vppOperations.XmlEdits.TryGetValue(logicalFile.Name, out var edit))
+        if (vppOperations.XmlEdits.TryGetValue(file.Name, out var edit))
         {
-            if (!logicalFile.Name.ToLowerInvariant().EndsWith(".xtbl"))
+            var ext = file.Name.Split(".").Last().ToLowerInvariant();
+            if (!KnownXmlExtensions.Contains(ext))
             {
-                throw new InvalidOperationException($"Can not edit file [{logicalFile.Name}]. Only .xtbl files are supported.");
+                var extList = string.Join(", ", KnownXmlExtensions);
+                throw new InvalidOperationException($"Can not edit file [{file.Name}]. Supported file extensions: [{extList}]");
             }
 
-            log.LogDebug("edit [{key}] [{value}]", logicalFile.Name, edit.Action);
+            log.LogDebug("edit [{key}] [{value}]", file.Name, edit.Action);
             // TODO mess with contents, rewind resulting stream
             // TODO move this to ModTools?
             var gameXml = new XmlDocument();
-            gameXml.Load(logicalFile.Content);
+            gameXml.Load(file.Content);
             var xtblRoot = gameXml["root"]?["Table"];
             if (xtblRoot is null)
             {
@@ -210,22 +225,34 @@ public class ModInstaller : IModInstaller
                     ImportNodes(edit.Xml, xtblRoot);
                     break;
                 case ListAction.CombineByField:
-                    var criteria = edit.Action.Substring("combine_by_attribute:".Length);
+                    var criteria = edit.Action.Substring("combine_by_field:".Length);
                     foreach (var editChild in edit.Xml)
                     {
                         var matcher = CreateSubnodeValueMatcher(criteria, editChild);
                         CopyNodesToTargetIfMatched(editChild, xtblRoot, matcher);
                     }
-
-
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            var ms = gameXml.SerializeToMemoryStream();
+            disposables.Add(ms);
+            file = file with {Content = ms};
         }
 
-        return result;
+        return file;
     }
+
+    private static readonly ImmutableHashSet<string> KnownXmlExtensions = new HashSet<string>()
+    {
+        "xtbl",
+        "dtdox",
+        "gtodx"
+    }.ToImmutableHashSet();
+
+
+
 
     private void ImportNodes(List<XmlNode> nodes, XmlElement target)
     {
@@ -269,10 +296,12 @@ public class ModInstaller : IModInstaller
             case XmlNodeType.Element:
                 // use existing or create new
                 var newTarget = target[source.LocalName] ?? target.AppendChild(target.OwnerDocument.CreateElement(source.LocalName));
-                CopyNodeToTargetIfNeeded(source, newTarget);
+                foreach (var sourceChildNode in source.ChildNodes)
+                {
+                    CopyNodeToTargetIfNeeded(sourceChildNode as XmlNode, newTarget);
+                }
                 break;
             case XmlNodeType.Text:
-
                 SetNodeXmlTextValue(target, source.InnerText);
                 break;
         }

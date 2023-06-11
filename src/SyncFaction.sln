@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Extras", "SyncF
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.ModManager", "SyncFaction.ModManager\SyncFaction.ModManager.csproj", "{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncFaction.Toolbox", "SyncFaction.Toolbox\SyncFaction.Toolbox.csproj", "{D9028B15-8930-498B-BB49-EC89D4360FA5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{39075B9A-BC4B-47F2-B373-2ECD6CC0FCF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9028B15-8930-498B-BB49-EC89D4360FA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9028B15-8930-498B-BB49-EC89D4360FA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9028B15-8930-498B-BB49-EC89D4360FA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9028B15-8930-498B-BB49-EC89D4360FA5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8AD4F5F6-9B3F-47EC-8698-5031FA41FFA9} = {7508381C-935E-4E20-A310-1C550289A13C}
