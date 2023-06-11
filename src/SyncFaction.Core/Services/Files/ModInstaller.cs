@@ -236,8 +236,9 @@ public class ModInstaller : IModInstaller
                     throw new ArgumentOutOfRangeException();
             }
 
-            var ms = gameXml.SerializeToMemoryStream();
+            var ms = new MemoryStream();
             disposables.Add(ms);
+            gameXml.SerializeToMemoryStream(ms);
             file = file with {Content = ms};
         }
 

@@ -49,9 +49,8 @@ public static class Extensions
     /// <summary>
     /// Writes xmldoc without declaration to a memory stream. Stream is kept open and rewound to begin
     /// </summary>
-    public static MemoryStream SerializeToMemoryStream(this XmlDocument document)
+    public static void SerializeToMemoryStream(this XmlDocument document, MemoryStream ms)
     {
-        var ms = new MemoryStream();
         using (var tw = XmlWriter.Create(ms, new XmlWriterSettings()
                {
                    CloseOutput = false,
@@ -65,7 +64,6 @@ public static class Extensions
         //document.Save(ms);
 
         ms.Seek(0, SeekOrigin.Begin);
-        return ms;
     }
 
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);

@@ -17,6 +17,17 @@ public class Replace : IChange
     [XmlAttribute]
     public string NewFileUserInput { get; set; }
 
+    public IChange Clone()
+    {
+        return new Replace()
+        {
+            File = File,
+            NewFile = NewFile,
+            FileUserInput = FileUserInput,
+            NewFileUserInput = NewFileUserInput
+        };
+    }
+
     public void ApplyUserInput(Dictionary<string, XmlNode> selectedValues)
     {
         if (!string.IsNullOrEmpty(FileUserInput))

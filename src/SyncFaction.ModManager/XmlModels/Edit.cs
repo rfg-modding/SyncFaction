@@ -29,7 +29,17 @@ public class Edit : HasNestedXml, IChange
         }
     }
 
-	/// <summary>
+    public IChange Clone()
+    {
+        return new Edit()
+        {
+            File = File,
+            LIST_ACTION = LIST_ACTION,
+            NestedXml = NestedXml.Select(x => x.Clone()).ToList()
+        };
+    }
+
+    /// <summary>
 	/// Append to all nested "user_input" tags corresponding selected values
 	/// </summary>
     private static void InsertUserEditValuesRecursive(XmlNode node, Dictionary<string, XmlNode> selectedValues)

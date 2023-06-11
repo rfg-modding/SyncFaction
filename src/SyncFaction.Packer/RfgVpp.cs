@@ -70,9 +70,8 @@ public partial class RfgVpp
     }
 
     /// <summary>
-    /// Decompress solid entries block
+    /// Decompress solid entries block. Since writer will need to read data twice (to compute length and then actually read content), we copy non-seekable InflaterInputStream to memory
     /// </summary>
-    /// <param name="token"></param>
     public void ReadCompactedData(CancellationToken token)
     {
         var alignment = DetectAlignmentSize(token);
@@ -84,9 +83,18 @@ public partial class RfgVpp
         var fileLength = rootStream.Length;
         var blockLength = fileLength - blockOffset;
         var compressedStream = new StreamView(rootStream, blockOffset, blockLength);
-        var inflaterStream = new InflaterInputStream(compressedStream);
+        using var inflaterStream = new InflaterInputStream(compressedStream);
         var decompressedLength = Header.LenData;
-        var view = new StreamView(inflaterStream, 0, decompressedLength);
+        using var tmpView = new StreamView(inflaterStream, 0, decompressedLength);
+        var ms = new MemoryStream();
+        tmpView.CopyTo(ms);
+        ms.Seek(0, SeekOrigin.Begin);
+
+        if (ms.Length != decompressedLength)
+        {
+            throw new InvalidOperationException($"Actual decompressed length {ms.Length} is not equal to expected {decompressedLength}");
+        }
+        var view = new StreamView(ms, 0, decompressedLength);
         Header.Flags.OverrideFlagsNone();
         foreach (var entryData in BlockEntryData.Value)
         {

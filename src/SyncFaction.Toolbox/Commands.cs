@@ -86,7 +86,8 @@ public class Commands
             // reformat original xml for readability
             var xml = new XmlDocument();
             xml.Load(logicalFile.Content);
-            using var ms = xml.SerializeToMemoryStream();
+            using var ms = new MemoryStream();
+            xml.SerializeToMemoryStream(ms);
             await ms.CopyToAsync(fileStream, token);
         }
         else

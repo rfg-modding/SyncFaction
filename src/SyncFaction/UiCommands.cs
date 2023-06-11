@@ -322,8 +322,7 @@ public class UiCommands
         }
 
         await using var s = xmlFile.OpenRead();
-        var modInfo = modTools.LoadFromXml(s);
-        modInfo.WorkDir = xmlFile.Directory;
+        var modInfo = modTools.LoadFromXml(s, xmlFile.Directory);
         modTools.CopySameOptions(modInfo);
         if (settings.Mods.TryGetValue(mod.Id, out var modSettings))
         {

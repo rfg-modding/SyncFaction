@@ -25,18 +25,57 @@ public class ModTools
 	};
 
 
-	public ModInfo LoadFromXml(Stream stream)
+	public ModInfo LoadFromXml(Stream stream, IDirectoryInfo xmlFileDirectory)
 	{
 		using var reader = XmlReader.Create(stream, Settings);
 		var serializer = new XmlSerializer(typeof(ModInfo));
-		return (ModInfo) serializer.Deserialize(reader)!;
+/*
+    TODO: if a mod edits misc.vpp or table.vpp, add edits for second file. only for XTBL edits/replacements!
+*/
+        var modInfo = (ModInfo) serializer.Deserialize(reader)!;
+        modInfo.WorkDir = xmlFileDirectory;
+        MirrorMiscTableChanges(modInfo);
+        return modInfo;
 	}
+
+    private void MirrorMiscTableChanges(ModInfo modInfo)
+    {
+        var fs = modInfo.WorkDir.FileSystem;
+        var mirroredChanges = new List<IChange>();
+        foreach (var change in modInfo.Changes)
+        {
+            var vppPaths = GetPaths(fs, change.File);
+            if (!vppPaths.File.EndsWith(".xtbl"))
+            {
+                continue;
+            }
+
+            var mirror = vppPaths.Archive.Replace('\\', '/') switch
+            {
+                "data/misc.vpp_pc" => "data/table.vpp_pc",
+                "data/table.vpp_pc" => "data/misc.vpp_pc",
+                _ => null
+            };
+            if (mirror is null)
+            {
+                continue;
+            }
+
+            var mirrorChange = change.Clone();
+            mirrorChange.File = fs.Path.Combine(mirror, vppPaths.File);
+            mirroredChanges.Add(mirrorChange);
+        }
+        modInfo.Changes.AddRange(mirroredChanges);
+
+    }
 
 	public void ApplyUserInput(ModInfo modInfo)
 	{
-		var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue);
+
 		foreach (var change in modInfo.Changes)
 		{
+            // NOTE: cloning values for every input because they are altered during merge
+            var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue.Clone());
 			change.ApplyUserInput(selectedValues);
 		}
 	}
@@ -102,7 +141,7 @@ public class ModTools
 
     public ModInfoOperations BuildOperations(ModInfo modInfo)
     {
-        // ApplyUserInput is expected to be called before, we expect actual state here
+        // ApplyUserInput is expected to be called prior to this. We expect actual state here
         // not using FileUserInput because they are copied to File already, same with NewFile
 
         // map relative paths "foo/bar.xtbl" to FileInfo
