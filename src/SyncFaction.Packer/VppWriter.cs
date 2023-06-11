@@ -249,14 +249,13 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         /*
             NOTE: file length is set to 0xFFFFFF for very large archives
         */
+        var build = "yyyy-MM-dd HH:mm"; // TODO use generated build time
         var buffer = new byte[2048];
         await using var ms = new MemoryStream(buffer);
         await Write(ms, HeaderMagic, token);
         await Write(ms, HeaderVersion, token);
-        //await WriteString(ms, Title.Value, 65);
-        //await WriteString(ms, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis fermentum, sem tristique finibus ultrices, massa dui facilisis ante, in finibus mauris urna eu justo. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Vestibulum ac malesuada enim, ut euismod integer.", 256);
-        await WriteString(ms, "", 65, token);
-        await WriteString(ms, "", 256, token);
+        await WriteString(ms, "            Packed           with         SyncFaction            ", 65, token);
+        await WriteString(ms, $"           code by           rast         specs  by         moneyl       parsed with      kaitai.io         build      {build}                                    Read The         Martian     Chronicles from  Ray Bradbury.   I liked them.         ", 256, token);
         await WriteZeroes(ms, 3, token);
         await Write(ms, new byte[] {(byte) mode, 0, 0, 0}, token);
         await WriteZeroes(ms, 4, token);
