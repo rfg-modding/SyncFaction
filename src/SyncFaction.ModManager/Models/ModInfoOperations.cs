@@ -19,9 +19,8 @@ public record ModInfoOperations(IReadOnlyList<FileSwapOperation> FileSwaps, IRea
 
         return allArchives.ToDictionary(v => v, v =>
         {
-            // TODO support multiple sequential edits for a given file?
-            var sw = swaps[v].ToImmutableDictionary(x => x.VppPath.File);
-            var ed = edits[v].ToImmutableDictionary(x => x.VppPath.File);
+            var sw = swaps[v].ToLookup(x => x.VppPath.File);
+            var ed = edits[v].ToLookup(x => x.VppPath.File);
             return new VppOperations(sw, ed);
         });
     }

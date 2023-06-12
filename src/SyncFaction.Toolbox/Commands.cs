@@ -16,7 +16,7 @@ public class Commands
         this.log = log;
     }
 
-    public async Task Unpack(FileInfo archive, DirectoryInfo dir, bool force, CancellationToken token)
+    public async Task Unpack(FileInfo archive, DirectoryInfo dir, bool xmlFormat, bool force, CancellationToken token)
     {
         log.LogInformation("Unpacking [{archive}] to [{dir}]", archive.FullName, dir.FullName);
 
@@ -49,11 +49,25 @@ public class Commands
             {
                 throw new InvalidOperationException($"File [{file.FullName}] exists, can not unpack. Duplicate entries in archive?");
             }
+
+            //await using var fileStream = file.OpenWrite();
+            //await logicalFile.Content.CopyToAsync(fileStream, token);
             await using var fileStream = file.OpenWrite();
-            await logicalFile.Content.CopyToAsync(fileStream, token);
+            if (xmlFormat && logicalFile.Name.ToLowerInvariant().EndsWith(".xtbl"))
+            {
+                // reformat original xml for readability
+                var xml = new XmlDocument();
+                using var reader = new StreamReader(logicalFile.Content);
+                xml.Load(reader);
+                using var ms = new MemoryStream();
+                xml.SerializeToMemoryStream(ms);
+                await ms.CopyToAsync(fileStream, token);
+            }
+            else
+            {
+                await logicalFile.Content.CopyToAsync(fileStream, token);
+            }
         }
-
-
     }
 
     public async Task Get(FileInfo archive, string fileName, FileInfo output, bool xmlFormat, bool force, CancellationToken token)
@@ -85,7 +99,8 @@ public class Commands
         {
             // reformat original xml for readability
             var xml = new XmlDocument();
-            xml.Load(logicalFile.Content);
+            using var reader = new StreamReader(logicalFile.Content);
+            xml.Load(reader);
             using var ms = new MemoryStream();
             xml.SerializeToMemoryStream(ms);
             await ms.CopyToAsync(fileStream, token);

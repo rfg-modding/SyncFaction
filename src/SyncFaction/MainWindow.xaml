@@ -40,6 +40,7 @@
                                 <TextBlock Text="by "></TextBlock>
                                 <TextBlock Text="{Binding Author}"></TextBlock>
                             </StackPanel>
+                            <TextBlock Text="{Binding Description}"></TextBlock>
                             <StackPanel Orientation="Horizontal" Visibility="{Binding WebLink.XmlText, Converter={StaticResource EmptyStringCollapseConverter}, FallbackValue=Collapsed}">
                                 <TextBlock Text="see on "></TextBlock>
                                 <TextBlock>

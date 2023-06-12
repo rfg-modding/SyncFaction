@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace SyncFaction.ModManager.Models;
 
-public record VppOperations(IImmutableDictionary<string, FileSwapOperation> FileSwaps, IImmutableDictionary<string, XmlEditOperation> XmlEdits);
+public record VppOperations(ILookup<string, FileSwapOperation> FileSwaps, ILookup<string, XmlEditOperation> XmlEdits);

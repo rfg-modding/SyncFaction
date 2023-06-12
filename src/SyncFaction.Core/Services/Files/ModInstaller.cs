@@ -92,59 +92,74 @@ public class ModInstaller : IModInstaller
     public async Task<bool> ApplyVppDirectoryMod(GameFile gameFile, IDirectoryInfo vppDir, CancellationToken token)
     {
         var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
-        LogicalArchive archive;
-        List<LogicalFile> logicalFiles;
+
+        var tmpFile = gameFile.GetTmpFile();
         await using (var src = gameFile.FileInfo.OpenRead())
         {
-            log.LogInformation("Unpacking {vpp}", gameFile.NameExt);
-            archive = await vppArchiver.UnpackVpp(src, gameFile.FileInfo.Name, token);
-            var usedKeys = new HashSet<string>();
-            var order = 0;
-
-            async IAsyncEnumerable<LogicalFile> WalkArchive()
+            var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
+            var disposables = new List<IDisposable>();
+            try
             {
-                // modifying stuff in ram while reading. do we have 2 copies now?
-                foreach (var logicalFile in archive.LogicalFiles)
+                var usedKeys = new HashSet<string>();
+                var order = 0;
+
+                IEnumerable<LogicalFile> WalkArchive()
                 {
-                    token.ThrowIfCancellationRequested();
-                    var key = logicalFile.Name;
-                    order = logicalFile.Order;
-                    if (modFiles.TryGetValue(key, out var modFile))
+                    // modifying stuff in ram while reading. do we have 2 copies now?
+                    foreach (var logicalFile in archive.LogicalFiles)
                     {
-                        log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
-                        usedKeys.Add(key);
-                        var modSrc = modFile.OpenRead();
-                        yield return logicalFile with {Content = modSrc, CompressedContent = null};
-                    }
-                    else
-                    {
-                        yield return logicalFile;
+                        token.ThrowIfCancellationRequested();
+                        var key = logicalFile.Name;
+                        order = logicalFile.Order;
+                        if (modFiles.TryGetValue(key, out var modFile))
+                        {
+                            log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
+                            usedKeys.Add(key);
+                            var modSrc = modFile.OpenRead();
+                            disposables.Add(modSrc);
+                            yield return logicalFile with {Content = modSrc, CompressedContent = null};
+                        }
+                        else
+                        {
+                            yield return logicalFile;
+                        }
                     }
                 }
+
+                var logicalFiles = WalkArchive().ToList();
+
+                // append new files
+                var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(x => x);
+                foreach (var key in newFileKeys)
+                {
+                    log.LogInformation("Adding file {file} in {vpp}", key, archive.Name);
+                    order++;
+                    var modFile = modFiles[key];
+                    var modSrc = modFile.OpenRead();
+                    disposables.Add(modSrc);
+                    logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
+                }
+                await using (var dst = tmpFile.OpenWrite())
+                {
+                    await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
+                }
+
             }
 
-            logicalFiles = await WalkArchive().ToListAsync(token);
-            // append new files
-            var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(x => x);
-            foreach (var key in newFileKeys)
+            finally
             {
-                log.LogInformation("Adding file {file} in {vpp}", key, archive.Name);
-                order++;
-                var modFile = modFiles[key];
-                var modSrc = modFile.OpenRead();
-                logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
+                foreach (var disposable in disposables)
+                {
+                    disposable.Dispose();
+                }
             }
         }
+        tmpFile.Refresh();
+        tmpFile.MoveTo(gameFile.AbsolutePath, true);
+        log.LogInformation("Patched files inside [{file}]", gameFile.RelativePath);
 
-        // write
-        await using var dst = gameFile.FileInfo.Open(FileMode.Truncate);
-        log.LogInformation("Packing {vpp}", gameFile.NameExt);
-        await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
-        log.LogInformation("Finished with {vpp}", gameFile.NameExt);
-        // GC magic!
-        logicalFiles.Clear();
-        GC.Collect();
         return true;
+
     }
 
     public async Task<bool> ApplyModInfo(GameFile gameFile, VppOperations vppOperations, CancellationToken token)
@@ -188,7 +203,8 @@ public class ModInstaller : IModInstaller
     private LogicalFile ApplyPatches(LogicalFile file, VppOperations vppOperations, List<IDisposable> disposables, CancellationToken token)
     {
         // NOTE: it's important to swap files first, then edit xml contents!
-        if (vppOperations.FileSwaps.TryGetValue(file.Name, out var swap))
+        var swaps = vppOperations.FileSwaps[file.Name];
+        foreach (var swap in swaps)
         {
             log.LogDebug("swap [{key}] [{value}]", file.Name, swap.Target);
             var stream = swap.Target.OpenRead();
@@ -196,7 +212,8 @@ public class ModInstaller : IModInstaller
             file = file with {Content = stream, CompressedContent = null};
         }
 
-        if (vppOperations.XmlEdits.TryGetValue(file.Name, out var edit))
+        var edits = vppOperations.XmlEdits[file.Name];
+        foreach (var edit in edits)
         {
             var ext = file.Name.Split(".").Last().ToLowerInvariant();
             if (!KnownXmlExtensions.Contains(ext))
@@ -209,7 +226,9 @@ public class ModInstaller : IModInstaller
             // TODO mess with contents, rewind resulting stream
             // TODO move this to ModTools?
             var gameXml = new XmlDocument();
-            gameXml.Load(file.Content);
+            // NOTE: StreamReader handles unicode properly
+            using var reader = new StreamReader(file.Content);
+            gameXml.Load(reader);
             var xtblRoot = gameXml["root"]?["Table"];
             if (xtblRoot is null)
             {

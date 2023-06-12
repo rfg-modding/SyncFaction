@@ -15,6 +15,7 @@ public class Unpack : Command
     {
         AddArgument(archiveArg);
         AddArgument(new Argument<DirectoryInfo>("dir", ParseDir, true, "output path (archive's directory by default)"));
+        AddOption(new Option<bool>(new[] {"-x", "--xml-format"}, "format xml files"));
         AddOption(new Option<bool>(new[] {"-f", "--force"}, "overwrite output if exists"));
         //AddOption(new Option<bool>(new[] {"-r", "--recursive"}, "unpack str2 files too")); TODO
         ////AddOption(new Option<bool>(new[] {"-m", "--metadata"}, "write _metadata.json file with archive information")); TODO
@@ -33,10 +34,10 @@ public class Unpack : Command
         return new DirectoryInfo(path);
     }
 
-    private async Task<int> Handle(FileInfo archive, DirectoryInfo dir, bool force, InvocationContext context, CancellationToken token)
+    private async Task<int> Handle(FileInfo archive, DirectoryInfo dir, bool xmlFormat, bool force, InvocationContext context, CancellationToken token)
     {
         var archiver = context.GetHost().Services.GetRequiredService<Commands>();
-        await archiver.Unpack(archive, dir, force, token);
+        await archiver.Unpack(archive, dir, xmlFormat, force, token);
         return 0;
     }
 }
