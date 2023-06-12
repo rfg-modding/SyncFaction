@@ -814,87 +814,69 @@ public class GameFileTests
         Read(gf.FileInfo).Should().Be(ModData);
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task ApplyXdelta_VanillaBakExists_OverwritesFromVanilla(bool srcExists)
+    [Test]
+    public async Task ApplyXdelta_VanillaBakExists_UsesCurrentFile()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
         var fakeXdeltaFactory = new FakeXdeltaFactory();
         var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
-        if (srcExists)
-        {
-            Write(gf.AbsolutePath, DirtyData);
-            gf.FileInfo.Refresh();
-        }
+        Write(gf.AbsolutePath, DirtyData);
+        gf.FileInfo.Refresh();
         Write(gf.GetVanillaBackupLocation().FullName, VanillaData);
         Write(modFile.FullName, ModData);
 
         await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
-        Read(gf.FileInfo).Should().Be(VanillaData + ModData);
+        Read(gf.FileInfo).Should().Be(DirtyData + ModData);
         fakeXdeltaFactory.instance!.disposed.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task ApplyXdelta_PatchBakExists_OverwritesFromPatch(bool srcExists)
+    [Test]
+    public async Task ApplyXdelta_PatchBakExists_UsesCurrentFile()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
         var fakeXdeltaFactory = new FakeXdeltaFactory();
         var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
-        if (srcExists)
-        {
-            Write(gf.AbsolutePath, DirtyData);
-            gf.FileInfo.Refresh();
-        }
+        Write(gf.AbsolutePath, DirtyData);
+        gf.FileInfo.Refresh();
         Write(gf.GetPatchBackupLocation().FullName, PatchData);
         Write(modFile.FullName, ModData);
 
         await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
-        Read(gf.FileInfo).Should().Be(PatchData + ModData);
+        Read(gf.FileInfo).Should().Be(DirtyData + ModData);
         fakeXdeltaFactory.instance.disposed.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task ApplyXdelta_BothBakExist_OverwritesFromPatch(bool srcExists)
+    [Test]
+    public async Task ApplyXdelta_BothBakExist_UsesCurrentFile()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
         var fakeXdeltaFactory = new FakeXdeltaFactory();
         var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
-        if (srcExists)
-        {
-            Write(gf.AbsolutePath, DirtyData);
-            gf.FileInfo.Refresh();
-        }
+        Write(gf.AbsolutePath, DirtyData);
+        gf.FileInfo.Refresh();
         Write(gf.GetVanillaBackupLocation().FullName, VanillaData);
         Write(gf.GetPatchBackupLocation().FullName, PatchData);
         Write(modFile.FullName, ModData);
 
         await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
-        Read(gf.FileInfo).Should().Be(PatchData + ModData);
+        Read(gf.FileInfo).Should().Be(DirtyData + ModData);
         fakeXdeltaFactory.instance!.disposed.Should().BeTrue();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task ApplyXdelta_NoBakExists_Throws(bool srcExists)
+    [Test]
+    public async Task ApplyXdelta_NoFileExists_Throws()
     {
         FakeXdeltaConcat? fakeXdelta = null;
         var gf = new GameFile(Storage, "test", fileSystem);
         var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
-        if (srcExists)
-        {
-            Write(gf.AbsolutePath, DirtyData);
-            gf.FileInfo.Refresh();
-        }
         Write(modFile.FullName, ModData);
 
         Func<Task> action = async () => await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
@@ -902,20 +884,16 @@ public class GameFileTests
         await action.Should().ThrowAsync<FileNotFoundException>();
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task ApplyXdelta_Canceled_Throws(bool srcExists)
+    [Test]
+    public async Task ApplyXdelta_Canceled_Throws()
     {
         FakeXdeltaConcat? fakeXdelta = null;
         var gf = new GameFile(Storage, "test", fileSystem);
         var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
-        if (srcExists)
-        {
-            Write(gf.AbsolutePath, DirtyData);
-            gf.FileInfo.Refresh();
-        }
+        Write(gf.AbsolutePath, DirtyData);
+        gf.FileInfo.Refresh();
         Write(gf.GetVanillaBackupLocation().FullName, VanillaData);
         Write(modFile.FullName, ModData);
 

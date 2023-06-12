@@ -119,8 +119,15 @@ public class VppWriter : IDisposable
                 var posBefore = output.Position;
                 if (compressIndividual)
                 {
+                    if (logicalFile.CompressedContent is null)
+                    {
+                        await CompressZlib(logicalFile.Content, compressionLevel, output, token);
+                    }
+                    else
+                    {
+                        await WriteStream(output, logicalFile.CompressedContent, token);
+                    }
 
-                    await CompressZlib(logicalFile.Content, compressionLevel, output, token);
                     logicalFile.CompressedSize = (uint)(output.Position - posBefore);
                     offset += logicalFile.CompressedSize;
                 }

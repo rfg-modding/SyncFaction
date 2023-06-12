@@ -47,15 +47,18 @@ public class ModInstaller : IModInstaller
         return true;
     }
 
-    internal virtual async Task<bool> ApplyXdelta(GameFile gameFile, IFileInfo modFile, CancellationToken cancellationToken)
+    internal virtual async Task<bool> ApplyXdelta(GameFile gameFile, IFileInfo modFile, CancellationToken token)
     {
-        var dstFile = gameFile.FileInfo;
-        if (dstFile.Exists)
-        {
-            dstFile.Delete();
-        }
+        var tmpFile = gameFile.GetTmpFile();
+        var srcFile = gameFile.FileInfo;
+        var result = await ApplyXdeltaInternal(srcFile, modFile, tmpFile, token);
+        tmpFile.Refresh();
+        tmpFile.MoveTo(gameFile.AbsolutePath, true);
+        return result;
+    }
 
-        var srcFile = gameFile.FindBackup();
+    private async Task<bool> ApplyXdeltaInternal(IFileInfo srcFile, IFileInfo modFile, IFileInfo dstFile, CancellationToken token)
+    {
         await using var srcStream = srcFile.OpenRead();
         await using var patchStream = modFile.OpenRead();
         await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
@@ -65,7 +68,7 @@ public class ModInstaller : IModInstaller
         {
             using var decoder = xdeltaFactory.Create(srcStream, patchStream, dstStream);
             // TODO log progress
-            decoder.ProgressChanged += progress => { cancellationToken.ThrowIfCancellationRequested(); };
+            decoder.ProgressChanged += progress => { token.ThrowIfCancellationRequested(); };
             decoder.Run();
 
             log.LogInformation($"+ **Patched** `{modFile.Name}`");
@@ -111,7 +114,7 @@ public class ModInstaller : IModInstaller
                         log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
                         usedKeys.Add(key);
                         var modSrc = modFile.OpenRead();
-                        yield return logicalFile with {Content = modSrc};
+                        yield return logicalFile with {Content = modSrc, CompressedContent = null};
                     }
                     else
                     {
@@ -129,7 +132,7 @@ public class ModInstaller : IModInstaller
                 order++;
                 var modFile = modFiles[key];
                 var modSrc = modFile.OpenRead();
-                logicalFiles.Add(new LogicalFile(modSrc, key, order, null));
+                logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
             }
         }
 
@@ -190,7 +193,7 @@ public class ModInstaller : IModInstaller
             log.LogDebug("swap [{key}] [{value}]", file.Name, swap.Target);
             var stream = swap.Target.OpenRead();
             disposables.Add(stream);
-            file = file with {Content = stream};
+            file = file with {Content = stream, CompressedContent = null};
         }
 
         if (vppOperations.XmlEdits.TryGetValue(file.Name, out var edit))
@@ -239,7 +242,7 @@ public class ModInstaller : IModInstaller
             var ms = new MemoryStream();
             disposables.Add(ms);
             gameXml.SerializeToMemoryStream(ms);
-            file = file with {Content = ms};
+            file = file with {Content = ms, CompressedContent = null};
         }
 
         return file;

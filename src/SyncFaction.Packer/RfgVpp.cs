@@ -124,11 +124,11 @@ public partial class RfgVpp
             var decompressedLength = entryData.XLenData;
             var view = new StreamView(inflaterStream, 0, decompressedLength);
 
-
             // alignment size is used when creating data, ignoring it
             entryData.OverrideAlignmentSize(0);
             entryData.OverrideDataSize(entryData.XLenData);
             entryData.OverrideData(view);
+            entryData.CompressedStream = compressedStream;
             offset += totalCompressedLength;
         }
         Header.Flags.OverrideFlagsNone();
@@ -257,6 +257,8 @@ comp data sz: [{LenCompressedData}]
     public partial class EntryData
     {
         public long LongOffset { get; set; }
+
+        public Stream? CompressedStream { get; set; }
 
         /// <summary>
         /// This stream is used for compacted/compressed data and is expected to have only current entry

@@ -58,6 +58,7 @@ public class FileManager
                 var dataVpp = vppOps.Key;
                 var fakeVppFile = modDir.FileSystem.FileInfo.New(modDir.FileSystem.Path.Combine(modDir.FullName, dataVpp));
                 var gameFile = GameFile.GuessTarget(storage, fakeVppFile, modDir);
+                gameFile.CopyToBackup(false, isUpdate);
                 if (!gameFile.Exists)
                 {
                     throw new ArgumentException($"ModInfo references nonexistent vpp: [{dataVpp}]");
