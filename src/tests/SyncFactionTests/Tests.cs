@@ -1,10 +1,12 @@
 using System.IO.Abstractions;
 using System.Xml;
+using System.Xml.Serialization;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFactionTests;
 
@@ -100,7 +102,7 @@ public class Tests
     }
 
     [Test]
-    [Ignore("Just for testing")]
+    [Explicit("Just for testing")]
     public void TestXml()
     {
         var doc = new XmlDocument();
@@ -109,6 +111,31 @@ public class Tests
         var changes = doc.DocumentElement["Changes"];
         var name = changes.SelectSingleNode("/Edit/Tweak_Table_Entry/Name");
         name.Should().NotBeNull();
+    }
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestXmlDeserializeNode()
+    {
+        var doc = new XmlDocument();
+        doc.Load(@"C:\vault\rfg\test.xml");
+        var node = doc.DocumentElement;
+        var dummy = new List<XmlNode>() {node};
+        var wrapper = dummy.Wrap();
+        var overrides = new XmlAttributeOverrides();
+        var attrs = new XmlAttributes()
+        {
+            XmlRoot = new XmlRootAttribute("syncfaction_holder"),
+            //XmlArray = new XmlArrayAttribute("syncfaction_holder"),
+            //XmlArrayItems = {new XmlArrayItemAttribute(typeof(Replace)), new XmlArrayItemAttribute(typeof(Edit))}
+            XmlElements = { new XmlElementAttribute(elementName:nameof(Replace), typeof(Replace)), new XmlElementAttribute(elementName:nameof(Edit), typeof(Edit)) }
+        };
+        overrides.Add(typeof(List<IChange>), attrs);
+        var serializer = new XmlSerializer(typeof(TypedChangesHolder));
+        var reader = new XmlNodeReader(wrapper);
+        var tc = (TypedChangesHolder) serializer.Deserialize(reader);
+        tc.Should().NotBeNull();
+        tc.TypedChanges.Should().NotBeNull().And.NotHaveCount(0);
     }
 
     [TearDown]

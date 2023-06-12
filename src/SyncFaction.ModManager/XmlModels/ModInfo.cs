@@ -7,8 +7,6 @@ namespace SyncFaction.ModManager.XmlModels;
 [XmlRoot("Mod")]
 public class ModInfo
 {
-    private List<IChange> changes = new();
-
     [XmlIgnore]
     public IDirectoryInfo WorkDir { get; set; }
 
@@ -24,8 +22,24 @@ public class ModInfo
     [XmlArrayItem(typeof(ListBox))]
     public List<Input> UserInput { get; set; }
 
+    public Changes Changes { get; set; }
+
     [XmlIgnore]
-    public List<IChange> Changes {
+    public IReadOnlyList<IChange> TypedChanges { get; set; }
+}
+
+public class Changes : HasNestedXml
+{
+
+}
+
+[XmlRoot(Extensions.HolderName)]
+public class TypedChangesHolder
+{
+    private List<IChange> changes = new();
+
+    [XmlIgnore]
+    public List<IChange> TypedChanges {
         get => changes;
         set => changes = value;
     }
@@ -33,10 +47,10 @@ public class ModInfo
     /// <summary>
     /// Hack for XmlSerializer to work with interfaces
     /// </summary>
-    [XmlArray("Changes")]
+    [XmlArray(nameof(TypedChanges))]
     [XmlArrayItem(typeof(Replace))]
     [XmlArrayItem(typeof(Edit))]
-    public IList ChangesXmlHack
+    public IList TypedChangesXmlHack
     {
         get => changes;
         set => changes = value.Cast<IChange>().ToList();
@@ -45,5 +59,5 @@ public class ModInfo
     /// <summary>
     /// For debug printing with Newtonsoft serializer
     /// </summary>
-    public bool ShouldSerializeChangesXmlHack() => false;
+    public bool ShouldSerializeTypedChangesXmlHack() => false;
 }

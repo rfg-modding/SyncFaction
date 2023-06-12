@@ -264,8 +264,6 @@ public class ModInstaller : IModInstaller
         }
     }
 
-    //============================================
-
     private static void CopyNodesToTargetIfMatched(XmlNode source, XmlElement target, IXmlNodeMatcher matcher)
     {
         // look for first match

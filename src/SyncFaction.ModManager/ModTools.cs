@@ -29,20 +29,51 @@ public class ModTools
 	{
 		using var reader = XmlReader.Create(stream, Settings);
 		var serializer = new XmlSerializer(typeof(ModInfo));
-/*
-    TODO: if a mod edits misc.vpp or table.vpp, add edits for second file. only for XTBL edits/replacements!
-*/
         var modInfo = (ModInfo) serializer.Deserialize(reader)!;
         modInfo.WorkDir = xmlFileDirectory;
-        MirrorMiscTableChanges(modInfo);
         return modInfo;
 	}
 
-    private void MirrorMiscTableChanges(ModInfo modInfo)
+    /// <summary>
+    /// Three stages:
+    /// <para>replace user_input placeholders;</para>
+    /// <para>substitute FileUserInputs;</para>
+    /// <para>mirror edits between misc and table</para>
+    /// </summary>
+    public void ApplyUserInput(ModInfo modInfo)
     {
-        var fs = modInfo.WorkDir.FileSystem;
-        var mirroredChanges = new List<IChange>();
-        foreach (var change in modInfo.Changes)
+        if (modInfo.Changes.NestedXml.Count == 0)
+        {
+            // nothing can be replaced
+            return;
+        }
+
+        var typedChanges = modInfo.Changes.NestedXml.Wrap(nameof(TypedChangesHolder.TypedChanges)).Clone();
+        var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue);
+        InsertUserEditValuesRecursive(typedChanges, selectedValues);
+        RemoveUserEditNodesRecursive(typedChanges);
+
+        var holder = typedChanges.Wrap();
+        var serializer = new XmlSerializer(typeof(TypedChangesHolder));
+        using var reader = new XmlNodeReader(holder);
+        var typedChangesHolder = (TypedChangesHolder) serializer.Deserialize(reader);
+
+        foreach (var replace in typedChangesHolder.TypedChanges.OfType<Replace>())
+        {
+            ApplyReplaceUserInput(replace, selectedValues);
+        }
+
+        var mirroredChanges = MirrorMiscTableChanges(modInfo.WorkDir.FileSystem, typedChangesHolder.TypedChanges);
+
+        modInfo.TypedChanges = typedChangesHolder.TypedChanges.Concat(mirroredChanges).ToList();
+    }
+
+    /// <summary>
+    /// For every edit of misc.vpp or table.vpp, add similar edits for second file. Only for XTBL edits/replacements!
+    /// </summary>
+    private IEnumerable<IChange> MirrorMiscTableChanges(IFileSystem fs, IReadOnlyList<IChange> changes)
+    {
+        foreach (var change in changes)
         {
             var vppPaths = GetPaths(fs, change.File);
             if (!vppPaths.File.EndsWith(".xtbl"))
@@ -63,22 +94,46 @@ public class ModTools
 
             var mirrorChange = change.Clone();
             mirrorChange.File = fs.Path.Combine(mirror, vppPaths.File);
-            mirroredChanges.Add(mirrorChange);
+            yield return mirrorChange;
         }
-        modInfo.Changes.AddRange(mirroredChanges);
 
     }
 
-	public void ApplyUserInput(ModInfo modInfo)
-	{
+    public void ApplyReplaceUserInput(Replace replace, Dictionary<string, XmlNode> selectedValues)
+    {
+        if (!string.IsNullOrEmpty(replace.FileUserInput))
+        {
+            if (!string.IsNullOrEmpty(replace.File))
+            {
+                throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
+            }
 
-		foreach (var change in modInfo.Changes)
-		{
-            // NOTE: cloning values for every input because they are altered during merge
-            var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue.Clone());
-			change.ApplyUserInput(selectedValues);
-		}
-	}
+            // TODO support null (no-op)
+            var holder = selectedValues[replace.FileUserInput];
+            if (holder.ChildNodes.Count != 1)
+            {
+                throw new ArgumentException($"File manipulations require option to have exactly one string value. Selected option: [{holder.InnerXml}]");
+            }
+
+            replace.File = holder.ChildNodes[0].InnerText;
+        }
+
+        if (!string.IsNullOrEmpty(replace.NewFileUserInput))
+        {
+            if (!string.IsNullOrEmpty(replace.NewFile))
+            {
+                throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
+            }
+            // TODO support null (no-op)
+            var holder = selectedValues[replace.NewFileUserInput];
+            if (holder.ChildNodes.Count != 1)
+            {
+                throw new ArgumentException($"File manipulations require option to have exactly one string value. Selected option: [{holder.InnerXml}]");
+            }
+
+            replace.NewFile = holder.ChildNodes[0].InnerText;
+        }
+    }
 
     public void CopySameOptions(ModInfo modInfo)
     {
@@ -151,7 +206,7 @@ public class ModTools
             .ToImmutableDictionary(x => fs.Path.GetRelativePath(modInfo.WorkDir.FullName, x.FullName.ToLowerInvariant()));
 
         // map replacements inside vpp to relative paths
-        var references = modInfo.Changes
+        var references = modInfo.TypedChanges
             .OfType<Replace>()
             .Select(x => new {vppPath = GetPaths(fs, x.File), target = SanitizePath(x.NewFile)})
             .Where(x => !string.IsNullOrWhiteSpace(x.target))
@@ -170,11 +225,11 @@ public class ModTools
         }
 
         var referencedFilesDict = referencedFiles.ToImmutableDictionary(x => x.vppPath, x => x.fileInfo!);
-        var replaceOperations = modInfo.Changes
+        var replaceOperations = modInfo.TypedChanges
             .OfType<Replace>()
             .Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict))
             .ToList();
-        var editOperations = modInfo.Changes
+        var editOperations = modInfo.TypedChanges
             .OfType<Edit>()
             .Select((x, i) => ConvertToOperation(x, i, fs))
             .ToList();
@@ -224,6 +279,88 @@ public class ModTools
 
         return new (dataVpp, archiveRelativePath);
     }
+
+    /// <summary>
+	/// Append to all nested "user_input" tags corresponding selected values
+	/// </summary>
+    private static void InsertUserEditValuesRecursive(XmlNode node, Dictionary<string, XmlNode> selectedValues)
+	{
+		if (node is not XmlElement element)
+		{
+			return;
+		}
+
+		if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
+		{
+			var key = element.InnerText.ToLowerInvariant();
+			var replacementHolder = selectedValues[key];
+            if (replacementHolder.OwnerDocument != element.OwnerDocument)
+            {
+                // cloning every time because nodes can belong to same document and are moved to different places
+                replacementHolder = element.OwnerDocument.ImportNode(replacementHolder, true).Clone();
+            }
+			var parent = element.ParentNode;
+			XmlNode current = element;
+            // collection of child nodes shrinks because we actually move elements to another place
+            while (replacementHolder.ChildNodes.Count > 0)
+			{
+				var replacement = replacementHolder.ChildNodes[0];
+				parent.InsertAfter(replacement, current);
+				current = replacement;
+				// now outer loop will iterate over newly inserted replacement results. recursive edits are possible yaay!
+			}
+		}
+		else if (element.HasChildNodes)
+		{
+			// descend
+			// can't use for/foreach: we modify collection in-place!
+			var i = 0;
+			while (i < element.ChildNodes.Count)
+			{
+				var nextNode = element.ChildNodes[i];
+				InsertUserEditValuesRecursive(nextNode, selectedValues);
+
+				i++;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Remove "user_input" nodes after all edits are done. Returns true if node was removed (outer loop SHOULD NOT advance)
+	/// </summary>
+	private static bool RemoveUserEditNodesRecursive(XmlNode node)
+	{
+		if (node is not XmlElement element)
+		{
+			return false;
+		}
+
+		if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
+		{
+			var parent = element.ParentNode;
+			parent.RemoveChild(element);
+			return true;
+		}
+
+		if (element.HasChildNodes)
+		{
+			// descend. can't use for/foreach: we modify collection in-place!
+			var i = 0;
+			while (i < element.ChildNodes.Count)
+			{
+				var nextNode = element.ChildNodes[i];
+				var removed = RemoveUserEditNodesRecursive(nextNode);
+				if (!removed)
+				{
+					i++;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	private static readonly string UserInputName = "user_input";
 }
 
 

@@ -45,12 +45,10 @@ public class FileManager
                 excludeFiles.Add(op.Target.FullName.ToLowerInvariant());
             }
 
+            // exclude dir with modinfo.xml, recursively
+            // if it's mod root, ignore it anyway, to avoid clutter when using old mods
             var modInfoDir = mod.ModInfo.WorkDir.FullName.ToLowerInvariant();
-            if (modDir.FullName.ToLowerInvariant() != modInfoDir)
-            {
-                // excluded recursively
-                excludeDirs.Add(modInfoDir);
-            }
+            excludeDirs.Add(modInfoDir);
 
             //var json = JsonConvert.SerializeObject(mod, Formatting.Indented);
             //log.LogDebug("Applying mod: {mod}", json);

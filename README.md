@@ -92,6 +92,8 @@ Or how to get this branch closer to release and not burn out:
   * file add/replace logic should be the same for folder and modinfo mods
   * implement LIST_ACTIONs from MM decompiled logic
   * restore vpp files from backup
+  * skip recompressing untouched files
+  * forget/reset inputs?
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
