@@ -87,13 +87,14 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 Or how to get this branch closer to release and not burn out:
 
 0. XML merging features
-  * stream read-write vpp to avoid high memory usage
-  * write to tmp, then delete src and rename tmp to src
+  * ~~stream read-write vpp to avoid high memory usage~~
+  * ~~write to tmp, then delete src and rename tmp to src~~
+  * ~~implement LIST_ACTIONs from MM decompiled logic~~
+  * ~~restore vpp files from backup~~
+  * ~~skip recompressing untouched files~~
   * file add/replace logic should be the same for folder and modinfo mods
-  * implement LIST_ACTIONs from MM decompiled logic
-  * restore vpp files from backup
-  * skip recompressing untouched files
-  * forget/reset inputs?
+  * forget/reset inputs in UI?
+  * proper error handling and cleanup
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
