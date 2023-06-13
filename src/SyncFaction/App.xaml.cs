@@ -5,6 +5,7 @@ using System.Windows;
 using MdXaml;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.Core.Services.Xml;
 using SyncFaction.ModManager;
 using SyncFaction.Packer;
 using SyncFaction.Services;
@@ -36,6 +37,7 @@ public partial class App : Application
         services.AddSingleton<AppInitializer>();
         services.AddSingleton<UiCommands>();
         services.AddSingleton<ModTools>();
+        services.AddSingleton<XmlMagic>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IVppArchiver, VppArchiver>();
         services.AddSingleton<IModInstaller, ModInstaller>();

@@ -132,6 +132,8 @@ Things to do after test release:
   * proper operations log
   * fix progress display
   * sane error formatting/handling
+  * restore buttons should update mod list / ui
+  * modinfo description should be wrapped and have some offset
 2. modmanager?
   * xml merging
   * tests

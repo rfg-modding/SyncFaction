@@ -49,7 +49,7 @@ public class ModTools
         }
 
         var typedChanges = modInfo.Changes.NestedXml.Wrap(nameof(TypedChangesHolder.TypedChanges)).Clone();
-        var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue);
+        var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue.Clone());
         InsertUserEditValuesRecursive(typedChanges, selectedValues);
         RemoveUserEditNodesRecursive(typedChanges);
 
@@ -293,7 +293,7 @@ public class ModTools
 		if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
 		{
 			var key = element.InnerText.ToLowerInvariant();
-			var replacementHolder = selectedValues[key];
+			var replacementHolder = selectedValues[key].Clone();
             if (replacementHolder.OwnerDocument != element.OwnerDocument)
             {
                 // cloning every time because nodes can belong to same document and are moved to different places

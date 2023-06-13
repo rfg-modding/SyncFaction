@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.Core.Services.Xml;
 using SyncFaction.Packer;
 
 namespace SyncFactionTests;
@@ -819,7 +820,7 @@ public class GameFileTests
     {
         var gf = new GameFile(Storage, "test", fileSystem);
         var fakeXdeltaFactory = new FakeXdeltaFactory();
-        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), fakeXdeltaFactory, Mock.Of<XmlMagic>(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         Write(gf.AbsolutePath, DirtyData);
@@ -837,7 +838,7 @@ public class GameFileTests
     {
         var gf = new GameFile(Storage, "test", fileSystem);
         var fakeXdeltaFactory = new FakeXdeltaFactory();
-        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), fakeXdeltaFactory, Mock.Of<XmlMagic>(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         Write(gf.AbsolutePath, DirtyData);
@@ -855,7 +856,7 @@ public class GameFileTests
     {
         var gf = new GameFile(Storage, "test", fileSystem);
         var fakeXdeltaFactory = new FakeXdeltaFactory();
-        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, fakeXdeltaFactory, new NullLogger<ModInstaller>());
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), fakeXdeltaFactory, Mock.Of<XmlMagic>(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         Write(gf.AbsolutePath, DirtyData);
@@ -874,7 +875,7 @@ public class GameFileTests
     {
         FakeXdeltaConcat? fakeXdelta = null;
         var gf = new GameFile(Storage, "test", fileSystem);
-        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>());
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), Mock.Of<XmlMagic>(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         Write(modFile.FullName, ModData);
@@ -889,7 +890,7 @@ public class GameFileTests
     {
         FakeXdeltaConcat? fakeXdelta = null;
         var gf = new GameFile(Storage, "test", fileSystem);
-        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), null, new FakeXdeltaFactory(), new NullLogger<ModInstaller>());
+        var modInstaller = new ModInstaller(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), Mock.Of<XmlMagic>(), new NullLogger<ModInstaller>());
 
         var modFile = fileSystem.FileInfo.New("mod");
         Write(gf.AbsolutePath, DirtyData);

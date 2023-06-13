@@ -71,7 +71,7 @@ public class FileManager
         }
 
         var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Where(x => !x.Directory.FullName.ToLowerInvariant().EndsWith(".vpp_pc"))
+            .Where(x => !x.Directory.IsVppDirectory())
             .Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex)))
             .Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant()))
             .Where(x => x.IsModContent());
@@ -87,7 +87,7 @@ public class FileManager
         }
 
         var repackVppDirectories = modDir.EnumerateDirectories("*", SearchOption.AllDirectories)
-            .Where(x => x.FullName.ToLowerInvariant().EndsWith(".vpp_pc"))
+            .Where(x => x.IsVppDirectory())
             .Where(x => x.EnumerateFiles("*", SearchOption.AllDirectories).Any());
         foreach (var vppDir in repackVppDirectories)
         {
