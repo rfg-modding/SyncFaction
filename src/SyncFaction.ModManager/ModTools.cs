@@ -258,6 +258,12 @@ public class ModTools
             throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should be 'data\\something.vpp_pc\\...'");
         }
 
+        // NOTE: legacy mods for Steam edition can be used if we patch vpp location "build/pc/cache/foo.vpp" to "data/foo.vpp"
+        if (string.Join("/", parts[..3]) == "build/pc/cache")
+        {
+            parts = new[] {"data"}.Concat(parts[3..]).ToArray();
+        }
+
         var data = parts[0];
         if (data != "data")
         {
