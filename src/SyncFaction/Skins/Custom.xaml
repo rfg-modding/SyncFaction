@@ -5,14 +5,12 @@
     <Color x:Key="SF.Highlight.Static" R="240" G="240" B="240" A="255"/>
     <SolidColorBrush x:Key="SF.Highlight"       Color="{DynamicResource SF.Highlight.Static}"/>
 
-    <Style TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+    <Style TargetType="Button">
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="MinWidth" Value="150" />
         <Setter Property="Height" Value="20" />
         <Setter Property="Margin" Value="10,10,10,10" />
     </Style>
-    <Style TargetType="Window" x:Key="CustomWindowStyle">
-        <Setter Property="Background" Value="{StaticResource Window.Static.Background}" />
-    </Style>
+    
 </ResourceDictionary>

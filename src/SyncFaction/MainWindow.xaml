@@ -6,7 +6,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SyncFaction"
         xmlns:mdxam="clr-namespace:MdXaml;assembly=MdXaml"
-        xmlns:jsonLinq="clr-namespace:Newtonsoft.Json.Linq;assembly=Newtonsoft.Json"
         xmlns:factionFiles="clr-namespace:SyncFaction.Core.Services.FactionFiles;assembly=SyncFaction.Core"
         xmlns:modXml="clr-namespace:SyncFaction.ModManager.XmlModels;assembly=SyncFaction.ModManager"
         xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=WindowsBase"

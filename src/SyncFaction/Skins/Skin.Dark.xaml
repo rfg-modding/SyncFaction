@@ -6,13 +6,11 @@
             https://github.com/AngryCarrot789/WPFDarkTheme/blob/master/Themes/ThemesV2/SoftDark.xaml (large theme file)
             https://github.com/Aldaviva/DarkNet (code to load theme and base window style)
         -->
+        <ResourceDictionary Source="Custom.xaml" />
         <ResourceDictionary Source="Controls.Colors.xaml" />
         <ResourceDictionary Source="Controls.Styles.xaml" />
         <ResourceDictionary Source="Colors.SoftDark.xaml" />
-        <ResourceDictionary Source="Custom.xaml" />
 
     </ResourceDictionary.MergedDictionaries>
-
-
 
 </ResourceDictionary>
