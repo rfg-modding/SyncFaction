@@ -593,6 +593,7 @@ Then run SyncFaction again.
         // TODO uncomment me!!!
         //var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
 
+        // TODO remove debug stuff
         var terraform = new List<long>(){6247}
                 .Concat(await ffClient.ListPatchIds("rfgcommunityupdate", token))
                 .Concat(new List<long>(){5783686945589925058})

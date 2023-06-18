@@ -88,20 +88,6 @@ public partial class ViewModel
         }
     }
 
-    /// <summary>
-    /// Update json view for display and avoid infinite loop
-    /// </summary>
-    private void UpdateJsonView(object? _, PropertyChangedEventArgs args)
-    {
-        if (args.PropertyName == nameof(JsonView))
-        {
-            return;
-
-        }
-
-        OnPropertyChanged(nameof(JsonView));
-    }
-
     private void LocalModChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(LocalModViewModel.Selected))

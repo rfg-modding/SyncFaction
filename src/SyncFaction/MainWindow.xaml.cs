@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Dark.Net;
 using GongSolutions.Wpf.DragDrop.Utilities;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
@@ -24,6 +25,7 @@ public partial class MainWindow : Window, IViewAccessor
 
         DataContext = viewModel;
         InitializeComponent();
+        DarkNet.Instance.SetWindowThemeWpf(this, App.AppTheme);
         Title = Extras.Title.Value;
 
         markdownRender.Init(Markdown);
@@ -125,4 +127,13 @@ public partial class MainWindow : Window, IViewAccessor
         var binding = textBox.GetBindingExpression(TextBox.TextProperty);
         binding.UpdateTarget();
     }
+
+    /// <summary>
+    /// Hack to make text near checkbox toggle it
+    /// </summary>
+    private void DevModeTextClick(object sender, MouseButtonEventArgs e)
+    {
+        DevMode.IsChecked = !DevMode.IsChecked;
+    }
+
 }

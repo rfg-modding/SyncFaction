@@ -93,6 +93,7 @@ public class ModInstaller : IModInstaller
         var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
 
         var tmpFile = gameFile.GetTmpFile();
+
         await using (var src = gameFile.FileInfo.OpenRead())
         {
             var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);

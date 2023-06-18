@@ -8,7 +8,7 @@ public class AppRootCommand : RootCommand
     public AppRootCommand()
     {
         AddCommand(new Unpack());
-        AddCommand(new Pack());
+        //AddCommand(new Pack());
         AddCommand(new Get());
     }
 

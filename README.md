@@ -99,11 +99,11 @@ Or how to get this branch closer to release and not burn out:
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
 4. compare gog and steam distributions
+  * ~~some archives can't be xdelta'd. see if they have entries in same order so we cau update with loose files~~
+  * apply xdelta on steam files to match gog: `terr01_precache vehicles effects effects_mp chunks`
+  * `terr01_l1.vpp_pc` must be repackaged in both game versions with files from gog
 5. release unification patch based on observations and VPP differences
-6. all this stuff will require rebuilding current state of game files from ground up, but since i have cache and backups it won't be a problem for users
-  * however, migrating from old data structure will introduce more WTFs and require more testing
-  * need to think it through
-  * probably introduce cleanup stage on start?
+6. ideally SF update will go along with Terraform rebuild so people will have to nuke their installs anyway 
 7. backport stuff from other branches: user agent? something else?
 8. hash checks
   * button to generate json of all files
@@ -123,6 +123,13 @@ Or how to get this branch closer to release and not burn out:
     * registry?
     * bat file?
     * create .lnk and edit it programmatically?
+10. rename FF categories as MM/legacy/something, add new for SF mods
+
+Unification patch
+* support mods working differently for steam/gog, eg with subfolders
+* apply certain xdeltas for steam version
+* place sw_api.dll for both versions
+* 
 
 Things to do after test release:
 

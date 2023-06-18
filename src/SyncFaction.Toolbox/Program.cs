@@ -1,4 +1,4 @@
-﻿using System.CommandLine.Builder;
+using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,12 +12,14 @@ using SyncFaction.Packer;
 using SyncFaction.Toolbox;
 using SyncFaction.Toolbox.Args;
 
+
 var runner = new CommandLineBuilder(new AppRootCommand())
     .UseHost(_ => new HostBuilder(), (builder) => builder
+        .UseConsoleLifetime()
         .ConfigureServices((_, services) =>
         {
             services.AddTransient<IVppArchiver, VppArchiver>();
-            services.AddTransient<Commands>();
+            services.AddTransient<Archiver>();
             services.AddLogging(x =>
             {
                 x.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
@@ -28,9 +30,10 @@ var runner = new CommandLineBuilder(new AppRootCommand())
                 console.Layout = Layout.FromString("${date:format=HH\\:MM\\:ss} ${message}");
                 var rule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, console);
 
-                var filterRule = new LoggingRule("Microsoft*", NLog.LogLevel.Trace, NLog.LogLevel.Off, new NLog.Targets.NullTarget());
+                var filterRule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, new NLog.Targets.NullTarget());
                 filterRule.Filters.Add(new ConditionBasedFilter(){Action = FilterResult.IgnoreFinal, Condition = "'${logger}' == 'Microsoft.Hosting.Lifetime'"});
                 filterRule.Filters.Add(new ConditionBasedFilter(){Action = FilterResult.IgnoreFinal, Condition = "'${logger}' == 'Microsoft.Extensions.Hosting.Internal.Host'"});
+                filterRule.Filters.Add(new ConditionBasedFilter(){Action = FilterResult.IgnoreFinal, Condition = "'${logger}' == 'SyncFaction.Packer.VppArchiver'"});
 
                 config.AddRule(filterRule);
                 config.AddRule(rule);
@@ -39,7 +42,6 @@ var runner = new CommandLineBuilder(new AppRootCommand())
             });
         })
         .UseCommandHandler<AppRootCommand, AppRootCommand.CommandHandler>()
-        .UseCommandHandler<Pack, Pack.CommandHandler>()
     )
     .UseDefaults().Build();
 

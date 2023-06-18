@@ -29,7 +29,7 @@ public static class Extensions
         return !name.StartsWith(".mod") && !Constants.IgnoredExtensions.Contains(ext);
     }
 
-    public static bool IsVppDirectory(this IDirectoryInfo d) => d.FullName.ToLowerInvariant().EndsWith(".vpp_pc") && !d.FullName.Contains(' ');
+    public static bool IsVppDirectory(this IDirectoryInfo d) => d.FullName.ToLowerInvariant().EndsWith(".vpp_pc") && !d.Name.Contains(' ');
 
     /// <summary>
     /// Returns update list to install, excluding installed ones if they are in matching order

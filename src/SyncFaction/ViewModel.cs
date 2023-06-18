@@ -59,9 +59,7 @@ public partial class ViewModel
 
         // TODO callback to log devMode enable/disable
         PropertyChanged += NotifyInteractiveCommands;
-        PropertyChanged += UpdateJsonView;
         model = new Model();
-        model.PropertyChanged += UpdateJsonView;
         LocalMods.CollectionChanged += LocalModsOnCollectionChanged;
 
         // this allows other threads to work with UI-bound collection
@@ -137,44 +135,9 @@ public partial class ViewModel
     private readonly List<ICommand> cancelCommands;
 
     /// <summary>
-    /// Live debug view of app state
+    /// View of diagnostics output
     /// </summary>
-    public string JsonView
-    {
-        get
-        {
-            try
-            {
-                var tmp = new
-                {
-                    Model,
-                    CurrentOperation,
-                    Interactive,
-                    NotInteractive,
-                    UpdateRequired,
-                    UpdateNotRequired,
-                    OnlineSelectedCount,
-                    SelectedTab,
-                };
-                return JsonConvert.SerializeObject(tmp, Formatting.Indented);
-            }
-            catch (Exception e)
-            {
-                return e.ToString();
-            }
-
-        }
-    }
-
-    /// <summary>
-    /// Debug view of modinfo.xml state
-    /// </summary>
-    [ObservableProperty] private string xmlView;
-
-    /// <summary>
-    /// Debug view of modinfo.xml after user input is applied
-    /// </summary>
-    [ObservableProperty] private string xmlView2;
+    [ObservableProperty] private string diagView;
 
     public IViewAccessor ViewAccessor { get; set; }
 
