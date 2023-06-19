@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO.Abstractions;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Windows;
@@ -67,5 +68,12 @@ public partial class App : Application
     {
         var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
+        /*var mainWindow2 = new MainWindow(
+            serviceProvider.GetRequiredService<ViewModel>(),
+            serviceProvider.GetRequiredService<MarkdownRender>(),
+            serviceProvider.GetRequiredService<ILogger<MainWindow>>(),
+            Theme.Light
+        );
+        mainWindow2.Show();*/
     }
 }

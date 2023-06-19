@@ -129,9 +129,23 @@ Unification patch
 * support mods working differently for steam/gog, eg with subfolders
 * apply certain xdeltas for steam version
 * place sw_api.dll for both versions
-* 
+* ?
 
-Things to do after test release:
+## Dark Mode
+
+* move styles from main window to custom xaml
+* fix tab control; scroll is broken in dark theme; without scroll there's a white rectangle in bottom right
+* ~~ListViewItem is broken: dark style breaks modinfo view completely, removing it works but style is bad~~
+* ~~fix hyperlink~~
+* ~~fix warranty void~~
+* ~~font color should not be white~~
+* ~~fix vertical splitter~~
+* ~~fix custom btns with indicator~~
+* ~~fix selected item~~
+* fix markdown view
+* fix lego mason border
+
+## after test release:
 
 1. better messages
   * fix logging

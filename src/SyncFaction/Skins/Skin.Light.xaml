@@ -1,6 +1,12 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+>
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Custom.xaml" />
     </ResourceDictionary.MergedDictionaries>
+    <Style TargetType="Window" x:Key="CustomWindowStyle">
+    </Style>
+    <Style TargetType="GridSplitter">
+        <Setter Property="Background" Value="LightGray" />
+    </Style>
 </ResourceDictionary>

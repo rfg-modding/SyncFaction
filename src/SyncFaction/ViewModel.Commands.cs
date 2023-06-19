@@ -4,11 +4,22 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using Dark.Net;
+using Microsoft.Extensions.Logging;
 
 namespace SyncFaction;
 
 public partial class ViewModel
 {
+    [RelayCommand]
+    private void SwitchDarkMode(object x)
+    {
+        log.LogInformation("switching mode");
+        var theme = DarkNet.Instance.EffectiveCurrentProcessThemeIsDark ? Theme.Light : Theme.Dark;
+        //DarkNet.Instance.SetCurrentProcessTheme(theme);
+        DarkNet.Instance.SetWindowThemeWpf(ViewAccessor.WindowView, theme);
+    }
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task Init(object x, CancellationToken token)
     {

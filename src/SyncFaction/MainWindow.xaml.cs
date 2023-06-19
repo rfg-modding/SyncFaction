@@ -17,7 +17,7 @@ public partial class MainWindow : Window, IViewAccessor
     private readonly ViewModel viewModel;
     private readonly ILogger<MainWindow> log;
 
-    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log)
+    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, Theme theme=default)
     {
         this.viewModel = viewModel;
         this.viewModel.ViewAccessor = this;
@@ -25,7 +25,7 @@ public partial class MainWindow : Window, IViewAccessor
 
         DataContext = viewModel;
         InitializeComponent();
-        DarkNet.Instance.SetWindowThemeWpf(this, App.AppTheme);
+        DarkNet.Instance.SetWindowThemeWpf(this, theme == default ? App.AppTheme : theme);
         Title = Extras.Title.Value;
 
         markdownRender.Init(Markdown);
@@ -135,5 +135,4 @@ public partial class MainWindow : Window, IViewAccessor
     {
         DevMode.IsChecked = !DevMode.IsChecked;
     }
-
 }

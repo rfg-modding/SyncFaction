@@ -1,10 +1,17 @@
 <!-- ReSharper disable InconsistentNaming -->
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Color x:Key="SF.Highlight.Static" R="240" G="240" B="240" A="255"/>
-    <SolidColorBrush x:Key="SF.Highlight"       Color="{DynamicResource SF.Highlight.Static}"/>
+    <!--#F59408 red faction guerrilla orange-->
+    <Color x:Key="SF.HighlightColor" R="0xF5" G="0x94" B="0x08" A="255" />
+    <SolidColorBrush x:Key="SF.Highlight" Color="{DynamicResource SF.HighlightColor}" />
 
+    <SolidColorBrush x:Key="SF.Indicator.Hover" Color="#BEE6FD" />
+    <SolidColorBrush x:Key="SF.Indicator.Selected" Color="{StaticResource SF.HighlightColor}" />
+    <SolidColorBrush x:Key="SF.Indicator.Static" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SF.Indicator.Background" Color="#DDDDDD" />
+    <SolidColorBrush x:Key="SF.Indicator.Border" Color="DarkGray" />
+
+    <!--Button-->
     <Style TargetType="Button">
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -12,5 +19,126 @@
         <Setter Property="Height" Value="20" />
         <Setter Property="Margin" Value="10,10,10,10" />
     </Style>
-    
+
+    <!--ListViewItem-->
+
+    <!--GridViewColumnHeader GridViewHeaderStyle-->
+    <Style x:Key="{x:Type GridViewColumnHeader}" TargetType="{x:Type GridViewColumnHeader}">
+        <Setter Property="Visibility" Value="Visible" />
+        <Setter Property="Width" Value="Auto" />
+    </Style>
+
+    <!--GroupItem ModListGroupCollapsibleHeader-->
+    <Style x:Key="ModListGroupCollapsibleHeader" TargetType="GroupItem">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Expander IsExpanded="True">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Name}" />
+                                <TextBlock Text=" (" />
+                                <TextBlock Text="{Binding ItemCount}" />
+                                <TextBlock Text=")" />
+                            </StackPanel>
+                        </Expander.Header>
+                        <ItemsPresenter />
+                    </Expander>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--TabItem-->
+    <Style TargetType="TabItem">
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Margin" Value="0 12 5 12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Grid Name="Panel" Background="{DynamicResource SF.Indicator.Background}">
+                        <Border BorderThickness="1" BorderBrush="{DynamicResource SF.Indicator.Border}" />
+                        <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" />
+                        <Rectangle Name="Indicator" Width="20" Height="7" VerticalAlignment="Top" Margin="0 5 0 0" Stroke="{DynamicResource SF.Indicator.Border}" StrokeThickness="1" />
+
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Indicator" Property="Fill" Value="{DynamicResource SF.Indicator.Selected}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="False">
+                            <Setter TargetName="Indicator" Property="Fill" Value="{DynamicResource SF.Indicator.Static}" />
+                        </Trigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Path=IsMouseOver, RelativeSource={RelativeSource Mode=Self}}" Value="True" />
+                                <!--<Condition Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource Mode=Self}}" Value="False" />-->
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="Panel" Property="Background" Value="{DynamicResource SF.Indicator.Hover}" />
+                        </MultiDataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+    <Style TargetType="{x:Type ScrollViewer}">
+        <Style.Resources>
+            <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="Red" />
+        </Style.Resources>
+    </Style>
+
+    <!--ListViewItem-->
+    <Style TargetType="ListViewItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="IsSelected" Value="{Binding Selected}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Padding" Value="4,1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListViewItem}">
+                    <Border x:Name="Bd" Padding="2" SnapsToDevicePixels="true" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                        <GridViewRowPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SF.Indicator.Hover}" />
+                            <Setter Property="BorderBrush" TargetName="Bd" Value="{DynamicResource SF.Indicator.Border}" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="Selector.IsSelectionActive" Value="False" />
+                                <Condition Property="IsSelected" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <!--selected, out of focus-->
+                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SF.Indicator.Hover}" />
+                            <Setter Property="BorderBrush" TargetName="Bd" Value="{DynamicResource SF.Indicator.Border}" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="Selector.IsSelectionActive" Value="True" />
+                                <Condition Property="IsSelected" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <!--selected, in focus-->
+                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SF.Indicator.Hover}" />
+                            <Setter Property="BorderBrush" TargetName="Bd" Value="{DynamicResource SF.Indicator.Selected}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="TextElement.Foreground" TargetName="Bd" Value="{DynamicResource SF.Indicator.Static}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>
