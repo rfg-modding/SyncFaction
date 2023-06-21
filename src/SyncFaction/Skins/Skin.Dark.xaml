@@ -32,4 +32,6 @@
     <SolidColorBrush x:Key="SF.Indicator.Background" Color="{StaticResource AREghZyColour.Primary.2.Background.Static}" />
     <SolidColorBrush x:Key="SF.Indicator.Border" Color="{DynamicResource AREghZyColour.Primary.2.Border.Static}" />
 
+
+
 </ResourceDictionary>

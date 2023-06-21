@@ -2,7 +2,15 @@
 <Window Name="TheWindow" x:Class="SyncFaction.MainWindow" Style="{DynamicResource CustomWindowStyle}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:SyncFaction" xmlns:mdxam="clr-namespace:MdXaml;assembly=MdXaml" xmlns:modXml="clr-namespace:SyncFaction.ModManager.XmlModels;assembly=SyncFaction.ModManager" xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=WindowsBase" xmlns:converters="clr-namespace:SyncFaction.Converters" xmlns:dd="urn:gong-wpf-dragdrop" xmlns:system="clr-namespace:System;assembly=System.Runtime" xmlns:fa6="http://schemas.fontawesome.com/icons/svg" ContentRendered="MainWindow_OnContentRendered" mc:Ignorable="d" Title="SyncFaction" Height="450" MinHeight="450" Width="1000" MinWidth="1000" Icon="/icon.png" Closing="MainWindow_OnClosing" d:DataContext="{d:DesignInstance Type=local:ViewModel, IsDesignTimeCreatable=True}" d:DesignHeight="700">
 
     <Window.Resources>
-        <!--<ScaleTransform x:Key="windowScaleTransform" ScaleX="3" ScaleY="3" />-->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!--
+                This will be replaced with the correct skin to match the title bar theme by SkinManager
+                Also, "light" is more DesignTime-friendly
+                -->
+                <ResourceDictionary Source="Skins/Skin.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <!--<ScaleTransform x:Key="windowScaleTransform" ScaleX="3" ScaleY="3" />-->
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:XmlNodeConverter x:Key="XmlNodeConverter" />
         <converters:BoolShowCollapseConverter x:Key="BoolShowCollapseConverter" />
@@ -125,7 +133,7 @@
                 </PropertyGroupDescription>
             </CollectionViewSource.GroupDescriptions>
         </CollectionViewSource>
-
+        </ResourceDictionary>
 
     </Window.Resources>
     <!--LayoutTransform="{StaticResource windowScaleTransform}"-->

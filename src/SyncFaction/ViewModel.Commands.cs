@@ -15,9 +15,15 @@ public partial class ViewModel
     private void SwitchDarkMode(object x)
     {
         log.LogInformation("switching mode");
-        var theme = DarkNet.Instance.EffectiveCurrentProcessThemeIsDark ? Theme.Light : Theme.Dark;
-        //DarkNet.Instance.SetCurrentProcessTheme(theme);
-        DarkNet.Instance.SetWindowThemeWpf(ViewAccessor.WindowView, theme);
+        Theme = Theme switch
+        {
+            Theme.Auto => DarkNet.Instance.EffectiveCurrentProcessThemeIsDark ? Theme.Light : Theme.Dark,
+            Theme.Light => Theme.Dark,
+            Theme.Dark => Theme.Light,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        DarkNet.Instance.SetWindowThemeWpf(ViewAccessor.WindowView, Theme);
+        ViewAccessor.WindowView.SkinManager.UpdateTheme(Theme);
     }
 
     [RelayCommand(IncludeCancelCommand = true)]

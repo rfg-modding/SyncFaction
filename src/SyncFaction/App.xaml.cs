@@ -32,7 +32,7 @@ public partial class App : Application
     private void ConfigureServices(ServiceCollection services)
     {
         services.AddHttpClient();
-        services.AddSingleton<MainWindow>();
+        services.AddTransient<MainWindow>();
         //services.AddSingleton<TestWindow>();
         services.AddSingleton<FileManager>();
         services.AddSingleton<MarkdownRender>();
@@ -59,8 +59,6 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         DarkNet.Instance.SetCurrentProcessTheme(App.AppTheme);
-        new SkinManager().RegisterSkins(new Uri("Skins/Skin.Light.xaml", UriKind.Relative), new Uri("Skins/Skin.Dark.xaml", UriKind.Relative));
-
         base.OnStartup(e);
     }
 
@@ -68,12 +66,15 @@ public partial class App : Application
     {
         var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
-        /*var mainWindow2 = new MainWindow(
-            serviceProvider.GetRequiredService<ViewModel>(),
-            serviceProvider.GetRequiredService<MarkdownRender>(),
+        var mainWindow2 = new MainWindow(
+            new ViewModel(
+                serviceProvider.GetRequiredService<ILogger<ViewModel>>(),
+                serviceProvider.GetRequiredService<UiCommands>()
+                ),
+            new MarkdownRender(new Markdown()),
             serviceProvider.GetRequiredService<ILogger<MainWindow>>(),
-            Theme.Light
+            true
         );
-        mainWindow2.Show();*/
+        mainWindow2.Show();
     }
 }

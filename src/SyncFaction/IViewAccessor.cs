@@ -7,5 +7,5 @@ public interface IViewAccessor
 {
     public ListView OnlineModListView { get; }
     public ListView LocalModListView { get; }
-    public Window WindowView { get; }
+    public MainWindow WindowView { get; }
 }

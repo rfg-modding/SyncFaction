@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Dark.Net;
+using Dark.Net.Wpf;
 using GongSolutions.Wpf.DragDrop.Utilities;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
@@ -17,7 +19,9 @@ public partial class MainWindow : Window, IViewAccessor
     private readonly ViewModel viewModel;
     private readonly ILogger<MainWindow> log;
 
-    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, Theme theme=default)
+    public readonly ElementSkinManager SkinManager;
+
+    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, bool forceChangeTheme=false)
     {
         this.viewModel = viewModel;
         this.viewModel.ViewAccessor = this;
@@ -25,8 +29,30 @@ public partial class MainWindow : Window, IViewAccessor
 
         DataContext = viewModel;
         InitializeComponent();
-        DarkNet.Instance.SetWindowThemeWpf(this, theme == default ? App.AppTheme : theme);
         Title = Extras.Title.Value;
+
+        var theme = (DarkNet.Instance.EffectiveCurrentProcessThemeIsDark, forceChangeTheme) switch
+        {
+            (false, false) => Theme.Light,
+            (true, false) => Theme.Dark,
+            (false, true) => Theme.Dark,
+            (true, true) => Theme.Light,
+        };
+        this.viewModel.Theme = App.AppTheme;
+        if (forceChangeTheme)
+        {
+            this.viewModel.Theme = DarkNet.Instance.EffectiveCurrentProcessThemeIsDark ? Theme.Light : Theme.Dark;
+        }
+        DarkNet.Instance.SetWindowThemeWpf(this, theme);
+        SkinManager = new ElementSkinManager(this);
+        SkinManager.RegisterSkins(new Uri("Skins/Skin.Light.xaml", UriKind.Relative), new Uri("Skins/Skin.Dark.xaml", UriKind.Relative));
+        SkinManager.UpdateTheme(this.viewModel.Theme);
+
+        /*var light = new Uri("Skins/Skin.Light.xaml", UriKind.Relative);
+        var dark = new Uri("Skins/Skin.Dark.xaml", UriKind.Relative);
+        Collection<ResourceDictionary> windowResources = Resources.MergedDictionaries;
+        var skinResources = windowResources.First(r => r.Source.Equals(light) || r.Source.Equals(dark));
+        skinResources.Source = theme == Theme.Dark ? dark : light;*/
 
         markdownRender.Init(Markdown);
         markdownRender.Append("# Welcome!");
@@ -91,7 +117,7 @@ public partial class MainWindow : Window, IViewAccessor
 
     public ListView OnlineModListView => OnlineModList;
     public ListView LocalModListView => LocalModList;
-    public Window WindowView => this;
+    public MainWindow WindowView => this;
 
     private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {

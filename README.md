@@ -133,8 +133,9 @@ Unification patch
 
 ## Dark Mode
 
-* move styles from main window to custom xaml
-* fix tab control; scroll is broken in dark theme; without scroll there's a white rectangle in bottom right
+* ~~move styles from main window to custom xaml~~
+* ~~fix tab control; scroll is broken in dark theme; without scroll there's a white rectangle in bottom right~~
+* ~~make theme manager work on a window level~~
 * ~~ListViewItem is broken: dark style breaks modinfo view completely, removing it works but style is bad~~
 * ~~fix hyperlink~~
 * ~~fix warranty void~~
@@ -142,8 +143,9 @@ Unification patch
 * ~~fix vertical splitter~~
 * ~~fix custom btns with indicator~~
 * ~~fix selected item~~
+* fix listview header (GridViewColumnHeader?)
 * fix markdown view
-* fix lego mason border
+* fix lego mason outline
 
 ## after test release:
 

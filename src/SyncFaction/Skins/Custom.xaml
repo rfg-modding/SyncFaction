@@ -85,11 +85,7 @@
     </Style>
 
 
-    <Style TargetType="{x:Type ScrollViewer}">
-        <Style.Resources>
-            <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="Red" />
-        </Style.Resources>
-    </Style>
+
 
     <!--ListViewItem-->
     <Style TargetType="ListViewItem">
@@ -140,5 +136,7 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+
 
 </ResourceDictionary>

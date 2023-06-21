@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Dark.Net;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SyncFaction.ModManager.XmlModels;
@@ -140,6 +141,9 @@ public partial class ViewModel
     [ObservableProperty] private string diagView;
 
     public IViewAccessor ViewAccessor { get; set; }
+
+    public Theme Theme { get; set; }
+
 
     public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 }
