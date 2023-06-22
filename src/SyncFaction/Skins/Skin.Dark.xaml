@@ -7,9 +7,9 @@
             https://github.com/Aldaviva/DarkNet (code to load theme and base window style)
         -->
         <ResourceDictionary Source="Custom.xaml" />
-        <ResourceDictionary Source="Controls.Colors.xaml" />
-        <ResourceDictionary Source="Controls.Styles.xaml" />
-        <ResourceDictionary Source="Colors.SoftDark.xaml" />
+        <ResourceDictionary Source="Dark/Controls.Colors.xaml" />
+        <ResourceDictionary Source="Dark/Controls.Styles.xaml" />
+        <ResourceDictionary Source="Dark/Pallette.SoftDark.xaml" />
 
 
     </ResourceDictionary.MergedDictionaries>

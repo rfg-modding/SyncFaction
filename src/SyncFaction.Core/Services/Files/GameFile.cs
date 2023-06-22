@@ -338,7 +338,10 @@ public class GameFile
         }
 
         /*
-            it is not a known file, so it must be a new file to copy. not an xdelta patch. so extension must be preserved!
+            it is not a known file, so it must be a new file to copy.
+
+            not an xdelta patch. so extension must be preserved! - TODO change this logic to look for managed files
+
             mod should mimic game structure: if modFile is inside /data directory in mod structure, it goes to /data
             else it goes to root
             all subdirs are preserved too

@@ -41,4 +41,6 @@
 	  <ProjectReference Include="..\SyncFaction.ModManager\SyncFaction.ModManager.csproj" />
 	</ItemGroup>
 
+	
+
 </Project>

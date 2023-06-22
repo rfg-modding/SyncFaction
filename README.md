@@ -146,6 +146,11 @@ Unification patch
 * fix listview header (GridViewColumnHeader?)
 * fix markdown view
 * fix lego mason outline
+* Fix patch not installing with SF beta
+* Improvement: second button to launch game via RSL2 (Launcher.exe) or just redirect the current one since we'll all have RSL2 soon
+* Test .xdelta with newly added files
+* make xdelta work for managed files
+* placeholder text when modinfo has no options?
 
 ## after test release:
 
