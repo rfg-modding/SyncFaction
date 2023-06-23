@@ -42,6 +42,7 @@ public class XmlMagic
             // NOTE: StreamReader is important, it handles unicode properly
             using var reader = new StreamReader(file.Content);
             var gameXml = new XmlDocument();
+            gameXml.PreserveWhitespace = true;
             gameXml.Load(reader);
             var xtblRoot = gameXml["root"]?["Table"];
             if (xtblRoot is null)

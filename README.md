@@ -124,6 +124,13 @@ Or how to get this branch closer to release and not burn out:
     * bat file?
     * create .lnk and edit it programmatically?
 10. rename FF categories as MM/legacy/something, add new for SF mods
+11. test if preserve whitespace works for files like anim_files.xtbl - they should not be formatted/minimized
+12. Fix patch not installing with SF beta 
+13. Improvement: second button to launch game via RSL2 (Launcher.exe) or just redirect the current one since we'll all have RSL2 soon 
+14. Test .xdelta with newly added files 
+15. make xdelta work for managed files 
+16. placeholder text when modinfo has no options?
+
 
 Unification patch
 * support mods working differently for steam/gog, eg with subfolders
@@ -143,14 +150,10 @@ Unification patch
 * ~~fix vertical splitter~~
 * ~~fix custom btns with indicator~~
 * ~~fix selected item~~
-* fix listview header (GridViewColumnHeader?)
-* fix markdown view
-* fix lego mason outline
-* Fix patch not installing with SF beta
-* Improvement: second button to launch game via RSL2 (Launcher.exe) or just redirect the current one since we'll all have RSL2 soon
-* Test .xdelta with newly added files
-* make xdelta work for managed files
-* placeholder text when modinfo has no options?
+* ~~fix listview header (GridViewColumnHeader?)~~
+* ~~fix lego mason outline~~
+* fix markdown view (do proper logging first)
+
 
 ## after test release:
 

@@ -56,7 +56,7 @@ public static class Extensions
         using (var tw = XmlWriter.Create(ms, new XmlWriterSettings()
                {
                    CloseOutput = false,
-                   Indent = true,
+                   //Indent = true, // NOTE: some files cant be reformatted or even minimized, game crashes if you do that
                    Encoding = Utf8NoBom,
                    OmitXmlDeclaration = true
                }))
