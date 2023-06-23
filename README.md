@@ -92,18 +92,17 @@ Or how to get this branch closer to release and not burn out:
   * ~~implement LIST_ACTIONs from MM decompiled logic~~
   * ~~restore vpp files from backup~~
   * ~~skip recompressing untouched files~~
+  * ~~test all existing mods~~
   * file add/replace logic should be the same for folder and modinfo mods
   * forget/reset inputs in UI?
   * proper error handling and cleanup
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
-4. compare gog and steam distributions
+4. ~~compare gog and steam distributions~~
   * ~~some archives can't be xdelta'd. see if they have entries in same order so we cau update with loose files~~
-  * apply xdelta on steam files to match gog: `terr01_precache vehicles effects effects_mp chunks`
-  * `terr01_l1.vpp_pc` must be repackaged in both game versions with files from gog
-5. release unification patch based on observations and VPP differences
-6. ideally SF update will go along with Terraform rebuild so people will have to nuke their installs anyway 
+  * ~~apply xdelta on steam files to match gog: `terr01_precache vehicles effects effects_mp chunks`~~
+  * ~~`terr01_l1.vpp_pc` must be repackaged in both game versions with files from gog~~
 7. backport stuff from other branches: user agent? something else?
 8. hash checks
   * button to generate json of all files
@@ -116,27 +115,36 @@ Or how to get this branch closer to release and not burn out:
   * rollback if hashlist check failed? need to do something here
   * remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing
   * instruct users to copy-paste to help troubleshoot
-9. optional compatibility toggle
+10. optional compatibility toggle
   * separate button or a checkbox to run game with recommended settings
   * edit %APPDATA%\kaiko\rfg\config.ini and set windows_mode=2 (exclusive fullscreen)
   * find a way to set up windows compatibility settings for game exe
     * registry?
     * bat file?
-    * create .lnk and edit it programmatically?
+    * create .lnk and edit it programmatically? 
+10. steam compatibility
+    * create backup of .exe so people can run game with steam
+    * add steam shortcut for it automatically if possible?
 10. rename FF categories as MM/legacy/something, add new for SF mods
 11. test if preserve whitespace works for files like anim_files.xtbl - they should not be formatted/minimized
-12. Fix patch not installing with SF beta 
-13. Improvement: second button to launch game via RSL2 (Launcher.exe) or just redirect the current one since we'll all have RSL2 soon 
-14. Test .xdelta with newly added files 
+12. Fix patch not installing lol
+13. run with Launcher.exe if found (RSL2)
 15. make xdelta work for managed files 
-16. placeholder text when modinfo has no options?
-
-
-Unification patch
-* support mods working differently for steam/gog, eg with subfolders
-* apply certain xdeltas for steam version
-* place sw_api.dll for both versions
-* ?
+16. placeholder text when modinfo has no options? 
+17. better messages
+    * fix logging
+    * fix formatting
+    * user-friendly messages
+    * proper operations log
+    * fix progress display
+    * sane error formatting/handling
+    * restore buttons should update mod list / ui
+    * modinfo description should be wrapped and have some offset
+19. port/network checker?
+    * inspect how game uses network for client and host modes
+    * check if traffic can flow as required by either mode
+    * need a server side app for this
+20. support mods working differently for steam/gog, eg with subfolders
 
 ## Dark Mode
 
@@ -153,25 +161,3 @@ Unification patch
 * ~~fix listview header (GridViewColumnHeader?)~~
 * ~~fix lego mason outline~~
 * fix markdown view (do proper logging first)
-
-
-## after test release:
-
-1. better messages
-  * fix logging
-  * fix formatting
-  * user-friendly messages
-  * proper operations log
-  * fix progress display
-  * sane error formatting/handling
-  * restore buttons should update mod list / ui
-  * modinfo description should be wrapped and have some offset
-2. modmanager?
-  * xml merging
-  * tests
-  * streaming repack vpp to a temp file, then switch-rename
-  * cleanup on any failure to last known state?
-3. port/network checker?
-  * inspect how game uses network for client and host modes
-  * check if traffic can flow as required by either mode
-  * need a server side app for this
