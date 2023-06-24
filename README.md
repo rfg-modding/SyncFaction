@@ -99,8 +99,8 @@ Or how to get this branch closer to release and not burn out:
   * ~~restore vpp files from backup~~
   * ~~skip recompressing untouched files~~
   * ~~test all existing mods~~
-  * file add/replace logic should be the same for folder and modinfo mods
-  * forget/reset inputs in UI?
+  * ~~file add/replace logic should be the same for folder and modinfo mods~~
+  * ~~forget/reset inputs in UI?~~
   * proper error handling and cleanup
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~

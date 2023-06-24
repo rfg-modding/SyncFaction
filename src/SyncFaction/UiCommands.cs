@@ -612,4 +612,30 @@ Then run SyncFaction again.
         var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem, log);
         appStorage.WriteStateFile(viewModel.Model.ToState());
     }
+
+    public void ModResetInputs(ModInfo modInfo, ViewModel viewModel)
+    {
+        foreach (var listBox in modInfo.UserInput.OfType<ListBox>())
+        {
+            listBox.SelectedIndex = 0;
+            foreach (var displayOption in listBox.DisplayOptions)
+            {
+                switch (displayOption)
+                {
+                    case CustomOption c:
+                        c.Value = null;
+                        break;
+                }
+            }
+        }
+
+        var mod = viewModel.SelectedMod.Mod;
+        viewModel.Model.Settings.Mods.Remove(mod.Id);
+    }
+
+    public async Task<bool> Report(ViewModel viewModel, CancellationToken token)
+    {
+        //TODO stopped here
+        return true;
+    }
 }

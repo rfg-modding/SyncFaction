@@ -134,4 +134,18 @@ public partial class ViewModel
     {
         await uiCommands.ExecuteSafe(this, $"Restoring to vanilla files", uiCommands.RestoreVanilla, token);
     }
+
+    [RelayCommand]
+    private void ModResetInputs(object x)
+    {
+        uiCommands.ModResetInputs(ModInfo, this);
+        // NOTE: didnt find a way to update modinfo panel, lets just close it
+        SelectedMod.Selected = false;
+    }
+
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task Report(object x, CancellationToken token)
+    {
+        await uiCommands.ExecuteSafe(this, $"Generating report", uiCommands.Report, token);
+    }
 }

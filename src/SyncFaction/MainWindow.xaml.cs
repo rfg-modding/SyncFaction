@@ -154,4 +154,9 @@ public partial class MainWindow : Window, IViewAccessor
     {
         DevMode.IsChecked = !DevMode.IsChecked;
     }
+
+    private void ModResetInputs_Click(object sender, RoutedEventArgs e)
+    {
+        viewModel.ModResetInputsCommand.Execute(null);
+    }
 }

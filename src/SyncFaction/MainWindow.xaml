@@ -20,7 +20,7 @@
         <converters:TabSelectedByTypeVisibilityConverter x:Key="TabSelectedByTypeVisibilityConverter" />
         <converters:BoolShowHideConverter x:Key="BoolShowHide" />
         <converters:ModStatusConverter x:Key="ModStatusConverter" />
-        <DataTemplate DataType="{x:Type modXml:ModInfo}">
+            <DataTemplate DataType="{x:Type modXml:ModInfo}">
             <StackPanel Orientation="Vertical">
                 <GroupBox Margin="10 5 10 5" Header="Mod Info">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
@@ -42,9 +42,43 @@
                         </StackPanel>
                     </ScrollViewer>
                 </GroupBox>
+                <GroupBox Margin="10 5 10 5" Padding="5" Header="This mod has no settings">
+                    <GroupBox.Style>
+                        <Style TargetType="{x:Type GroupBox}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Value="0" Binding="{Binding UserInput.Count}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </GroupBox.Style>
+                </GroupBox>
                 <ItemsControl Name="ModOptions" ItemsSource="{Binding UserInput}" />
+                <GroupBox Margin="10 5 10 5" Padding="5" Header="Actions">
+                    <Button Click="ModResetInputs_Click">
+                        Reset to default values
+                    </Button>
+                    <GroupBox.Style>
+                        <Style TargetType="{x:Type GroupBox}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                                <DataTrigger Value="0" Binding="{Binding UserInput.Count}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </GroupBox.Style>
+                </GroupBox>
             </StackPanel>
         </DataTemplate>
+
         <DataTemplate DataType="{x:Type modXml:ListBox}">
             <GroupBox Margin="10 5 10 5" Padding="5" Header="{Binding DisplayName}">
                 <StackPanel Orientation="Vertical">
@@ -176,7 +210,7 @@
             <ScrollViewer Grid.Column="1" Width="400"
                           Visibility="Visible"
                           VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
-                <ContentControl Content="{Binding SelectedMod.Mod.ModInfo}" />
+                <ContentControl Name="ModSettings" Content="{Binding SelectedMod.Mod.ModInfo}" />
             </ScrollViewer>
         </Grid>
         <Label Grid.Row="3" Grid.Column="2" Width="60" Height="40" Background="{StaticResource SF.Highlight}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding Model.DevMode, Converter={StaticResource BoolShowHide}, ConverterParameter=true}">
@@ -364,7 +398,7 @@ void!</TextBlock>
                         <ColumnDefinition Width="10*" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left">
-                        <Label>TODO</Label>
+                        <Button x:Name="Report" Content="Generate Report" Command="{Binding ReportCommand}" />
                     </StackPanel>
                     <TextBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.CanContentScroll="True" IsReadOnly="True" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" MinHeight="300" MaxHeight="300" Height="300" Name="DiagText" Text="{Binding DiagView, Mode=OneWay}" />
                 </Grid>

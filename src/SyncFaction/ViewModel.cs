@@ -83,7 +83,6 @@ public partial class ViewModel
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
     private Tab selectedTab = Tab.Apply;
 
-    // TODO show this only when mod has modinfo.xml with inputs?
     public bool DisplayModSettings => SelectedTab == Tab.Apply && ModInfo is not null;
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(NotInteractive))]
