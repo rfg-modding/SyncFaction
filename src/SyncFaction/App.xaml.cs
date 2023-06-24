@@ -1,11 +1,8 @@
-﻿using System;
-using System.IO.Abstractions;
-using System.Threading;
+﻿using System.IO.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Windows;
 using Dark.Net;
-using Dark.Net.Wpf;
 using MdXaml;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
@@ -66,6 +63,9 @@ public partial class App : Application
     {
         var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
+        /*
+
+        // open second window with flipped dark/light mode for debugging styles:
         var mainWindow2 = new MainWindow(
             new ViewModel(
                 serviceProvider.GetRequiredService<ILogger<ViewModel>>(),
@@ -76,5 +76,6 @@ public partial class App : Application
             true
         );
         mainWindow2.Show();
+        */
     }
 }

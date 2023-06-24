@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -21,7 +20,7 @@ public partial class MainWindow : Window, IViewAccessor
 
     public readonly ElementSkinManager SkinManager;
 
-    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, bool forceChangeTheme=false)
+    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, bool flipTheme=false)
     {
         this.viewModel = viewModel;
         this.viewModel.ViewAccessor = this;
@@ -31,7 +30,7 @@ public partial class MainWindow : Window, IViewAccessor
         InitializeComponent();
         Title = Extras.Title.Value;
 
-        var theme = (DarkNet.Instance.EffectiveCurrentProcessThemeIsDark, forceChangeTheme) switch
+        var theme = (DarkNet.Instance.EffectiveCurrentProcessThemeIsDark, flipTheme) switch
         {
             (false, false) => Theme.Light,
             (true, false) => Theme.Dark,
@@ -39,7 +38,7 @@ public partial class MainWindow : Window, IViewAccessor
             (true, true) => Theme.Light,
         };
         this.viewModel.Theme = App.AppTheme;
-        if (forceChangeTheme)
+        if (flipTheme)
         {
             this.viewModel.Theme = DarkNet.Instance.EffectiveCurrentProcessThemeIsDark ? Theme.Light : Theme.Dark;
         }
@@ -47,12 +46,6 @@ public partial class MainWindow : Window, IViewAccessor
         SkinManager = new ElementSkinManager(this);
         SkinManager.RegisterSkins(new Uri("Skins/Skin.Light.xaml", UriKind.Relative), new Uri("Skins/Skin.Dark.xaml", UriKind.Relative));
         SkinManager.UpdateTheme(this.viewModel.Theme);
-
-        /*var light = new Uri("Skins/Skin.Light.xaml", UriKind.Relative);
-        var dark = new Uri("Skins/Skin.Dark.xaml", UriKind.Relative);
-        Collection<ResourceDictionary> windowResources = Resources.MergedDictionaries;
-        var skinResources = windowResources.First(r => r.Source.Equals(light) || r.Source.Equals(dark));
-        skinResources.Source = theme == Theme.Dark ? dark : light;*/
 
         markdownRender.Init(Markdown);
         markdownRender.Append("# Welcome!");

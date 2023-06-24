@@ -31,6 +31,12 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 ## Getting help
 
+If app does not start and leads you to Microsoft downloads page, you need the [x64 .NET 6.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/6.0/runtime) **FOR DESKTOP APPS**
+
+![dotnet desktop runtime](https://user-images.githubusercontent.com/1562341/204090216-2d163e9c-b60e-4e45-88e2-bcd4f21aab69.png)
+
+Game and app related issues:
+
 * Use Steam to check integrity of game files
 * Check if game location is valid
 * See if new versions of SyncFaction are available on Github
@@ -103,7 +109,7 @@ Or how to get this branch closer to release and not burn out:
   * ~~some archives can't be xdelta'd. see if they have entries in same order so we cau update with loose files~~
   * ~~apply xdelta on steam files to match gog: `terr01_precache vehicles effects effects_mp chunks`~~
   * ~~`terr01_l1.vpp_pc` must be repackaged in both game versions with files from gog~~
-7. backport stuff from other branches: user agent? something else?
+7. ~~backport stuff from other branches: user agent? something else?~~
 8. hash checks
   * button to generate json of all files
     * record last modified time (probably others too)

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Data;
@@ -8,7 +7,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dark.Net;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction;
