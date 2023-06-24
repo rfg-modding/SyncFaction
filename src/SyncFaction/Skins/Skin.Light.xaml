@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 >
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="Custom.xaml" />
+        <ResourceDictionary Source="CustomBase.xaml" />
     </ResourceDictionary.MergedDictionaries>
     <Style TargetType="Window" x:Key="CustomWindowStyle">
     </Style>

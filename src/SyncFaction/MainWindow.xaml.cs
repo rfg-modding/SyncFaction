@@ -159,4 +159,9 @@ public partial class MainWindow : Window, IViewAccessor
     {
         viewModel.ModResetInputsCommand.Execute(null);
     }
+
+    private void CopyReport_Click(object sender, RoutedEventArgs e)
+    {
+        Clipboard.SetText(viewModel.DiagView);
+    }
 }

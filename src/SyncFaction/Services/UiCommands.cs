@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FastHashes;
@@ -13,10 +14,13 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SyncFaction.Core;
 using SyncFaction.Core.Data;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
+using SyncFaction.Extras;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.XmlModels;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 using Mod = SyncFaction.Core.Services.FactionFiles.Mod;
 
 namespace SyncFaction;
@@ -66,6 +70,7 @@ public class UiCommands
         }
         catch (Exception ex)
         {
+            viewModel.LastException = ex.ToString();
             log.LogError(ex, $"TODO better exception logging! \n\n{ex}");
             //var exceptionText = string.Join("\n", ex.ToString().Split('\n').Select(x => $"`` {x} ``"));
             //render.Append("---");
@@ -633,9 +638,19 @@ Then run SyncFaction again.
         viewModel.Model.Settings.Mods.Remove(mod.Id);
     }
 
-    public async Task<bool> Report(ViewModel viewModel, CancellationToken token)
+    public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
-        //TODO stopped here
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var files = fileManager.ReportFiles(storage, token).ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
+        var state = viewModel.Model.ToState();
+        var report = new Report(files, state, Title.Value, viewModel.LastException);
+        var json = System.Text.Json.JsonSerializer.Serialize(report, new JsonSerializerOptions()
+        {
+            WriteIndented = true
+        });
+        viewModel.DiagView = json;
         return true;
     }
+
+
 }

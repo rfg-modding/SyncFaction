@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO.Abstractions;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Data;
 using SyncFaction.Core.Services;
+using SyncFaction.Core.Services.Files;
 using SyncFaction.ModManager;
 
 namespace SyncFaction;
@@ -101,4 +105,8 @@ public partial class Model
             dst.Add(modId);
         }
     }
+
+    public AppStorage GetAppStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, log);
+
+    public GameStorage GetGameStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, Hashes.Get(IsGog.Value), log);
 }

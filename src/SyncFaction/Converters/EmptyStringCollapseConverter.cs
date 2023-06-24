@@ -22,3 +22,21 @@ public class EmptyStringCollapseConverter : IValueConverter
         return string.Empty;
     }
 }
+
+public class EmptyStringDisabledConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value switch
+        {
+            null or "" => false,
+            string or _ => true,
+        };
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        // not much sense here
+        return string.Empty;
+    }
+}

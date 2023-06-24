@@ -111,12 +111,12 @@ Or how to get this branch closer to release and not burn out:
   * ~~`terr01_l1.vpp_pc` must be repackaged in both game versions with files from gog~~
 7. ~~backport stuff from other branches: user agent? something else?~~
 8. hash checks
-  * button to generate json of all files
-    * record last modified time (probably others too)
-    * byte size
-    * hash
-    * order dictionary by file names and attributes so it's always easy to compare
-    * make a list of all files in game dir?
+  * ~~button to generate json of all files~~
+    * ~~record last modified time (probably others too)~~
+    * ~~byte size~~
+    * ~~hash~~
+    * ~~order dictionary by file names and attributes so it's always easy to compare~~
+    * ~~make a list of all files in game dir?~~
   * use hashlist file from mod/patch to verify after install
   * rollback if hashlist check failed? need to do something here
   * remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing

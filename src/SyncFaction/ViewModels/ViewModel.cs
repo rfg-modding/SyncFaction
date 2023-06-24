@@ -141,6 +141,8 @@ public partial class ViewModel
 
     public Theme Theme { get; set; }
 
+    public string LastException { get; set; }
+
 
     public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 }

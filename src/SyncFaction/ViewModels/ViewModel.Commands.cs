@@ -144,8 +144,8 @@ public partial class ViewModel
     }
 
     [RelayCommand(IncludeCancelCommand = true)]
-    private async Task Report(object x, CancellationToken token)
+    private async Task GenerateReport(object x, CancellationToken token)
     {
-        await uiCommands.ExecuteSafe(this, $"Generating report", uiCommands.Report, token);
+        await uiCommands.ExecuteSafe(this, $"Generating report", uiCommands.GenerateReport, token);
     }
 }

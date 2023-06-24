@@ -15,6 +15,7 @@
         <converters:XmlNodeConverter x:Key="XmlNodeConverter" />
         <converters:BoolShowCollapseConverter x:Key="BoolShowCollapseConverter" />
         <converters:EmptyStringCollapseConverter x:Key="EmptyStringCollapseConverter" />
+        <converters:EmptyStringDisabledConverter x:Key="EmptyStringDisabledConverter" />
         <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
         <converters:TabSelectedByTypeConverter x:Key="TabSelectedByTypeConverter" />
         <converters:TabSelectedByTypeVisibilityConverter x:Key="TabSelectedByTypeVisibilityConverter" />
@@ -398,7 +399,11 @@ void!</TextBlock>
                         <ColumnDefinition Width="10*" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left">
-                        <Button x:Name="Report" Content="Generate Report" Command="{Binding ReportCommand}" />
+                        <Button x:Name="GenerateReport" Content="Generate Report" Command="{Binding GenerateReportCommand}" />
+                        <Button x:Name="CopyReport"
+                                IsEnabled="{Binding DiagView, Converter={StaticResource EmptyStringDisabledConverter}}"
+                                Content="Copy to Clipboard" Click="CopyReport_Click" >
+                        </Button>
                     </StackPanel>
                     <TextBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.CanContentScroll="True" IsReadOnly="True" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" MinHeight="300" MaxHeight="300" Height="300" Name="DiagText" Text="{Binding DiagView, Mode=OneWay}" />
                 </Grid>

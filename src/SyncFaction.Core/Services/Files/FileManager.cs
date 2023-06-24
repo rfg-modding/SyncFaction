@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
+using System.IO.Abstractions;
 using System.Runtime;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.Models;
@@ -195,5 +197,31 @@ public class FileManager
     {
         storage.PatchBak.Delete(true);
         storage.PatchBak.Create();
+    }
+
+    public IEnumerable<FileReport> ReportFiles(IAppStorage storage, CancellationToken token)
+    {
+        var fs = storage.App.FileSystem;
+        foreach (var info in storage.Game.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+        {
+            token.ThrowIfCancellationRequested();
+            var relativePath = fs.Path.GetRelativePath(storage.Game.FullName, info.FullName);
+            var created = info.CreationTimeUtc;
+            var modified = info.LastWriteTimeUtc;
+            var accessed = info.LastAccessTimeUtc;
+            switch (info)
+            {
+                case IDirectoryInfo:
+                    yield return new FileReport(relativePath + "/", -1, null, created, modified, accessed);
+                    break;
+                case IFileInfo file:
+                    var size = file.Length;
+                    var hash = storage.ComputeHash(file);
+                    yield return new FileReport(relativePath, size, hash, created, modified, accessed);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(info));
+            }
+        }
     }
 }

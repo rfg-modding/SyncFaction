@@ -15,7 +15,7 @@ namespace SyncFaction;
 
 public partial class App : Application
 {
-    public static Theme AppTheme = Theme.Auto;
+    public static Theme AppTheme = Theme.Light;
 
     private ServiceProvider serviceProvider;
 
