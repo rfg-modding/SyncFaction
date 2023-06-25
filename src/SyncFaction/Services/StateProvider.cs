@@ -6,10 +6,9 @@ namespace SyncFaction.Services;
 
 public class StateProvider : IStateProvider
 {
-    private Func<State> getter = DefaultGetter;
-
     public State State => getter();
     public bool Initialized { get; private set; }
+    private Func<State> getter = DefaultGetter;
 
     public void Init(Model model)
     {
@@ -17,8 +16,5 @@ public class StateProvider : IStateProvider
         Initialized = true;
     }
 
-    private static State DefaultGetter()
-    {
-        throw new InvalidOperationException("StateProvider is not initialized!");
-    }
+    private static State DefaultGetter() => throw new InvalidOperationException("StateProvider is not initialized!");
 }

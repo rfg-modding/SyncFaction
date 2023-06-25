@@ -2,7 +2,6 @@ using System.CommandLine;
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
-using System.CommandLine.Parsing;
 using Microsoft.Extensions.DependencyInjection;
 using SyncFaction.Toolbox.Models;
 
@@ -13,8 +12,20 @@ public class Get : Command
     private readonly Argument<string> archiveArg = new("archive", "vpp_pc to unpack, globs allowed");
     private readonly Argument<string> fileArg = new("file", "file inside vpp to extract, globs allowed");
     private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultDir, "output path");
-    private readonly Option<bool> xmlFormat = new(new[] {"-x", "--xml-format"}, "format xml file");
-    private readonly Option<bool> force = new(new[] {"-f", "--force"}, "overwrite output if exists");
+
+    private readonly Option<bool> xmlFormat = new(new[]
+        {
+            "-x",
+            "--xml-format"
+        },
+        "format xml file");
+
+    private readonly Option<bool> force = new(new[]
+        {
+            "-f",
+            "--force"
+        },
+        "overwrite output if exists");
 
     public Get() : base(nameof(Get).ToLowerInvariant(), "Extract certain file from vpp_pc to dir")
     {

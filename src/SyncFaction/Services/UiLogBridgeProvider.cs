@@ -18,8 +18,5 @@ public class UiLogBridgeProvider : ILoggerProvider
     {
     }
 
-    public ILogger CreateLogger(string categoryName)
-    {
-        return new UiLogger(render, stateProvider, categoryName);
-    }
+    public ILogger CreateLogger(string categoryName) => new UiLogger(render, stateProvider, categoryName);
 }

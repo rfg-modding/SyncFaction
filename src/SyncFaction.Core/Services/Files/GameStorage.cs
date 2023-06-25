@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
-using SharpCompress;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.FactionFiles;
 
@@ -9,23 +8,32 @@ namespace SyncFaction.Core.Services.Files;
 
 public class GameStorage : AppStorage, IGameStorage
 {
+    public IDirectoryInfo Bak { get; }
+
+    public IDirectoryInfo PatchBak { get; }
+
+    public IDirectoryInfo Managed { get; }
+
+    /// <inheritdoc />
+    public ImmutableSortedDictionary<string, string> VanillaHashes { get; }
+
+    /// <inheritdoc />
+    public ImmutableSortedDictionary<string, string> RootFiles { get; }
+
+    /// <inheritdoc />
+    public ImmutableSortedDictionary<string, string> DataFiles { get; }
+
     public GameStorage(string gameDir, IFileSystem fileSystem, IDictionary<string, string> fileHashes, ILogger log) : base(gameDir, fileSystem, log)
     {
-
         Bak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.BakDirName));
         PatchBak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.PatchBakDirName));
         Managed = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.ManagedDirName));
         EnsureCreated(Bak);
         EnsureCreated(PatchBak);
         EnsureCreated(Managed);
-        vanillaHashes = fileHashes.OrderBy(x => x.Key).ToImmutableSortedDictionary();
-        rootFiles = VanillaHashes.Keys
-            .Where(x => x.Split('/').Length == 1)
-            .ToDictionary(x => Path.GetFileNameWithoutExtension(x), x => x)
-            .OrderBy(x => x.Key)
-            .ToImmutableSortedDictionary();
-        dataFiles = VanillaHashes.Keys
-            .Where(x =>
+        VanillaHashes = fileHashes.OrderBy(x => x.Key).ToImmutableSortedDictionary();
+        RootFiles = VanillaHashes.Keys.Where(x => x.Split('/').Length == 1).ToDictionary(x => Path.GetFileNameWithoutExtension(x), x => x).OrderBy(x => x.Key).ToImmutableSortedDictionary();
+        DataFiles = VanillaHashes.Keys.Where(x =>
             {
                 var tokens = x.Split('/');
                 return tokens.Length == 2 && tokens[0].ToLowerInvariant() == "data";
@@ -35,61 +43,19 @@ public class GameStorage : AppStorage, IGameStorage
             .ToImmutableSortedDictionary();
     }
 
-    private static void EnsureCreated(IDirectoryInfo dir)
-    {
-        if (!dir.Exists)
-        {
-            dir.Create();
-        }
-    }
-
-    public IDirectoryInfo Bak { get; }
-
-    public IDirectoryInfo PatchBak { get; }
-
-    public IDirectoryInfo Managed { get; }
+    /// <inheritdoc />
+    public IEnumerable<GameFile> EnumerateStockFiles() =>
+        VanillaHashes.Keys.Select(x => new GameFile(this, x, fileSystem));
 
     /// <inheritdoc />
-    public IEnumerable<GameFile> EnumerateStockFiles()
-    {
-        return VanillaHashes.Keys
-            .Select(x => new GameFile(this, x, fileSystem));
-    }
+    public IEnumerable<GameFile> EnumeratePatchFiles() =>
+        PatchBak.EnumerateFiles("*", SearchOption.AllDirectories).Select(x => Path.GetRelativePath(PatchBak.FullName, x.FullName)).Select(x => new GameFile(this, x, fileSystem)).Where(x => x.Kind is FileKind.FromPatch);
 
     /// <inheritdoc />
-    public IEnumerable<GameFile> EnumeratePatchFiles()
-    {
-        return PatchBak.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Select(x => Path.GetRelativePath(PatchBak.FullName, x.FullName))
-            .Select(x => new GameFile(this, x, fileSystem))
-            .Where(x => x.Kind is FileKind.FromPatch);
-    }
+    public IEnumerable<GameFile> EnumerateManagedFiles() =>
+        Managed.EnumerateFiles("*", SearchOption.AllDirectories).Select(x => Path.GetRelativePath(Managed.FullName, x.FullName)).Select(x => new GameFile(this, x, fileSystem));
 
-    /// <inheritdoc />
-    public IEnumerable<GameFile> EnumerateManagedFiles()
-    {
-        return Managed.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Select(x => Path.GetRelativePath(Managed.FullName, x.FullName))
-            .Select(x => new GameFile(this, x, fileSystem));
-    }
-
-    /// <inheritdoc />
-    public ImmutableSortedDictionary<string, string> VanillaHashes => vanillaHashes;
-
-    /// <inheritdoc />
-    public ImmutableSortedDictionary<string, string> RootFiles => rootFiles;
-
-    /// <inheritdoc />
-    public ImmutableSortedDictionary<string, string> DataFiles => dataFiles;
-
-    private ImmutableSortedDictionary<string, string> vanillaHashes;
-    private ImmutableSortedDictionary<string, string> rootFiles;
-    private ImmutableSortedDictionary<string, string> dataFiles;
-
-    public IDirectoryInfo GetModDir(IMod mod)
-    {
-        return Game.FileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, mod.IdString));
-    }
+    public IDirectoryInfo GetModDir(IMod mod) => Game.FileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, mod.IdString));
 
     public void InitBakDirectories()
     {
@@ -106,19 +72,21 @@ public class GameStorage : AppStorage, IGameStorage
 
     public Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token)
     {
-        log.LogWarning($"Validating game contents. This is one-time thing, but going to take a while");
+        log.LogWarning("Validating game contents. This is one-time thing, but going to take a while");
         // descending name order places bigger files earlier and this gives better check times
-        var result = Parallel.ForEach(VanillaHashes.OrderByDescending(x => x.Key), new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = threadCount
-        }, (kv, loopState) =>
-        {
-            log.LogInformation($"+ *Checking* {kv.Key}");
-            var file = new GameFile(this, kv.Key, fileSystem);
-            if (!file.IsVanillaByHash())
+        var result = Parallel.ForEach(VanillaHashes.OrderByDescending(x => x.Key),
+            new ParallelOptions
             {
-                log.LogError(@$"Action needed:
+                CancellationToken = token,
+                MaxDegreeOfParallelism = threadCount
+            },
+            (kv, loopState) =>
+            {
+                log.LogInformation($"+ *Checking* {kv.Key}");
+                var file = new GameFile(this, kv.Key, fileSystem);
+                if (!file.IsVanillaByHash())
+                {
+                    log.LogError(@$"Action needed:
 
 Found modified game file: {file.RelativePath}
 
@@ -131,10 +99,18 @@ Then run SyncFaction again.
 
 *See you later miner!*
 ");
-                loopState.Stop();
-            }
-        });
+                    loopState.Stop();
+                }
+            });
 
         return Task.FromResult(result.IsCompleted);
+    }
+
+    private static void EnsureCreated(IDirectoryInfo dir)
+    {
+        if (!dir.Exists)
+        {
+            dir.Create();
+        }
     }
 }

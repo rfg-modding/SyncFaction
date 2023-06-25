@@ -12,27 +12,16 @@ public class ModTools
 {
     private readonly ILogger<ModTools> log;
 
-    public ModTools(ILogger<ModTools> log)
+    public ModTools(ILogger<ModTools> log) => this.log = log;
+
+    public ModInfo LoadFromXml(Stream stream, IDirectoryInfo xmlFileDirectory)
     {
-        this.log = log;
-    }
-
-    private static readonly XmlReaderSettings Settings = new()
-    {
-		IgnoreComments = true,
-		IgnoreWhitespace = true,
-		IgnoreProcessingInstructions = true,
-	};
-
-
-	public ModInfo LoadFromXml(Stream stream, IDirectoryInfo xmlFileDirectory)
-	{
-		using var reader = XmlReader.Create(stream, Settings);
-		var serializer = new XmlSerializer(typeof(ModInfo));
+        using var reader = XmlReader.Create(stream, Settings);
+        var serializer = new XmlSerializer(typeof(ModInfo));
         var modInfo = (ModInfo) serializer.Deserialize(reader)!;
         modInfo.WorkDir = xmlFileDirectory;
         return modInfo;
-	}
+    }
 
     /// <summary>
     /// Three stages:
@@ -68,6 +57,130 @@ public class ModTools
         modInfo.TypedChanges = typedChangesHolder.TypedChanges.Concat(mirroredChanges).ToList();
     }
 
+    public void ApplyReplaceUserInput(Replace replace, Dictionary<string, XmlNode> selectedValues)
+    {
+        if (!string.IsNullOrEmpty(replace.FileUserInput))
+        {
+            if (!string.IsNullOrEmpty(replace.File))
+            {
+                throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
+            }
+
+            // TODO support null (no-op)
+            var holder = selectedValues[replace.FileUserInput];
+            if (holder.ChildNodes.Count != 1)
+            {
+                throw new ArgumentException($"File manipulations require option to have exactly one string value. Selected option: [{holder.InnerXml}]");
+            }
+
+            replace.File = holder.ChildNodes[0].InnerText;
+        }
+
+        if (!string.IsNullOrEmpty(replace.NewFileUserInput))
+        {
+            if (!string.IsNullOrEmpty(replace.NewFile))
+            {
+                throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
+            }
+
+            // TODO support null (no-op)
+            var holder = selectedValues[replace.NewFileUserInput];
+            if (holder.ChildNodes.Count != 1)
+            {
+                throw new ArgumentException($"File manipulations require option to have exactly one string value. Selected option: [{holder.InnerXml}]");
+            }
+
+            replace.NewFile = holder.ChildNodes[0].InnerText;
+        }
+    }
+
+    public void CopySameOptions(ModInfo modInfo)
+    {
+        var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
+        // set copies for listboxes which reference others
+        foreach (var listBox in listBoxes.Values)
+        {
+            if (string.IsNullOrWhiteSpace(listBox.SameOptionsAs))
+            {
+                continue;
+            }
+
+            var source = listBoxes[listBox.SameOptionsAs.ToLowerInvariant()];
+            // NOTE what could possibly go wrong if i don't do a deep copy? options are not modified anywhere. also, custom option is separate
+            listBox.XmlOptions = source.XmlOptions;
+        }
+    }
+
+    public Settings.Mod SaveCurrentSettings(ModInfo modInfo)
+    {
+        var result = new Settings.Mod();
+        var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
+        foreach (var kv in listBoxes)
+        {
+            result.ListBoxes[kv.Key] = new Settings.ListBox
+            {
+                CustomValue = kv.Value.DisplayOptions.OfType<CustomOption>().FirstOrDefault()?.Value,
+                SelectedIndex = kv.Value.SelectedIndex
+            };
+        }
+
+        return result;
+    }
+
+    public void LoadSettings(Settings.Mod settings, ModInfo modInfo)
+    {
+        var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
+        foreach (var kv in settings.ListBoxes)
+        {
+            var listBox = listBoxes[kv.Key];
+            listBox.SelectedIndex = kv.Value.SelectedIndex;
+            var customOption = listBox.DisplayOptions.OfType<CustomOption>().FirstOrDefault();
+            if (customOption is not null)
+            {
+                customOption.Value = kv.Value.CustomValue;
+            }
+        }
+    }
+
+    public ModInfoOperations BuildOperations(ModInfo modInfo)
+    {
+        // ApplyUserInput is expected to be called prior to this. We expect actual state here
+        // not using FileUserInput because they are copied to File already, same with NewFile
+
+        // map relative paths "foo/bar.xtbl" to FileInfo
+        var fs = modInfo.WorkDir.FileSystem;
+        var relativeModFiles = modInfo.WorkDir.EnumerateFiles("*", SearchOption.AllDirectories).ToImmutableDictionary(x => fs.Path.GetRelativePath(modInfo.WorkDir.FullName, x.FullName.ToLowerInvariant()));
+
+        // map replacements inside vpp to relative paths
+        var references = modInfo.TypedChanges.OfType<Replace>()
+            .Select(x => new
+            {
+                vppPath = GetPaths(fs, x.File),
+                target = SanitizePath(x.NewFile)
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.target))
+            .ToImmutableDictionary(x => x.vppPath, x => x.target);
+
+        var referencedFiles = references.Select(x => new
+            {
+                vppPath = x.Key,
+                target = x.Value,
+                fileInfo = relativeModFiles!.GetValueOrDefault(x.Value, null)
+            })
+            .ToList();
+        var missing = referencedFiles.Where(x => x.fileInfo is null).ToList();
+        if (missing.Any())
+        {
+            var files = string.Join(", ", missing.Select(x => x.target));
+            throw new ArgumentException($"ModInfo references {missing.Count} nonexistent files: [{files}]");
+        }
+
+        var referencedFilesDict = referencedFiles.ToImmutableDictionary(x => x.vppPath, x => x.fileInfo!);
+        var replaceOperations = modInfo.TypedChanges.OfType<Replace>().Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict)).ToList();
+        var editOperations = modInfo.TypedChanges.OfType<Edit>().Select((x, i) => ConvertToOperation(x, i, fs)).ToList();
+        return new ModInfoOperations(replaceOperations, editOperations);
+    }
+
     /// <summary>
     /// For every edit of misc.vpp or table.vpp, add similar edits for second file. Only for XTBL edits/replacements!
     /// </summary>
@@ -96,155 +209,11 @@ public class ModTools
             mirrorChange.File = fs.Path.Combine(mirror, vppPaths.File);
             yield return mirrorChange;
         }
-
     }
 
-    public void ApplyReplaceUserInput(Replace replace, Dictionary<string, XmlNode> selectedValues)
-    {
-        if (!string.IsNullOrEmpty(replace.FileUserInput))
-        {
-            if (!string.IsNullOrEmpty(replace.File))
-            {
-                throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
-            }
+    private FileSwapOperation ConvertToOperation(Replace replace, int index, IFileSystem fs, IImmutableDictionary<VppPath, IFileInfo> referencedFiles) => new FileSwapOperation(index, GetPaths(fs, replace.File), referencedFiles[GetPaths(fs, replace.File)]);
 
-            // TODO support null (no-op)
-            var holder = selectedValues[replace.FileUserInput];
-            if (holder.ChildNodes.Count != 1)
-            {
-                throw new ArgumentException($"File manipulations require option to have exactly one string value. Selected option: [{holder.InnerXml}]");
-            }
-
-            replace.File = holder.ChildNodes[0].InnerText;
-        }
-
-        if (!string.IsNullOrEmpty(replace.NewFileUserInput))
-        {
-            if (!string.IsNullOrEmpty(replace.NewFile))
-            {
-                throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
-            }
-            // TODO support null (no-op)
-            var holder = selectedValues[replace.NewFileUserInput];
-            if (holder.ChildNodes.Count != 1)
-            {
-                throw new ArgumentException($"File manipulations require option to have exactly one string value. Selected option: [{holder.InnerXml}]");
-            }
-
-            replace.NewFile = holder.ChildNodes[0].InnerText;
-        }
-    }
-
-    public void CopySameOptions(ModInfo modInfo)
-    {
-        var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
-        // set copies for listboxes which reference others
-        foreach (var listBox in listBoxes.Values)
-        {
-            if (string.IsNullOrWhiteSpace(listBox.SameOptionsAs))
-            {
-                continue;
-            }
-
-            var source = listBoxes[listBox.SameOptionsAs.ToLowerInvariant()];
-            // NOTE what could possibly go wrong if i don't do a deep copy? options are not modified anywhere. also, custom option is separate
-            listBox.XmlOptions = source.XmlOptions;
-        }
-
-    }
-
-    public Settings.Mod SaveCurrentSettings(ModInfo modInfo)
-    {
-        var result = new Settings.Mod();
-        var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
-        foreach (var kv in listBoxes)
-        {
-            result.ListBoxes[kv.Key] = new Settings.ListBox()
-            {
-                CustomValue = kv.Value.DisplayOptions.OfType<CustomOption>().FirstOrDefault()?.Value,
-                SelectedIndex = kv.Value.SelectedIndex
-            };
-        }
-
-        return result;
-    }
-
-    public void LoadSettings(Settings.Mod settings, ModInfo modInfo)
-    {
-        var listBoxes = modInfo.UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
-        foreach (var kv in settings.ListBoxes)
-        {
-            var listBox = listBoxes[kv.Key];
-            listBox.SelectedIndex = kv.Value.SelectedIndex;
-            var customOption = listBox.DisplayOptions.OfType<CustomOption>().FirstOrDefault();
-            if (customOption is not null)
-            {
-                customOption.Value = kv.Value.CustomValue;
-            }
-        }
-    }
-
-    private static string SanitizePath(string path)
-    {
-        return path
-                .Replace("//", "")
-                .Replace("..", "")
-                .Replace(":", "")
-                .ToLowerInvariant()
-            ;
-    }
-
-    public ModInfoOperations BuildOperations(ModInfo modInfo)
-    {
-        // ApplyUserInput is expected to be called prior to this. We expect actual state here
-        // not using FileUserInput because they are copied to File already, same with NewFile
-
-        // map relative paths "foo/bar.xtbl" to FileInfo
-        var fs = modInfo.WorkDir.FileSystem;
-        var relativeModFiles = modInfo.WorkDir
-            .EnumerateFiles("*", SearchOption.AllDirectories)
-            .ToImmutableDictionary(x => fs.Path.GetRelativePath(modInfo.WorkDir.FullName, x.FullName.ToLowerInvariant()));
-
-        // map replacements inside vpp to relative paths
-        var references = modInfo.TypedChanges
-            .OfType<Replace>()
-            .Select(x => new {vppPath = GetPaths(fs, x.File), target = SanitizePath(x.NewFile)})
-            .Where(x => !string.IsNullOrWhiteSpace(x.target))
-            .ToImmutableDictionary(x => x.vppPath, x => x.target);
-
-        var referencedFiles = references
-            .Select(x => new {vppPath = x.Key, target = x.Value, fileInfo = relativeModFiles!.GetValueOrDefault(x.Value, null)})
-            .ToList();
-        var missing = referencedFiles
-            .Where(x => x.fileInfo is null)
-            .ToList();
-        if (missing.Any())
-        {
-            var files = string.Join(", ", missing.Select(x => x.target));
-            throw new ArgumentException($"ModInfo references {missing.Count} nonexistent files: [{files}]");
-        }
-
-        var referencedFilesDict = referencedFiles.ToImmutableDictionary(x => x.vppPath, x => x.fileInfo!);
-        var replaceOperations = modInfo.TypedChanges
-            .OfType<Replace>()
-            .Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict))
-            .ToList();
-        var editOperations = modInfo.TypedChanges
-            .OfType<Edit>()
-            .Select((x, i) => ConvertToOperation(x, i, fs))
-            .ToList();
-        return new ModInfoOperations(replaceOperations, editOperations);
-    }
-
-    private FileSwapOperation ConvertToOperation(Replace replace, int index, IFileSystem fs, IImmutableDictionary<VppPath, IFileInfo> referencedFiles)
-    {
-        return new FileSwapOperation(index, GetPaths(fs, replace.File), referencedFiles[GetPaths(fs, replace.File)]);
-    }
-
-    private XmlEditOperation ConvertToOperation(Edit edit, int index, IFileSystem fs)
-    {
-        return new XmlEditOperation(index, GetPaths(fs, edit.File), edit.LIST_ACTION, edit.NestedXml.ToList());
-    }
+    private XmlEditOperation ConvertToOperation(Edit edit, int index, IFileSystem fs) => new XmlEditOperation(index, GetPaths(fs, edit.File), edit.LIST_ACTION, edit.NestedXml.ToList());
 
     /// <summary>
     /// Check, sanitize and split path from Change to "data/vpp" + "relative/file/path"
@@ -261,7 +230,11 @@ public class ModTools
         // NOTE: legacy mods for Steam edition can be used if we patch vpp location "build/pc/cache/foo.vpp" to "data/foo.vpp"
         if (string.Join("/", parts[..3]) == "build/pc/cache")
         {
-            parts = new[] {"data"}.Concat(parts[3..]).ToArray();
+            parts = new[]
+                {
+                    "data"
+                }.Concat(parts[3..])
+                .ToArray();
         }
 
         var data = parts[0];
@@ -275,6 +248,7 @@ public class ModTools
         {
             vpp += "_pc";
         }
+
         if (!vpp.EndsWith(".vpp_pc"))
         {
             throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should reference vpp_pc archive");
@@ -283,93 +257,102 @@ public class ModTools
         var dataVpp = fs.Path.Combine(data, vpp);
         var archiveRelativePath = fs.Path.Combine(parts[2..]);
 
-        return new (dataVpp, archiveRelativePath);
+        return new(dataVpp, archiveRelativePath);
     }
 
-    /// <summary>
-	/// Append to all nested "user_input" tags corresponding selected values
-	/// </summary>
-    private static void InsertUserEditValuesRecursive(XmlNode node, Dictionary<string, XmlNode> selectedValues)
-	{
-		if (node is not XmlElement element)
-		{
-			return;
-		}
+    private static string SanitizePath(string path) =>
+        path.Replace("//", "").Replace("..", "").Replace(":", "").ToLowerInvariant();
 
-		if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
-		{
-			var key = element.InnerText.ToLowerInvariant();
-			var replacementHolder = selectedValues[key].Clone();
+    /// <summary>
+    /// Append to all nested "user_input" tags corresponding selected values
+    /// </summary>
+    private static void InsertUserEditValuesRecursive(XmlNode node, Dictionary<string, XmlNode> selectedValues)
+    {
+        if (node is not XmlElement element)
+        {
+            return;
+        }
+
+        if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
+        {
+            var key = element.InnerText.ToLowerInvariant();
+            var replacementHolder = selectedValues[key].Clone();
             if (replacementHolder.OwnerDocument != element.OwnerDocument)
             {
                 // cloning every time because nodes can belong to same document and are moved to different places
                 replacementHolder = element.OwnerDocument.ImportNode(replacementHolder, true).Clone();
             }
-			var parent = element.ParentNode;
-			XmlNode current = element;
+
+            var parent = element.ParentNode;
+            XmlNode current = element;
             // collection of child nodes shrinks because we actually move elements to another place
             while (replacementHolder.ChildNodes.Count > 0)
-			{
-				var replacement = replacementHolder.ChildNodes[0];
-				parent.InsertAfter(replacement, current);
-				current = replacement;
-				// now outer loop will iterate over newly inserted replacement results. recursive edits are possible yaay!
-			}
-		}
-		else if (element.HasChildNodes)
-		{
-			// descend
-			// can't use for/foreach: we modify collection in-place!
-			var i = 0;
-			while (i < element.ChildNodes.Count)
-			{
-				var nextNode = element.ChildNodes[i];
-				InsertUserEditValuesRecursive(nextNode, selectedValues);
+            {
+                var replacement = replacementHolder.ChildNodes[0];
+                parent.InsertAfter(replacement, current);
+                current = replacement;
+                // now outer loop will iterate over newly inserted replacement results. recursive edits are possible yaay!
+            }
+        }
+        else if (element.HasChildNodes)
+        {
+            // descend
+            // can't use for/foreach: we modify collection in-place!
+            var i = 0;
+            while (i < element.ChildNodes.Count)
+            {
+                var nextNode = element.ChildNodes[i];
+                InsertUserEditValuesRecursive(nextNode, selectedValues);
 
-				i++;
-			}
-		}
-	}
+                i++;
+            }
+        }
+    }
 
-	/// <summary>
-	/// Remove "user_input" nodes after all edits are done. Returns true if node was removed (outer loop SHOULD NOT advance)
-	/// </summary>
-	private static bool RemoveUserEditNodesRecursive(XmlNode node)
-	{
-		if (node is not XmlElement element)
-		{
-			return false;
-		}
+    /// <summary>
+    /// Remove "user_input" nodes after all edits are done. Returns true if node was removed (outer loop SHOULD NOT advance)
+    /// </summary>
+    private static bool RemoveUserEditNodesRecursive(XmlNode node)
+    {
+        if (node is not XmlElement element)
+        {
+            return false;
+        }
 
-		if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
-		{
-			var parent = element.ParentNode;
-			parent.RemoveChild(element);
-			return true;
-		}
+        if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
+        {
+            var parent = element.ParentNode;
+            parent.RemoveChild(element);
+            return true;
+        }
 
-		if (element.HasChildNodes)
-		{
-			// descend. can't use for/foreach: we modify collection in-place!
-			var i = 0;
-			while (i < element.ChildNodes.Count)
-			{
-				var nextNode = element.ChildNodes[i];
-				var removed = RemoveUserEditNodesRecursive(nextNode);
-				if (!removed)
-				{
-					i++;
-				}
-			}
-		}
+        if (element.HasChildNodes)
+        {
+            // descend. can't use for/foreach: we modify collection in-place!
+            var i = 0;
+            while (i < element.ChildNodes.Count)
+            {
+                var nextNode = element.ChildNodes[i];
+                var removed = RemoveUserEditNodesRecursive(nextNode);
+                if (!removed)
+                {
+                    i++;
+                }
+            }
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	private static readonly string UserInputName = "user_input";
+    private static readonly XmlReaderSettings Settings = new()
+    {
+        IgnoreComments = true,
+        IgnoreWhitespace = true,
+        IgnoreProcessingInstructions = true
+    };
+
+    private static readonly string UserInputName = "user_input";
 }
-
-
 
 /*
 

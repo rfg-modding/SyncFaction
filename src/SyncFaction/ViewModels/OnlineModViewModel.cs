@@ -6,12 +6,11 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class OnlineModViewModel : IModViewModel
 {
-    public OnlineModViewModel(IMod mod)
-    {
-        Mod = mod;
-        // not bothering to sync property in IMod because it won't be reused after any change, whole object is rebuilt on Refresh()
-        Status = mod.Status;
-    }
+    public string Name => Mod.Name;
+
+    public Category Category => Mod.Category;
+
+    public IMod Mod { get; set; }
 
     [ObservableProperty]
     private bool selected;
@@ -19,9 +18,10 @@ public partial class OnlineModViewModel : IModViewModel
     [ObservableProperty]
     private OnlineModStatus status;
 
-    public string Name => Mod.Name;
-
-    public Category Category => Mod.Category;
-
-    public IMod Mod { get; set; }
+    public OnlineModViewModel(IMod mod)
+    {
+        Mod = mod;
+        // not bothering to sync property in IMod because it won't be reused after any change, whole object is rebuilt on Refresh()
+        Status = mod.Status;
+    }
 }

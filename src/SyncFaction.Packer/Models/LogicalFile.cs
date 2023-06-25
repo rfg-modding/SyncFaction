@@ -12,9 +12,8 @@ namespace SyncFaction.Packer;
 /// <param name="CompressedContent">If entry is compressed, this is original stream before decompression. Useful for writing unmodified data without recompression</param>
 public record LogicalFile(Stream Content, string Name, int Order, string? Info, Stream? CompressedContent)
 {
-    public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
-
     public uint CompressedSize { get; set; } = 0xFFFFFFFFu;
 
     public uint Offset { get; set; }
+    public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
 }

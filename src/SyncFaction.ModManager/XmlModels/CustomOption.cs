@@ -7,8 +7,6 @@ namespace SyncFaction.ModManager.XmlModels;
 /// </summary>
 public class CustomOption : IOption
 {
-    public string? Value { get; set; }
-
     public XmlNode? ValueHolder
     {
         get
@@ -21,6 +19,8 @@ public class CustomOption : IOption
             return holder;
         }
     }
+
+    public string? Value { get; set; }
 
     /// <summary>
     /// For debug printing with Newtonsoft serializer

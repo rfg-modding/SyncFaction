@@ -1,8 +1,6 @@
 using System.Text;
 using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using Kaitai;
-using SyncFaction.Packer;
 using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
@@ -13,15 +11,17 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadData(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
         }
+
         if (!vpp.Entries.Any())
         {
             Assert.Ignore("Empty entries are OK");
         }
+
         vpp.BlockEntryData.Should().NotBeNull(vpp.Header.ToString());
         vpp.BlockEntryData.Value.Count.Should().Be((int) vpp.Header.NumEntries);
 
@@ -29,7 +29,7 @@ public class UnpackHeavyTests
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             entryData.Value.File.Should().HaveCount((int) entryData.DataSize, entryData.ToString());
-            entryData.Value.Padding.Should().HaveCount((int) entryData.PadSize, entryData.ToString());
+            entryData.Value.Padding.Should().HaveCount(entryData.PadSize, entryData.ToString());
             (entryData.Value.File.Length + entryData.Value.Padding.Length).Should().Be(entryData.TotalSize, entryData.ToString());
             entryData.DisposeAndFreeMemory();
             i++;
@@ -39,11 +39,12 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestDataContents(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
         }
+
         if (!vpp.Entries.Any())
         {
             Assert.Ignore("Empty entries are OK");
@@ -75,11 +76,12 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestDataDecompress(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
         }
+
         if (!vpp.Entries.Any())
         {
             Assert.Ignore("Empty entries are OK");
@@ -92,10 +94,10 @@ public class UnpackHeavyTests
 
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
-            Func<byte[]> decompressAction = () => RfgVppInMemory.DecompressZlib(entryData.Value.File, (int)entryData.XLenData, CancellationToken.None);
+            var decompressAction = () => RfgVppInMemory.DecompressZlib(entryData.Value.File, (int) entryData.XLenData, CancellationToken.None);
             var decompressed = decompressAction.Should().NotThrow(entryData.ToString()).Subject;
-            entryData.Value.File.Length.Should().Be((int)entryData.XLenCompressedData);
-            decompressed.Length.Should().Be((int)entryData.XLenData);
+            entryData.Value.File.Length.Should().Be((int) entryData.XLenCompressedData);
+            decompressed.Length.Should().Be((int) entryData.XLenData);
 
             entryData.DisposeAndFreeMemory();
         }
@@ -104,11 +106,12 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestCompactDataDecompressBlob(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (!vpp.Header.Flags.Compressed || !vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("This file contains normal data");
         }
+
         if (!vpp.Entries.Any())
         {
             Assert.Ignore("Empty entries are OK");
@@ -123,8 +126,8 @@ public class UnpackHeavyTests
             var file = entryData.Value.File;
             var padding = entryData.Value.Padding;
 
-            string fileContent = string.Empty;
-            string padContent = string.Empty;
+            var fileContent = string.Empty;
+            var padContent = string.Empty;
             try
             {
                 fileContent = Encoding.ASCII.GetString(file);
@@ -133,6 +136,7 @@ public class UnpackHeavyTests
             {
                 fileContent = "not a string";
             }
+
             try
             {
                 padContent = Encoding.ASCII.GetString(padding);
@@ -145,10 +149,11 @@ public class UnpackHeavyTests
             var message = $"{entryData}\n=== file ===\n{fileContent}\n=== padding ===\n{padContent}";
 
             // data chunks are expected to have something useful
-            if (file.All(x => x == 0) == true)
+            if (file.All(x => x == 0))
             {
                 Assert.Warn($"Data contains only zeroes! {entryData}");
             }
+
             // padding should be empty
             padding.Length.Should().BeLessThan(64, message);
             padding.All(x => x == 0).Should().BeTrue(message);
@@ -158,11 +163,12 @@ public class UnpackHeavyTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestCompactDataDecompressOneByOne(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (!vpp.Header.Flags.Compressed || !vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("This file contains normal data");
         }
+
         if (!vpp.Entries.Any())
         {
             Assert.Ignore("Empty entries are OK");
@@ -177,7 +183,7 @@ public class UnpackHeavyTests
 
         var i = 0;
         uint readingOffset = 0;
-        bool suppressNoisyWarning = false;
+        var suppressNoisyWarning = false;
 
         var alignmentSize = vpp.DetectAlignmentSize(CancellationToken.None);
         foreach (var entry in vpp.Entries)
@@ -187,7 +193,6 @@ public class UnpackHeavyTests
 
             entry.LenCompressedData.Should().BeGreaterThan(0, description);
             entry.LenCompressedData.Should().BeLessOrEqualTo(entry.LenData, description);
-
 
             if (readingOffset < entry.DataOffset)
             {
@@ -199,21 +204,23 @@ public class UnpackHeavyTests
                     suppressNoisyWarning = true;
                 }
 
-                var extraPad = ReadBytes(inputStream, (int)delta, CancellationToken.None);
-                extraPad.Length.Should().Be((int)delta, description);
+                var extraPad = ReadBytes(inputStream, (int) delta, CancellationToken.None);
+                extraPad.Length.Should().Be((int) delta, description);
                 extraPad.All(x => x == 0).Should().BeTrue(description);
                 readingOffset += delta;
             }
 
-            Func<byte[]> readDataAction = () => ReadBytes(inputStream, (int)entry.LenData, CancellationToken.None);
+            var readDataAction = () => ReadBytes(inputStream, (int) entry.LenData, CancellationToken.None);
             var data = readDataAction.Should().NotThrow(description).Subject;
-            data.Length.Should().Be((int)entry.LenData, description);
-            var padLength = alignmentSize == 0 ? 0 : RfgVppInMemory.GetPadSize(data.Length, 16, isLast);
-            Func<byte[]> readPadAction = () => ReadBytes(inputStream, padLength, CancellationToken.None);
+            data.Length.Should().Be((int) entry.LenData, description);
+            var padLength = alignmentSize == 0
+                ? 0
+                : RfgVppInMemory.GetPadSize(data.Length, 16, isLast);
+            var readPadAction = () => ReadBytes(inputStream, padLength, CancellationToken.None);
             var pad = readPadAction.Should().NotThrow(description).Subject;
             pad.Length.Should().Be(padLength, description);
             readingOffset.Should().Be(entry.DataOffset, description);
-            readingOffset += (uint)data.Length + (uint)pad.Length;
+            readingOffset += (uint) data.Length + (uint) pad.Length;
             pad.All(x => x == 0).Should().BeTrue(description);
             i++;
             // unable to check entry.LenCompressedData while reading zlib stream because is read by whole blocks

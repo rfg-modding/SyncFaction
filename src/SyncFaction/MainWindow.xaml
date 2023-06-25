@@ -11,163 +11,158 @@
                 <ResourceDictionary Source="Skins/Skin.Light.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!--<ScaleTransform x:Key="windowScaleTransform" ScaleX="3" ScaleY="3" />-->
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:XmlNodeConverter x:Key="XmlNodeConverter" />
-        <converters:BoolShowCollapseConverter x:Key="BoolShowCollapseConverter" />
-        <converters:EmptyStringCollapseConverter x:Key="EmptyStringCollapseConverter" />
-        <converters:EmptyStringDisabledConverter x:Key="EmptyStringDisabledConverter" />
-        <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
-        <converters:TabSelectedByTypeConverter x:Key="TabSelectedByTypeConverter" />
-        <converters:TabSelectedByTypeVisibilityConverter x:Key="TabSelectedByTypeVisibilityConverter" />
-        <converters:BoolShowHideConverter x:Key="BoolShowHide" />
-        <converters:ModStatusConverter x:Key="ModStatusConverter" />
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <converters:XmlNodeConverter x:Key="XmlNodeConverter" />
+            <converters:EmptyStringCollapseConverter x:Key="EmptyStringCollapseConverter" />
+            <converters:EmptyStringDisabledConverter x:Key="EmptyStringDisabledConverter" />
+            <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
+            <converters:TabSelectedByTypeConverter x:Key="TabSelectedByTypeConverter" />
+            <converters:TabSelectedByTypeVisibilityConverter x:Key="TabSelectedByTypeVisibilityConverter" />
+            <converters:BoolShowHideConverter x:Key="BoolShowHide" />
+            <converters:ModStatusConverter x:Key="ModStatusConverter" />
             <DataTemplate DataType="{x:Type modXml:ModInfo}">
-            <StackPanel Orientation="Vertical">
-                <GroupBox Margin="10 5 10 5" Header="Mod Info">
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="10" Orientation="Vertical">
-                            <TextBlock Text="{Binding Name}" />
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="by " />
-                                <TextBlock Text="{Binding Author}" />
-                            </StackPanel>
-                            <TextBlock Text="{Binding Description}" />
-                            <StackPanel Orientation="Horizontal" Visibility="{Binding WebLink.XmlText, Converter={StaticResource EmptyStringCollapseConverter}, FallbackValue=Collapsed}">
-                                <TextBlock Text="see on " />
-                                <TextBlock>
-                                    <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="{Binding WebLink.XmlText}">
-                                        <TextBlock Text="{Binding WebLink.Name}" />
-                                    </Hyperlink>
-                                </TextBlock>
-                            </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
-                </GroupBox>
-                <GroupBox Margin="10 5 10 5" Padding="5" Header="This mod has no settings">
-                    <GroupBox.Style>
-                        <Style TargetType="{x:Type GroupBox}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                                <DataTrigger Value="0" Binding="{Binding UserInput.Count}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </GroupBox.Style>
-                </GroupBox>
-                <ItemsControl Name="ModOptions" ItemsSource="{Binding UserInput}" />
-                <GroupBox Margin="10 5 10 5" Padding="5" Header="Actions">
-                    <Button Click="ModResetInputs_Click">
-                        Reset to default values
-                    </Button>
-                    <GroupBox.Style>
-                        <Style TargetType="{x:Type GroupBox}">
-                            <Setter Property="Visibility" Value="Visible" />
-                            <Style.Triggers>
-                                <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                                <DataTrigger Value="0" Binding="{Binding UserInput.Count}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </GroupBox.Style>
-                </GroupBox>
-            </StackPanel>
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type modXml:ListBox}">
-            <GroupBox Margin="10 5 10 5" Padding="5" Header="{Binding DisplayName}">
                 <StackPanel Orientation="Vertical">
-                    <ComboBox Margin="5" HorizontalContentAlignment="Stretch" SelectionChanged="Selector_OnSelectionChanged" SelectedIndex="{Binding SelectedIndex, FallbackValue=0}" ItemsSource="{Binding DisplayOptions}" />
-
-                    <Expander Margin="5" IsExpanded="False">
-                        <Expander.Header>
-                            <TextBlock Text="Show actual value" />
-                        </Expander.Header>
-                        <!--TODO foreground color in textbox-->
-                        <TextBox BorderThickness="0" Margin="5" IsReadOnly="True" Height="80" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsVisibleChanged="UIElement_OnIsVisibleChanged"
-                                 Foreground="{DynamicResource ResourceKey={x:Static SystemColors.GrayTextBrushKey}}"
-                                 Text="{Binding SelectedValue, Mode=OneWay, Converter={StaticResource XmlNodeConverter}}" />
-                    </Expander>
-
+                    <GroupBox Margin="10 5 10 5" Header="Mod Info">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="10" Orientation="Vertical">
+                                <TextBlock Text="{Binding Name}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="by " />
+                                    <TextBlock Text="{Binding Author}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Description}" />
+                                <StackPanel Orientation="Horizontal" Visibility="{Binding WebLink.XmlText, Converter={StaticResource EmptyStringCollapseConverter}, FallbackValue=Collapsed}">
+                                    <TextBlock Text="see on " />
+                                    <TextBlock>
+                                        <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="{Binding WebLink.XmlText}">
+                                            <TextBlock Text="{Binding WebLink.Name}" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </GroupBox>
+                    <GroupBox Margin="10 5 10 5" Padding="5" Header="This mod has no settings">
+                        <GroupBox.Style>
+                            <Style TargetType="{x:Type GroupBox}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                    <DataTrigger Value="0" Binding="{Binding UserInput.Count}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </GroupBox.Style>
+                    </GroupBox>
+                    <ItemsControl Name="ModOptions" ItemsSource="{Binding UserInput}" />
+                    <GroupBox Margin="10 5 10 5" Padding="5" Header="Actions">
+                        <Button Click="ModResetInputs_Click">Reset to default values</Button>
+                        <GroupBox.Style>
+                            <Style TargetType="{x:Type GroupBox}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Value="0" Binding="{Binding UserInput.Count}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </GroupBox.Style>
+                    </GroupBox>
                 </StackPanel>
-            </GroupBox>
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type modXml:Option}">
-            <TextBlock Text="{Binding Name}" />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type modXml:CustomOption}">
-            <Grid Margin="10 0 10 0" Width="Auto" HorizontalAlignment="Stretch">
-                <TextBox HorizontalAlignment="Stretch" AcceptsReturn="True" AcceptsTab="True" BorderThickness="0" TextChanged="TextBoxBase_OnTextChanged" TextWrapping="NoWrap" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" />
-                <TextBlock IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Foreground="DarkGray">
-                    Custom value
-                    <TextBlock.Style>
-                        <Style TargetType="{x:Type TextBlock}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <!--<DataTrigger Binding="{Binding Text, ElementName=Directory}" Value="">-->
-                                <DataTrigger Binding="{Binding Path=Children[0].Text, RelativeSource={RelativeSource AncestorType=Grid}}" Value="">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Grid>
-        </DataTemplate>
-        <ControlTemplate x:Key="TabControlTemplate" TargetType="TabControl">
-            <DockPanel>
-                <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->
-                <UniformGrid IsItemsHost="True" Rows="1" DockPanel.Dock="Bottom" Margin="5 0 0 0" />
-                <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->
-                <ContentPresenter ContentSource="SelectedContent" />
-            </DockPanel>
+            </DataTemplate>
 
-        </ControlTemplate>
-        <CollectionViewSource x:Key="OnlineModViewSource" Source="{Binding OnlineMods}" IsLiveGroupingRequested="True">
-            <CollectionViewSource.GroupDescriptions>
-                <PropertyGroupDescription PropertyName="Category" Converter="{StaticResource CategoryConverter}">
-                    <PropertyGroupDescription.GroupNames>
-                        <!-- manually controlled categories, displayed even when empty, and in given order. have to be strings because of converter -->
-                        <!--
+            <DataTemplate DataType="{x:Type modXml:ListBox}">
+                <GroupBox Margin="10 5 10 5" Padding="5" Header="{Binding DisplayName}">
+                    <StackPanel Orientation="Vertical">
+                        <ComboBox Margin="5" HorizontalContentAlignment="Stretch" SelectionChanged="Selector_OnSelectionChanged" SelectedIndex="{Binding SelectedIndex, FallbackValue=0}" ItemsSource="{Binding DisplayOptions}" />
+
+                        <Expander Margin="5" IsExpanded="False">
+                            <Expander.Header>
+                                <TextBlock Text="Show actual value" />
+                            </Expander.Header>
+                            <!--TODO foreground color in textbox-->
+                            <TextBox BorderThickness="0" Margin="5" IsReadOnly="True" Height="80" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsVisibleChanged="UIElement_OnIsVisibleChanged" Foreground="{DynamicResource ResourceKey={x:Static SystemColors.GrayTextBrushKey}}" Text="{Binding SelectedValue, Mode=OneWay, Converter={StaticResource XmlNodeConverter}}" />
+                        </Expander>
+
+                    </StackPanel>
+                </GroupBox>
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type modXml:Option}">
+                <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type modXml:CustomOption}">
+                <Grid Margin="10 0 10 0" Width="Auto" HorizontalAlignment="Stretch">
+                    <TextBox HorizontalAlignment="Stretch" AcceptsReturn="True" AcceptsTab="True" BorderThickness="0" TextChanged="TextBoxBase_OnTextChanged" TextWrapping="NoWrap" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" />
+                    <TextBlock IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Foreground="DarkGray">
+                        Custom value
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <!--<DataTrigger Binding="{Binding Text, ElementName=Directory}" Value="">-->
+                                    <DataTrigger Binding="{Binding Path=Children[0].Text, RelativeSource={RelativeSource AncestorType=Grid}}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </DataTemplate>
+            <ControlTemplate x:Key="TabControlTemplate" TargetType="TabControl">
+                <DockPanel>
+                    <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->
+                    <UniformGrid IsItemsHost="True" Rows="1" DockPanel.Dock="Bottom" Margin="5 0 0 0" />
+                    <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->
+                    <ContentPresenter ContentSource="SelectedContent" />
+                </DockPanel>
+
+            </ControlTemplate>
+            <CollectionViewSource x:Key="OnlineModViewSource" Source="{Binding OnlineMods}" IsLiveGroupingRequested="True">
+                <CollectionViewSource.GroupDescriptions>
+                    <PropertyGroupDescription PropertyName="Category" Converter="{StaticResource CategoryConverter}">
+                        <PropertyGroupDescription.GroupNames>
+                            <!-- manually controlled categories, displayed even when empty, and in given order. have to be strings because of converter -->
+                            <!--
                         <factionFiles:Category>MapPacks</factionFiles:Category>
                         <factionFiles:Category>MapsStandalone</factionFiles:Category>
                         <factionFiles:Category>MapsPatches</factionFiles:Category>
                         <factionFiles:Category>ModsRemaster</factionFiles:Category>
                         <factionFiles:Category>Local</factionFiles:Category>
                         -->
-                        <system:String>Map Packs</system:String>
-                        <system:String>Standalone Maps</system:String>
-                        <system:String>Patched Maps</system:String>
-                        <system:String>Mods for Re-Mars-tered</system:String>
-                        <system:String>Local Folders</system:String>
+                            <system:String>Map Packs</system:String>
+                            <system:String>Standalone Maps</system:String>
+                            <system:String>Patched Maps</system:String>
+                            <system:String>Mods for Re-Mars-tered</system:String>
+                            <system:String>Local Folders</system:String>
 
 
-                        <!-- hidden from UI by default, appears below if dev mode enabled -->
-                        <!--<factionFiles:Category>Dev</factionFiles:Category>-->
-                    </PropertyGroupDescription.GroupNames>
-                </PropertyGroupDescription>
-            </CollectionViewSource.GroupDescriptions>
-            <CollectionViewSource.SortDescriptions>
-                <componentModel:SortDescription PropertyName="Name" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="LocalModViewSource" Source="{Binding LocalMods}" IsLiveGroupingRequested="True">
-            <CollectionViewSource.GroupDescriptions>
-                <PropertyGroupDescription PropertyName="Status">
-                    <PropertyGroupDescription.GroupNames>
-                        <!-- manually controlled categories, displayed even when empty, and in given order -->
-                        <local:LocalModStatus>Enabled</local:LocalModStatus>
-                        <local:LocalModStatus>Disabled</local:LocalModStatus>
-                    </PropertyGroupDescription.GroupNames>
-                </PropertyGroupDescription>
-            </CollectionViewSource.GroupDescriptions>
-        </CollectionViewSource>
+                            <!-- hidden from UI by default, appears below if dev mode enabled -->
+                            <!--<factionFiles:Category>Dev</factionFiles:Category>-->
+                        </PropertyGroupDescription.GroupNames>
+                    </PropertyGroupDescription>
+                </CollectionViewSource.GroupDescriptions>
+                <CollectionViewSource.SortDescriptions>
+                    <componentModel:SortDescription PropertyName="Name" />
+                </CollectionViewSource.SortDescriptions>
+            </CollectionViewSource>
+            <CollectionViewSource x:Key="LocalModViewSource" Source="{Binding LocalMods}" IsLiveGroupingRequested="True">
+                <CollectionViewSource.GroupDescriptions>
+                    <PropertyGroupDescription PropertyName="Status">
+                        <PropertyGroupDescription.GroupNames>
+                            <!-- manually controlled categories, displayed even when empty, and in given order -->
+                            <local:LocalModStatus>Enabled</local:LocalModStatus>
+                            <local:LocalModStatus>Disabled</local:LocalModStatus>
+                        </PropertyGroupDescription.GroupNames>
+                    </PropertyGroupDescription>
+                </CollectionViewSource.GroupDescriptions>
+            </CollectionViewSource>
         </ResourceDictionary>
 
     </Window.Resources>
@@ -208,9 +203,7 @@
 		        # Markdown example
 	        </mdxam:MarkdownScrollViewer>
             <!--Visibility="{Binding DisplayModSettings, Converter={StaticResource BoolShowCollapseConverter}}"-->
-            <ScrollViewer Grid.Column="1" Width="400"
-                          Visibility="Visible"
-                          VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Column="1" Width="400" Visibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ContentControl Name="ModSettings" Content="{Binding SelectedMod.Mod.ModInfo}" />
             </ScrollViewer>
         </Grid>
@@ -400,10 +393,7 @@ void!</TextBlock>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left">
                         <Button x:Name="GenerateReport" Content="Generate Report" Command="{Binding GenerateReportCommand}" />
-                        <Button x:Name="CopyReport"
-                                IsEnabled="{Binding DiagView, Converter={StaticResource EmptyStringDisabledConverter}}"
-                                Content="Copy to Clipboard" Click="CopyReport_Click" >
-                        </Button>
+                        <Button x:Name="CopyReport" IsEnabled="{Binding DiagView, Converter={StaticResource EmptyStringDisabledConverter}}" Content="Copy to Clipboard" Click="CopyReport_Click" />
                     </StackPanel>
                     <TextBox Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.CanContentScroll="True" IsReadOnly="True" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" MinHeight="300" MaxHeight="300" Height="300" Name="DiagText" Text="{Binding DiagView, Mode=OneWay}" />
                 </Grid>

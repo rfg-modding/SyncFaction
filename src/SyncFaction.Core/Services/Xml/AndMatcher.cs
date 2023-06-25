@@ -2,7 +2,7 @@ using System.Xml;
 
 namespace SyncFaction.Core.Services.Xml;
 
-class AndMatcher : IXmlNodeMatcher
+internal class AndMatcher : IXmlNodeMatcher
 {
     public IXmlNodeMatcher Matcher0;
     public IXmlNodeMatcher Matcher1;
@@ -15,5 +15,5 @@ class AndMatcher : IXmlNodeMatcher
 
     public bool DoesNodeMatch(XmlNode node) => Matcher0.DoesNodeMatch(node) && Matcher1.DoesNodeMatch(node);
 
-    public virtual string ToString() => Matcher0.ToString() + " AND " + Matcher1.ToString();
+    public virtual string ToString() => Matcher0 + " AND " + Matcher1;
 }

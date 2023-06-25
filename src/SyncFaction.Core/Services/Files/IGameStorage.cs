@@ -14,21 +14,6 @@ public interface IGameStorage : IAppStorage
     IDirectoryInfo Managed { get; }
 
     /// <summary>
-    /// List original files
-    /// </summary>
-    IEnumerable<GameFile> EnumerateStockFiles();
-
-    /// <summary>
-    /// List files introduced by patches
-    /// </summary>
-    IEnumerable<GameFile> EnumeratePatchFiles();
-
-    /// <summary>
-    /// List files introduced by mods
-    /// </summary>
-    IEnumerable<GameFile> EnumerateManagedFiles();
-
-    /// <summary>
     /// Filenames with extensions for all files in game. Relatve paths!
     /// </summary>
     ImmutableSortedDictionary<string, string> VanillaHashes { get; }
@@ -42,6 +27,21 @@ public interface IGameStorage : IAppStorage
     /// Filenames without extension for files in /data
     /// </summary>
     ImmutableSortedDictionary<string, string> DataFiles { get; }
+
+    /// <summary>
+    /// List original files
+    /// </summary>
+    IEnumerable<GameFile> EnumerateStockFiles();
+
+    /// <summary>
+    /// List files introduced by patches
+    /// </summary>
+    IEnumerable<GameFile> EnumeratePatchFiles();
+
+    /// <summary>
+    /// List files introduced by mods
+    /// </summary>
+    IEnumerable<GameFile> EnumerateManagedFiles();
 
     IDirectoryInfo GetModDir(IMod mod);
 

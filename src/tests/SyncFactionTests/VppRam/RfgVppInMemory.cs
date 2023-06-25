@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
 
@@ -92,12 +91,13 @@ public partial class RfgVppInMemory
         foreach (var entryData in BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
-            var data = DecompressZlib(entryData.Value.File, (int)entryData.XLenData, token);
+            var data = DecompressZlib(entryData.Value.File, (int) entryData.XLenData, token);
             // alignment size is used when creating data, ignoring it
             entryData.OverrideAlignmentSize(0);
             entryData.OverrideDataSize(entryData.XLenData);
             entryData.OverrideData(data);
         }
+
         Header.Flags.OverrideFlagsNone();
     }
 
@@ -108,9 +108,9 @@ public partial class RfgVppInMemory
     {
         return Header.Flags.Mode switch
         {
-            HeaderBlock.Mode.Compacted => (int)BlockCompactData.ZlibHeader.Flevel,
+            HeaderBlock.Mode.Compacted => (int) BlockCompactData.ZlibHeader.Flevel,
             HeaderBlock.Mode.Compressed => DetectEntriesCompressionLevel(),
-            _ => -1,
+            _ => -1
         };
 
         int DetectEntriesCompressionLevel()
@@ -130,142 +130,7 @@ public partial class RfgVppInMemory
                 }
             }
 
-            return (int)level;
-        }
-    }
-
-    public partial class Zlib
-    {
-        public override string ToString()
-        {
-            return $"{HeaderInt:X}/{IsValid}";
-        }
-    }
-
-
-    public partial class HeaderBlock
-    {
-        public partial class HeaderFlags
-        {
-            public void OverrideFlagsNone()
-            {
-                _compressed = false;
-                _condensed = false;
-            }
-
-            public Mode Mode
-            {
-                get
-                {
-                    if (Compressed && Condensed)
-                    {
-                        return Mode.Compacted;
-                    }
-
-                    if (Compressed && !Condensed)
-                    {
-                        return Mode.Compressed;
-                    }
-
-                    if (!Compressed && Condensed)
-                    {
-                        return Mode.Condensed;
-                    }
-
-                    return Mode.Normal;
-                }
-            }
-        }
-
-        public enum Mode
-        {
-            Normal,
-            Compressed,
-            Condensed,
-            Compacted
-        }
-
-        public override string ToString()
-        {
-            return $@"Header:
-compressed: [{Flags.Compressed}]
-condensed:  [{Flags.Condensed}]
-shortName:  [{ShortName}]
-pathName:   [{PathName}]
-entries:    [{NumEntries}]
-
-file size:    [{LenFileTotal}]
-entries size: [{LenEntries}]
-names size:   [{LenNames}]
-data size:    [{LenData}]
-comp data sz: [{LenCompressedData}]
-";
-        }
-    }
-
-    public partial class EntryData
-    {
-        /// <summary>
-        /// Destroys byte value and calls GC for values larger than 10 MiB
-        /// </summary>
-        public void DisposeAndFreeMemory()
-        {
-            var size = __raw_value.Length;
-            _value = null;
-            __raw_value = null;
-            if (size > 1 * 1024 * 1024)
-            {
-                // force free for large chunks of data
-                GC.Collect();
-            }
-        }
-
-        public void OverrideAlignmentSize(int alignment)
-        {
-            _padSize = alignment == 0 ? 0 : GetPadSize((int)DataSize, alignment, IsLast);
-            f_padSize = true;
-        }
-
-        public void OverrideDataSize(uint size)
-        {
-            _dataSize = size;
-            f_dataSize = true;
-        }
-
-        public void OverrideData(byte[] data)
-        {
-            _value = new EntryContent(new KaitaiStream(data), this);
-            f_value = true;
-        }
-
-        public override string ToString()
-        {
-            return $@"EntryData:
-index:       [{I}]
-name:        [{XName}]
-hash:        [{ToHexString(XNameHash)}]
-data length: [{XLenData}]
-comp length: [{XLenCompressedData}]
-data offset: [{XDataOffset}] (may be broken)
-block offst: [{M_Root.BlockOffset}]
-
-data:    [{DataSize}]
-pad:     [{PadSize}]
-total:   [{TotalSize}]
-is last: [{IsLast}]
-";
-        }
-    }
-    public partial class Entry
-    {
-        public override string ToString()
-        {
-            return $@"Entry:
-hash:        [{ToHexString(NameHash)}]
-data length: [{LenData}]
-comp length: [{LenCompressedData}]
-data offset: [{DataOffset}] (may be broken)
-";
+            return (int) level;
         }
     }
 
@@ -291,7 +156,7 @@ data offset: [{DataOffset}] (may be broken)
         }
     }
 
-    public static string ToHexString(byte[] bytes, string separator="") => BitConverter.ToString(bytes).Replace("-", separator);
+    public static string ToHexString(byte[] bytes, string separator = "") => BitConverter.ToString(bytes).Replace("-", separator);
 
     public static int GetPadSize(long dataSize, int padTo, bool isLast)
     {
@@ -299,12 +164,141 @@ data offset: [{DataOffset}] (may be broken)
         {
             return 0;
         }
+
         var remainder = dataSize % padTo;
         if (isLast || remainder == 0)
         {
             return 0;
         }
 
-        return (int)(padTo - remainder);
+        return (int) (padTo - remainder);
+    }
+
+    public partial class Zlib
+    {
+        public override string ToString() => $"{HeaderInt:X}/{IsValid}";
+    }
+
+    public partial class HeaderBlock
+    {
+        public override string ToString() =>
+            $@"Header:
+compressed: [{Flags.Compressed}]
+condensed:  [{Flags.Condensed}]
+shortName:  [{ShortName}]
+pathName:   [{PathName}]
+entries:    [{NumEntries}]
+
+file size:    [{LenFileTotal}]
+entries size: [{LenEntries}]
+names size:   [{LenNames}]
+data size:    [{LenData}]
+comp data sz: [{LenCompressedData}]
+";
+
+        public enum Mode
+        {
+            Normal,
+            Compressed,
+            Condensed,
+            Compacted
+        }
+
+        public partial class HeaderFlags
+        {
+            public Mode Mode
+            {
+                get
+                {
+                    if (Compressed && Condensed)
+                    {
+                        return Mode.Compacted;
+                    }
+
+                    if (Compressed && !Condensed)
+                    {
+                        return Mode.Compressed;
+                    }
+
+                    if (!Compressed && Condensed)
+                    {
+                        return Mode.Condensed;
+                    }
+
+                    return Mode.Normal;
+                }
+            }
+
+            public void OverrideFlagsNone()
+            {
+                _compressed = false;
+                _condensed = false;
+            }
+        }
+    }
+
+    public partial class EntryData
+    {
+        /// <summary>
+        /// Destroys byte value and calls GC for values larger than 10 MiB
+        /// </summary>
+        public void DisposeAndFreeMemory()
+        {
+            var size = __raw_value.Length;
+            _value = null;
+            __raw_value = null;
+            if (size > 1 * 1024 * 1024)
+            {
+                // force free for large chunks of data
+                GC.Collect();
+            }
+        }
+
+        public void OverrideAlignmentSize(int alignment)
+        {
+            _padSize = alignment == 0
+                ? 0
+                : GetPadSize((int) DataSize, alignment, IsLast);
+            f_padSize = true;
+        }
+
+        public void OverrideDataSize(uint size)
+        {
+            _dataSize = size;
+            f_dataSize = true;
+        }
+
+        public void OverrideData(byte[] data)
+        {
+            _value = new EntryContent(new KaitaiStream(data), this);
+            f_value = true;
+        }
+
+        public override string ToString() =>
+            $@"EntryData:
+index:       [{I}]
+name:        [{XName}]
+hash:        [{ToHexString(XNameHash)}]
+data length: [{XLenData}]
+comp length: [{XLenCompressedData}]
+data offset: [{XDataOffset}] (may be broken)
+block offst: [{M_Root.BlockOffset}]
+
+data:    [{DataSize}]
+pad:     [{PadSize}]
+total:   [{TotalSize}]
+is last: [{IsLast}]
+";
+    }
+
+    public partial class Entry
+    {
+        public override string ToString() =>
+            $@"Entry:
+hash:        [{ToHexString(NameHash)}]
+data length: [{LenData}]
+comp length: [{LenCompressedData}]
+data offset: [{DataOffset}] (may be broken)
+";
     }
 }

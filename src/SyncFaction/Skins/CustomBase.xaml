@@ -85,8 +85,6 @@
     </Style>
 
 
-
-
     <!--ListViewItem-->
     <Style TargetType="ListViewItem">
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -136,7 +134,6 @@
             </Setter.Value>
         </Setter>
     </Style>
-
 
 
 </ResourceDictionary>

@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Kaitai;
 using SyncFaction.Packer;
 using SyncFactionTests.VppRam;
 
@@ -36,7 +35,7 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadMetadata(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
 
         vpp.Entries.Select(x => x.NameOffset).Should().BeInAscendingOrder();
 
@@ -50,7 +49,7 @@ public class UnpackTests
         {
             if (vpp.Entries.Any())
             {
-                vpp.Entries.Select(x => x.LenCompressedData).Should().OnlyContain(x => x == UInt32.MaxValue);
+                vpp.Entries.Select(x => x.LenCompressedData).Should().OnlyContain(x => x == uint.MaxValue);
             }
         }
     }
@@ -58,10 +57,8 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestHashNames(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
-        var pairs = vpp.EntryNames.Values
-            .Select(x => x.Value)
-            .Zip(vpp.Entries.Select(x => x.NameHash));
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var pairs = vpp.EntryNames.Values.Select(x => x.Value).Zip(vpp.Entries.Select(x => x.NameHash));
         foreach (var pair in pairs)
         {
             var hash = VppWriter.CircularHash(pair.First);
@@ -72,21 +69,23 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
     public void TestReadDataOffsets(FileInfo fileInfo)
     {
-        var vpp  = RfgVppInMemory.FromFile(fileInfo.FullName);
+        var vpp = RfgVppInMemory.FromFile(fileInfo.FullName);
         if (vpp.Header.Flags.Compressed && vpp.Header.Flags.Condensed)
         {
             Assert.Ignore("Compact data is tested separately");
         }
+
         if (!vpp.Entries.Any())
         {
             Assert.Ignore("Empty entries are OK");
         }
+
         vpp.BlockEntryData.Should().NotBeNull(vpp.Header.ToString());
         vpp.BlockEntryData.Value.Count.Should().Be((int) vpp.Header.NumEntries);
 
         // check that offsets are valid
         uint readingOffset = 0;
-        bool suppressNoisyWarning = false;
+        var suppressNoisyWarning = false;
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
             if (entryData.XDataOffset != readingOffset)
@@ -97,6 +96,7 @@ public class UnpackTests
                     suppressNoisyWarning = true;
                 }
             }
+
             readingOffset += entryData.DataSize + (uint) entryData.PadSize;
         }
     }
@@ -115,6 +115,4 @@ public class UnpackTests
         s.Read(buffer, 0, buffer.Length);
         buffer.Should().BeEquivalentTo(signature);
     }
-
-
 }

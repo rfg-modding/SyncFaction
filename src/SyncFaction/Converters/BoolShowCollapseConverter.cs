@@ -7,18 +7,14 @@ namespace SyncFaction.Converters;
 
 public class BoolShowCollapseConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value switch
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value switch
         {
             true => Visibility.Visible,
-            _ => Visibility.Collapsed,
+            _ => Visibility.Collapsed
         };
-    }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         // not much sense here
-        return string.Empty;
-    }
+        string.Empty;
 }

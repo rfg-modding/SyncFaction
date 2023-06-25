@@ -15,12 +15,17 @@ namespace SyncFaction;
 
 public partial class MainWindow : Window, IViewAccessor
 {
+    public ListView OnlineModListView => OnlineModList;
+    public ListView LocalModListView => LocalModList;
+    public MainWindow WindowView => this;
+
+    public readonly ElementSkinManager SkinManager;
     private readonly ViewModel viewModel;
     private readonly ILogger<MainWindow> log;
 
-    public readonly ElementSkinManager SkinManager;
+    private double devModeGridSize;
 
-    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, bool flipTheme=false)
+    public MainWindow(ViewModel viewModel, MarkdownRender markdownRender, ILogger<MainWindow> log, bool flipTheme = false)
     {
         this.viewModel = viewModel;
         this.viewModel.ViewAccessor = this;
@@ -35,13 +40,16 @@ public partial class MainWindow : Window, IViewAccessor
             (false, false) => Theme.Light,
             (true, false) => Theme.Dark,
             (false, true) => Theme.Dark,
-            (true, true) => Theme.Light,
+            (true, true) => Theme.Light
         };
         this.viewModel.Theme = App.AppTheme;
         if (flipTheme)
         {
-            this.viewModel.Theme = DarkNet.Instance.EffectiveCurrentProcessThemeIsDark ? Theme.Light : Theme.Dark;
+            this.viewModel.Theme = DarkNet.Instance.EffectiveCurrentProcessThemeIsDark
+                ? Theme.Light
+                : Theme.Dark;
         }
+
         DarkNet.Instance.SetWindowThemeWpf(this, theme);
         SkinManager = new ElementSkinManager(this);
         SkinManager.RegisterSkins(new Uri("Skins/Skin.Light.xaml", UriKind.Relative), new Uri("Skins/Skin.Dark.xaml", UriKind.Relative));
@@ -56,13 +64,12 @@ public partial class MainWindow : Window, IViewAccessor
             e.Handled = true;
         };
 
-        CommandBindings.Add(new CommandBinding(
-            NavigationCommands.GoToPage,
+        CommandBindings.Add(new CommandBinding(NavigationCommands.GoToPage,
             (sender, e) =>
             {
                 var proc = new Process();
                 proc.StartInfo.UseShellExecute = true;
-                proc.StartInfo.FileName = (string)e.Parameter;
+                proc.StartInfo.FileName = (string) e.Parameter;
 
                 proc.Start();
             }));
@@ -71,10 +78,7 @@ public partial class MainWindow : Window, IViewAccessor
     /// <summary>
     /// Expands window if dev mode grid is shown and vice versa. Does not know height on first run, that's why another event is needed
     /// </summary>
-    private void DevModeGrid_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        ChangeWindowSizeForDevModeGrid();
-    }
+    private void DevModeGrid_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) => ChangeWindowSizeForDevModeGrid();
 
     /// <summary>
     /// Expands window if dev mode grid is shown and vice versa. Required only for first run because height is calculated after visibility event.
@@ -92,40 +96,30 @@ public partial class MainWindow : Window, IViewAccessor
     /// </summary>
     private void ChangeWindowSizeForDevModeGrid()
     {
-        double sign = DevModeGrid.Visibility == Visibility.Visible ? 1 : -1;
+        double sign = DevModeGrid.Visibility == Visibility.Visible
+            ? 1
+            : -1;
         TheWindow.Height += devModeGridSize * sign;
     }
 
-    private double devModeGridSize;
+    private void MainWindow_OnClosing(object? sender, CancelEventArgs e) => viewModel.CloseCommand.Execute(null);
 
-    private void MainWindow_OnClosing(object? sender, CancelEventArgs e)
-    {
-        viewModel.CloseCommand.Execute(null);
-    }
+    private void MainWindow_OnContentRendered(object? sender, EventArgs e) => viewModel.InitCommand.Execute(null);
 
-    private void MainWindow_OnContentRendered(object? sender, EventArgs e)
-    {
-        viewModel.InitCommand.Execute(null);
-    }
+    private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateOptionValueText(sender);
 
-    public ListView OnlineModListView => OnlineModList;
-    public ListView LocalModListView => LocalModList;
-    public MainWindow WindowView => this;
+    private void TextBoxBase_OnTextChanged(object sender, TextChangedEventArgs e) => UpdateOptionValueText(sender);
 
-    private void Selector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        UpdateOptionValueText(sender);
-    }
+    private void UIElement_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) => UpdateOptionValueText(sender);
 
-    private void TextBoxBase_OnTextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateOptionValueText(sender);
-    }
+    /// <summary>
+    /// Hack to make text near checkbox toggle it
+    /// </summary>
+    private void DevModeTextClick(object sender, MouseButtonEventArgs e) => DevMode.IsChecked = !DevMode.IsChecked;
 
-    private void UIElement_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        UpdateOptionValueText(sender);
-    }
+    private void ModResetInputs_Click(object sender, RoutedEventArgs e) => viewModel.ModResetInputsCommand.Execute(null);
+
+    private void CopyReport_Click(object sender, RoutedEventArgs e) => Clipboard.SetText(viewModel.DiagView);
 
     private static void UpdateOptionValueText(object sender)
     {
@@ -143,25 +137,8 @@ public partial class MainWindow : Window, IViewAccessor
             // skip when textbox is not visible
             return;
         }
+
         var binding = textBox.GetBindingExpression(TextBox.TextProperty);
         binding.UpdateTarget();
-    }
-
-    /// <summary>
-    /// Hack to make text near checkbox toggle it
-    /// </summary>
-    private void DevModeTextClick(object sender, MouseButtonEventArgs e)
-    {
-        DevMode.IsChecked = !DevMode.IsChecked;
-    }
-
-    private void ModResetInputs_Click(object sender, RoutedEventArgs e)
-    {
-        viewModel.ModResetInputsCommand.Execute(null);
-    }
-
-    private void CopyReport_Click(object sender, RoutedEventArgs e)
-    {
-        Clipboard.SetText(viewModel.DiagView);
     }
 }

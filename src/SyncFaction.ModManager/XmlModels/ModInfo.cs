@@ -30,19 +30,13 @@ public class ModInfo
 
 public class Changes : HasNestedXml
 {
-
 }
 
 [XmlRoot(Extensions.HolderName)]
 public class TypedChangesHolder
 {
-    private List<IChange> changes = new();
-
     [XmlIgnore]
-    public List<IChange> TypedChanges {
-        get => changes;
-        set => changes = value;
-    }
+    public List<IChange> TypedChanges { get; set; } = new();
 
     /// <summary>
     /// Hack for XmlSerializer to work with interfaces
@@ -52,8 +46,8 @@ public class TypedChangesHolder
     [XmlArrayItem(typeof(Edit))]
     public IList TypedChangesXmlHack
     {
-        get => changes;
-        set => changes = value.Cast<IChange>().ToList();
+        get => TypedChanges;
+        set => TypedChanges = value.Cast<IChange>().ToList();
     }
 
     /// <summary>

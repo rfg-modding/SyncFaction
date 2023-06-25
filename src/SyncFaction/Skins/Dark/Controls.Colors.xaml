@@ -256,5 +256,5 @@
     <SolidColorBrush x:Key="Hyperlink.Foreground" Color="CornflowerBlue" />
     <SolidColorBrush x:Key="Hyperlink.Hover" Color="Firebrick" />
 
-    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{DynamicResource AREghZyColour.Deep.1.Background.Static}"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{DynamicResource AREghZyColour.Deep.1.Background.Static}" />
 </ResourceDictionary>

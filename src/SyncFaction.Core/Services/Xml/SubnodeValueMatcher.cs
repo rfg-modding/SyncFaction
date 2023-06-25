@@ -2,7 +2,7 @@ using System.Xml;
 
 namespace SyncFaction.Core.Services.Xml;
 
-class SubnodeValueMatcher : IXmlNodeMatcher
+internal class SubnodeValueMatcher : IXmlNodeMatcher
 {
     public string XPath;
     public string ExpectedValue;

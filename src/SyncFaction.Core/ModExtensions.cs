@@ -9,13 +9,13 @@ public static class ModExtensions
         if (mod.Flags == ModFlags.None)
         {
             yield return "> * Mod has no known files and probably will do nothing";
+
             yield break;
         }
 
         if (mod.Flags.HasFlag(ModFlags.AffectsMultiplayerFiles))
         {
             yield return "> * Warning: mod will edit **multiplayer files**. If you experience issues playing with others, disable it";
-
         }
 
         if (mod.Flags.HasFlag(ModFlags.HasXDelta))
@@ -32,7 +32,5 @@ public static class ModExtensions
         {
             yield return "> * Mod replaces certain files entirely. If they were edited by other mod before, changes will be lost. If you experience issues, try to change mod order, placing this one before others";
         }
-
     }
-
 }

@@ -1,5 +1,3 @@
-using System.Xml;
-
 namespace SyncFaction.ModManager.XmlModels;
 
 public interface IChange

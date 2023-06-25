@@ -6,10 +6,7 @@ public class VppArchiver : IVppArchiver
 {
     private readonly ILogger<VppArchiver> log;
 
-    public VppArchiver(ILogger<VppArchiver> log)
-    {
-        this.log = log;
-    }
+    public VppArchiver(ILogger<VppArchiver> log) => this.log = log;
 
     public async Task<LogicalArchive> UnpackVpp(Stream source, string name, CancellationToken token)
     {

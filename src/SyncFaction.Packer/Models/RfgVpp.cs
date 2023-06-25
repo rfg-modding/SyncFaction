@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using SyncFaction.Packer;
 
@@ -94,6 +92,7 @@ public partial class RfgVpp
         {
             throw new InvalidOperationException($"Actual decompressed length {ms.Length} is not equal to expected {decompressedLength}");
         }
+
         var view = new StreamView(ms, 0, decompressedLength);
         Header.Flags.OverrideFlagsNone();
         foreach (var entryData in BlockEntryData.Value)
@@ -131,6 +130,7 @@ public partial class RfgVpp
             entryData.CompressedStream = compressedStream;
             offset += totalCompressedLength;
         }
+
         Header.Flags.OverrideFlagsNone();
     }
 
@@ -159,9 +159,9 @@ public partial class RfgVpp
     {
         return Header.Flags.Mode switch
         {
-            HeaderBlock.Mode.Compacted => (int)BlockCompactData.ZlibHeader.Flevel,
+            HeaderBlock.Mode.Compacted => (int) BlockCompactData.ZlibHeader.Flevel,
             HeaderBlock.Mode.Compressed => DetectEntriesCompressionLevel(),
-            _ => -1,
+            _ => -1
         };
 
         int DetectEntriesCompressionLevel()
@@ -181,29 +181,60 @@ public partial class RfgVpp
                 }
             }
 
-            return (int)level;
+            return (int) level;
         }
+    }
+
+    public static string ToHexString(byte[] bytes, string separator = "") => BitConverter.ToString(bytes).Replace("-", separator);
+
+    public static int GetPadSize(long dataSize, int padTo, bool isLast)
+    {
+        if (padTo == 0)
+        {
+            return 0;
+        }
+
+        var remainder = dataSize % padTo;
+        if (isLast || remainder == 0)
+        {
+            return 0;
+        }
+
+        return (int) (padTo - remainder);
     }
 
     public partial class Zlib
     {
-        public override string ToString()
-        {
-            return $"{HeaderInt:X}/{IsValid}";
-        }
+        public override string ToString() => $"{HeaderInt:X}/{IsValid}";
     }
-
 
     public partial class HeaderBlock
     {
+        public override string ToString() =>
+            $@"Header:
+compressed: [{Flags.Compressed}]
+condensed:  [{Flags.Condensed}]
+shortName:  [{ShortName}]
+pathName:   [{PathName}]
+entries:    [{NumEntries}]
+
+file size:    [{LenFileTotal}]
+entries size: [{LenEntries}]
+names size:   [{LenNames}]
+data size:    [{LenData}]
+comp data sz: [{LenCompressedData}]
+";
+
+        public enum Mode
+        {
+            Normal,
+            Compressed,
+            Condensed,
+            Compacted
+        }
+
         public partial class HeaderFlags
         {
-            public void OverrideFlagsNone()
-            {
-                _compressed = false;
-                _condensed = false;
-            }
-
             public Mode Mode
             {
                 get
@@ -226,31 +257,12 @@ public partial class RfgVpp
                     return Mode.Normal;
                 }
             }
-        }
 
-        public enum Mode
-        {
-            Normal,
-            Compressed,
-            Condensed,
-            Compacted
-        }
-
-        public override string ToString()
-        {
-            return $@"Header:
-compressed: [{Flags.Compressed}]
-condensed:  [{Flags.Condensed}]
-shortName:  [{ShortName}]
-pathName:   [{PathName}]
-entries:    [{NumEntries}]
-
-file size:    [{LenFileTotal}]
-entries size: [{LenEntries}]
-names size:   [{LenNames}]
-data size:    [{LenData}]
-comp data sz: [{LenCompressedData}]
-";
+            public void OverrideFlagsNone()
+            {
+                _compressed = false;
+                _condensed = false;
+            }
         }
     }
 
@@ -280,7 +292,9 @@ comp data sz: [{LenCompressedData}]
 
         public void OverrideAlignmentSize(int alignment)
         {
-            _padSize = alignment == 0 ? 0 : GetPadSize((int)DataSize, alignment, IsLast);
+            _padSize = alignment == 0
+                ? 0
+                : GetPadSize((int) DataSize, alignment, IsLast);
             f_padSize = true;
         }
 
@@ -290,14 +304,10 @@ comp data sz: [{LenCompressedData}]
             f_dataSize = true;
         }
 
-        public void OverrideData(Stream stream)
-        {
-            overrideStream = stream;
-        }
+        public void OverrideData(Stream stream) => overrideStream = stream;
 
-        public override string ToString()
-        {
-            return $@"EntryData:
+        public override string ToString() =>
+            $@"EntryData:
 index:       [{I}]
 name:        [{XName}]
 hash:        [{ToHexString(XNameHash)}]
@@ -312,35 +322,16 @@ pad:     [{PadSize}]
 total:   [{TotalSize}]
 is last: [{IsLast}]
 ";
-        }
     }
+
     public partial class Entry
     {
-        public override string ToString()
-        {
-            return $@"Entry:
+        public override string ToString() =>
+            $@"Entry:
 hash:        [{ToHexString(NameHash)}]
 data length: [{LenData}]
 comp length: [{LenCompressedData}]
 data offset: [{DataOffset}] (may be broken)
 ";
-        }
-    }
-
-    public static string ToHexString(byte[] bytes, string separator="") => BitConverter.ToString(bytes).Replace("-", separator);
-
-    public static int GetPadSize(long dataSize, int padTo, bool isLast)
-    {
-        if (padTo == 0)
-        {
-            return 0;
-        }
-        var remainder = dataSize % padTo;
-        if (isLast || remainder == 0)
-        {
-            return 0;
-        }
-
-        return (int)(padTo - remainder);
     }
 }

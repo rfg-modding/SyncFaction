@@ -6,15 +6,12 @@ public class TestFile
 {
     private readonly MockFileSystem fs;
 
-    private MockFileData fileData = new MockFileData(string.Empty);
+    private MockFileData fileData = new(string.Empty);
 
     private string name = string.Empty;
     private string fullPath = string.Empty;
 
-    public TestFile(MockFileSystem fs)
-    {
-        this.fs = fs;
-    }
+    public TestFile(MockFileSystem fs) => this.fs = fs;
 
     public TestFile Data(string data)
     {
@@ -28,14 +25,11 @@ public class TestFile
         return this;
     }
 
-    public void Delete()
-    {
-        fs.RemoveFile(fullPath);
-    }
+    public void Delete() => fs.RemoveFile(fullPath);
 
     public TestFile Make(File file, Data data)
     {
-        this.name = file switch
+        name = file switch
         {
             File.Exe => Fs.Names.Exe,
             File.Dll => Fs.Names.Dll,
@@ -45,7 +39,7 @@ public class TestFile
             _ => throw new ArgumentOutOfRangeException(nameof(file), file, null)
         };
 
-        this.fileData = data switch
+        fileData = data switch
         {
             SyncFactionTests.Data.None => string.Empty,
             SyncFactionTests.Data.Orig => file switch
@@ -114,6 +108,7 @@ public class TestFile
         {
             throw new InvalidOperationException("Place file after initializing name and data");
         }
+
         fullPath = fs.Path.Combine(absPath, name);
         fs.AddFile(fullPath, fileData);
         return this;

@@ -7,6 +7,24 @@ namespace SyncFaction.Core.Services.FactionFiles;
 // TODO: split? this is a mix of transport model, convenient bag of properties to pass around, and a view model of sorts
 public class Mod : IMod
 {
+    public string IdString => $"{GetType().Name}_{Id}";
+    public string BrowserUrl => string.Format(Constants.BrowserUrlTemplate, Id);
+    public DateTime CreatedAt => DateTime.UnixEpoch.AddSeconds(UploadTime);
+
+    [JsonIgnore]
+    public string Markdown => @$"# **{Name}** by {Author}
+
+*Added: {CreatedAt:yyyy MMMM dd}  #  Downloads: {DownloadCount}*  #  [See on FactionFiles]({BrowserUrl}) 
+
+{ImageMd}
+
+{DescriptionMd}
+";
+
+    private string ImageMd => ImagePath != null
+        ? $"![image]({ImagePath})"
+        : string.Empty;
+
     public long Id { get; set; }
 
     public string Name { get; set; }
@@ -40,28 +58,10 @@ public class Mod : IMod
     public string ImageThumb4By3Url { get; set; }
 
     public string DownloadUrl { get; set; }
-
-    public string IdString => $"{GetType().Name}_{Id}";
-    public string BrowserUrl => string.Format(Constants.BrowserUrlTemplate, Id);
-    public DateTime CreatedAt => DateTime.UnixEpoch.AddSeconds(UploadTime);
     public string? ImagePath { get; set; }
 
     [JsonIgnore]
     public ModInfo? ModInfo { get; set; }
 
-    [JsonIgnore]
-    public string Markdown => @$"# **{Name}** by {Author}
-
-*Added: {CreatedAt:yyyy MMMM dd}  #  Downloads: {DownloadCount}*  #  [See on FactionFiles]({BrowserUrl}) 
-
-{ImageMd}
-
-{DescriptionMd}
-";
-
     public override string ToString() => $"    {Name}";
-
-    private string ImageMd => ImagePath != null ? $"![image]({ImagePath})" : string.Empty;
-
-
 }

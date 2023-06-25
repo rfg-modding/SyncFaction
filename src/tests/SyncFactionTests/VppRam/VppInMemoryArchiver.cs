@@ -6,14 +6,11 @@ public class VppInMemoryArchiver
 {
     private readonly ILogger<VppInMemoryArchiver> log;
 
-    public VppInMemoryArchiver(ILogger<VppInMemoryArchiver> log)
-    {
-        this.log = log;
-        // TODO use array pool and streamable packer to avoid holding whole thing in memory
-        // https://adamsitnik.com/Array-Pool/
-        // also, gc in debug does not remove vars in scope, that's why it behaves weirdly
-    }
+    public VppInMemoryArchiver(ILogger<VppInMemoryArchiver> log) => this.log = log;
 
+    // TODO use array pool and streamable packer to avoid holding whole thing in memory
+    // https://adamsitnik.com/Array-Pool/
+    // also, gc in debug does not remove vars in scope, that's why it behaves weirdly
     public async Task<LogicalInMemoryArchive> UnpackVppRam(Stream source, string name, CancellationToken token)
     {
         log.LogDebug("Unpacking vpp: {name}", name);

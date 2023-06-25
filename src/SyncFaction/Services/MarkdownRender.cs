@@ -2,17 +2,17 @@ using System;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Markup;
 using MdXaml;
 
 namespace SyncFaction.Services;
 
 public class MarkdownRender
 {
-    private MarkdownScrollViewer view;
+    private ScrollViewer? Scroll => view.Template.FindName("PART_ContentHost", view) as ScrollViewer;
     private readonly IProgress<Update> progress;
     private readonly Markdown markdown;
-    private ScrollViewer? Scroll => view.Template.FindName("PART_ContentHost", view) as ScrollViewer;
-
+    private MarkdownScrollViewer view;
 
     public MarkdownRender(Markdown markdown)
     {
@@ -28,6 +28,12 @@ public class MarkdownRender
         view.Document.Blocks.Clear();
     }
 
+    public void Append(string value, bool autoScroll = true) => progress.Report(new Update(value, autoScroll));
+
+    public void AppendXaml(string value, string xaml, bool autoScroll = true) => progress.Report(new Update(value, autoScroll, xaml));
+
+    public void Clear() => progress.Report(new Update("", false));
+
     private void Handler(Update update)
     {
         if (string.IsNullOrEmpty(update.Value))
@@ -41,7 +47,7 @@ public class MarkdownRender
 
         if (!string.IsNullOrEmpty(update.xaml))
         {
-            var docFromHtml = System.Windows.Markup.XamlReader.Parse(update.xaml) as FlowDocument;
+            var docFromHtml = XamlReader.Parse(update.xaml) as FlowDocument;
             view.Document.Blocks.AddRange(docFromHtml.Blocks.ToList());
         }
 
@@ -51,21 +57,5 @@ public class MarkdownRender
         }
     }
 
-    public void Append(string value, bool autoScroll = true)
-    {
-        progress.Report(new Update(value, autoScroll));
-    }
-
-    public void AppendXaml(string value, string xaml, bool autoScroll = true)
-    {
-        progress.Report(new Update(value, autoScroll, xaml));
-    }
-
-    public void Clear()
-    {
-        progress.Report(new Update("", false));
-    }
-
     private record Update(string Value, bool Scroll, string? xaml = null);
-
 }

@@ -5,13 +5,13 @@ namespace SyncFaction.ModManager.XmlModels;
 
 public class Option : HasNestedXml, IOption
 {
+    public XmlNode? ValueHolder => NestedXml.Wrap();
+
     /// <summary>
     /// Display label
     /// </summary>
     [XmlAttribute]
     public string Name { get; set; }
-
-    public XmlNode? ValueHolder => NestedXml.Wrap();
 
     /// <summary>
     /// For debug printing with Newtonsoft serializer

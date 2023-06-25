@@ -1,32 +1,10 @@
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
-using System.Xml;
-using AngleSharp.Common;
-using Microsoft.Extensions.Logging;
-using SyncFaction.ModManager.Models;
-using SyncFaction.Packer;
 
 namespace SyncFaction.Core.Services.Files;
 
 public class GameFile
 {
-    public GameFile(IGameStorage storage, string relativePath, IFileSystem fileSystem)
-    {
-        var path = fileSystem.Path.Combine(storage.Game.FullName, relativePath);
-        FileInfo = fileSystem.FileInfo.New(path);
-        Storage = storage;
-    }
-
-    /// <summary>
-    /// Map mod files to target files. Mod files can be "rfg.exe", "foo.vpp_pc", "data/foo.vpp_pc", "foo.xdelta", "foo.rfgpatch" and so on
-    /// </summary>
-    public static GameFile GuessTarget(IGameStorage storage, IFileSystemInfo modFile, IDirectoryInfo modDir)
-    {
-        var relativePath = GuessRelativePath(storage, modFile, modDir);
-        return new GameFile(storage, relativePath, modFile.FileSystem);
-    }
-
     [ExcludeFromCodeCoverage]
     public string Name => FileInfo.FileSystem.Path.GetFileNameWithoutExtension(FileInfo.Name);
 
@@ -54,28 +32,6 @@ public class GameFile
     [ExcludeFromCodeCoverage]
     public string AbsolutePath => FileInfo.FullName;
 
-    [ExcludeFromCodeCoverage]
-    public string? ComputeHash()
-    {
-        if (!Exists)
-        {
-            return null;
-        }
-
-        return Storage.ComputeHash(FileInfo);
-    }
-
-    /// <summary>
-    /// Compute hash and compare with expected value. Works only for vanilla files!
-    /// </summary>
-    [ExcludeFromCodeCoverage]
-    public bool IsVanillaByHash()
-    {
-        var expected = Storage.VanillaHashes[RelativePath.Replace("\\", "/")];
-        var hash = ComputeHash();
-        return (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
-    }
-
     public bool IsKnown => Storage.VanillaHashes.ContainsKey(RelativePath.Replace("\\", "/"));
 
     public FileKind Kind
@@ -101,20 +57,46 @@ public class GameFile
         }
     }
 
-    public IFileInfo GetVanillaBackupLocation()
+    public bool Exists => FileInfo.Exists;
+
+    internal IFileInfo FileInfo { get; }
+
+    private IGameStorage Storage { get; }
+
+    public GameFile(IGameStorage storage, string relativePath, IFileSystem fileSystem)
     {
-        return FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Bak.FullName, RelativePath));
+        var path = fileSystem.Path.Combine(storage.Game.FullName, relativePath);
+        FileInfo = fileSystem.FileInfo.New(path);
+        Storage = storage;
     }
 
-    public IFileInfo GetPatchBackupLocation()
+    [ExcludeFromCodeCoverage]
+    public string? ComputeHash()
     {
-        return FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.PatchBak.FullName, RelativePath));
+        if (!Exists)
+        {
+            return null;
+        }
+
+        return Storage.ComputeHash(FileInfo);
     }
 
-    public IFileInfo GetManagedLocation()
+    /// <summary>
+    /// Compute hash and compare with expected value. Works only for vanilla files!
+    /// </summary>
+    [ExcludeFromCodeCoverage]
+    public bool IsVanillaByHash()
     {
-        return FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Managed.FullName, RelativePath));
+        var expected = Storage.VanillaHashes[RelativePath.Replace("\\", "/")];
+        var hash = ComputeHash();
+        return (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
     }
+
+    public IFileInfo GetVanillaBackupLocation() => FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Bak.FullName, RelativePath));
+
+    public IFileInfo GetPatchBackupLocation() => FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.PatchBak.FullName, RelativePath));
+
+    public IFileInfo GetManagedLocation() => FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Managed.FullName, RelativePath));
 
     public IFileInfo FindBackup()
     {
@@ -139,16 +121,12 @@ public class GameFile
         {
             throw new InvalidOperationException($"Tmp file [{fullPath}] already exists");
         }
+
         return fileInfo;
     }
 
-    public bool Exists => FileInfo.Exists;
-
     [ExcludeFromCodeCoverage]
-    public bool BackupExists()
-    {
-        return FindBackup().Exists;
-    }
+    public bool BackupExists() => FindBackup().Exists;
 
     public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
@@ -161,14 +139,13 @@ public class GameFile
 
             if (isUpdate)
             {
-                 return FileKind.FromPatch;
+                return FileKind.FromPatch;
             }
 
             return FileKind.FromMod;
         }
 
         var kind = DetermineKind(isUpdate, IsKnown);
-
 
         if (kind is FileKind.FromMod)
         {
@@ -225,6 +202,7 @@ public class GameFile
                 {
                     throw new InvalidOperationException($"This should not happen: attempt to overwrite vanilla backup of file [{AbsolutePath}]");
                 }
+
                 dst.Delete();
                 FileInfo.CopyTo(dst.FullName);
                 break;
@@ -255,7 +233,6 @@ public class GameFile
         }
 
         return result;
-
     }
 
     public bool RollbackInternal(bool vanilla)
@@ -263,7 +240,9 @@ public class GameFile
         switch (Kind)
         {
             case FileKind.Stock:
-                var src = vanilla ? GetVanillaBackupLocation() : FindBackup();
+                var src = vanilla
+                    ? GetVanillaBackupLocation()
+                    : FindBackup();
                 if (!src.Exists)
                 {
                     // stock file not present in backups == it was never modified
@@ -278,6 +257,7 @@ public class GameFile
                     Delete();
                     return true;
                 }
+
                 var srcPatch = GetPatchBackupLocation();
                 if (!srcPatch.Exists)
                 {
@@ -291,6 +271,7 @@ public class GameFile
                 {
                     Delete();
                 }
+
                 return true;
             case FileKind.Unmanaged:
                 throw new InvalidOperationException($"This should not happen: file is unmanaged and should've been excluded from rollback! File: [{AbsolutePath}], Exists: {Exists}");
@@ -299,14 +280,18 @@ public class GameFile
         }
     }
 
-    public void Delete()
+    public void Delete() => FileInfo.Delete();
+
+    private void EnsureDirectoriesCreated(IFileInfo file) => file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
+
+    /// <summary>
+    /// Map mod files to target files. Mod files can be "rfg.exe", "foo.vpp_pc", "data/foo.vpp_pc", "foo.xdelta", "foo.rfgpatch" and so on
+    /// </summary>
+    public static GameFile GuessTarget(IGameStorage storage, IFileSystemInfo modFile, IDirectoryInfo modDir)
     {
-        FileInfo.Delete();
+        var relativePath = GuessRelativePath(storage, modFile, modDir);
+        return new GameFile(storage, relativePath, modFile.FileSystem);
     }
-
-    internal IFileInfo FileInfo { get; }
-
-    private IGameStorage Storage { get; }
 
     private static string GuessRelativePath(IGameStorage storage, IFileSystemInfo modFile, IDirectoryInfo modDir)
     {
@@ -321,6 +306,7 @@ public class GameFile
             {
                 return rootPath;
             }
+
             if (storage.DataFiles.TryGetValue(modNameNoExt, out var dataPath))
             {
                 return dataPath;
@@ -348,10 +334,5 @@ public class GameFile
         */
 
         return relativeModPath;
-    }
-
-    private void EnsureDirectoriesCreated(IFileInfo file)
-    {
-        file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
     }
 }

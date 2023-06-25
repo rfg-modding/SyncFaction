@@ -20,8 +20,7 @@ using SyncFaction.Core.Services.Files;
 using SyncFaction.Extras;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.XmlModels;
-using JsonSerializer = Newtonsoft.Json.JsonSerializer;
-using Mod = SyncFaction.Core.Services.FactionFiles.Mod;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace SyncFaction;
 
@@ -56,7 +55,6 @@ public class UiCommands
 
         if (lockUi)
         {
-
             // disables all clickable controls
             viewModel.Interactive = false;
         }
@@ -83,7 +81,9 @@ public class UiCommands
                 viewModel.Interactive = true;
             }
 
-            viewModel.CurrentOperation = success ? string.Empty : $"FAILED: {viewModel.CurrentOperation}";
+            viewModel.CurrentOperation = success
+                ? string.Empty
+                : $"FAILED: {viewModel.CurrentOperation}";
             viewModel.GeneralFailure |= !success; // stays forever until restart
         }
     }
@@ -101,31 +101,33 @@ public class UiCommands
         var toProcess = mods.Count;
         var success = true;
 
-        await Parallel.ForEachAsync(mods, new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
-        }, async (mvm, cancellationToken) =>
-        {
-            // display "in progress" regardless of real mod status
-            mvm.Status = OnlineModStatus.InProgress;
-            var mod = mvm.Mod;
-            var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-            var modDir = storage.GetModDir(mod);
-            var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
-            mvm.Status = mod.Status; // status is changed by ffClient
-            if (!clientSuccess)
+        await Parallel.ForEachAsync(mods,
+            new ParallelOptions
             {
-                log.LogError("Downloading mod failed");
-                success = false;
-                return;
-            }
+                CancellationToken = token,
+                MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+            },
+            async (mvm, cancellationToken) =>
+            {
+                // display "in progress" regardless of real mod status
+                mvm.Status = OnlineModStatus.InProgress;
+                var mod = mvm.Mod;
+                var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+                var modDir = storage.GetModDir(mod);
+                var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
+                mvm.Status = mod.Status; // status is changed by ffClient
+                if (!clientSuccess)
+                {
+                    log.LogError("Downloading mod failed");
+                    success = false;
+                    return;
+                }
 
-            var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
-            log.LogDebug($"Mod contents: {files}");
-            toProcess--;
-            viewModel.CurrentOperation = $"Downloading {toProcess} mods";
-        });
+                var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
+                log.LogDebug($"Mod contents: {files}");
+                toProcess--;
+                viewModel.CurrentOperation = $"Downloading {toProcess} mods";
+            });
         if (success == false)
         {
             return false;
@@ -146,11 +148,11 @@ public class UiCommands
                 modTools.ApplyUserInput(mvm.Mod.ModInfo);
             }
         }
+
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         foreach (var vm in modsToApply)
         {
             var result = await fileManager.InstallMod(storage, vm.Mod, false, token);
-
 
             if (!result.Success)
             {
@@ -175,7 +177,7 @@ public class UiCommands
 
         if (mvm is null)
         {
-            log.LogWarning($"Attempt to display mod when it's null");
+            log.LogWarning("Attempt to display mod when it's null");
             return false;
         }
 
@@ -235,7 +237,6 @@ public class UiCommands
             return false;
         }
 
-
         return await InitPopulateData(viewModel, token);
         // TODO write back state immediately?
     }
@@ -254,7 +255,7 @@ public class UiCommands
         viewModel.Model.IsVerified = true;
         if (viewModel.Model.DevMode)
         {
-            log.LogWarning($"Skipped update check because DevMode is enabled");
+            log.LogWarning("Skipped update check because DevMode is enabled");
         }
         else
         {
@@ -267,7 +268,6 @@ public class UiCommands
             }
         }
 
-
         // populate mod list and stuff
         return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token, true);
     }
@@ -279,20 +279,20 @@ public class UiCommands
             case null:
                 throw new InvalidOperationException("App is not properly initialized, still don't know game version");
             case true:
-            {
-                log.LogInformation("Launching game via exe...");
-                var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-                var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
-                Process.Start(new ProcessStartInfo()
                 {
-                    UseShellExecute = true,
-                    FileName = exe.FullName
-                });
-                break;
-            }
+                    log.LogInformation("Launching game via exe...");
+                    var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+                    var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
+                    Process.Start(new ProcessStartInfo
+                    {
+                        UseShellExecute = true,
+                        FileName = exe.FullName
+                    });
+                    break;
+                }
             default:
                 log.LogInformation("Launching game via Steam...");
-                Process.Start(new ProcessStartInfo()
+                Process.Start(new ProcessStartInfo
                 {
                     UseShellExecute = true,
                     FileName = "steam://rungameid/667720"
@@ -301,6 +301,171 @@ public class UiCommands
         }
 
         return Task.FromResult(true);
+    }
+
+    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token) => await RefreshOnline(viewModel, token, false);
+
+    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token, bool isInit)
+    {
+        // always show mods from local directory
+        var categories = new List<Category> { Category.Local };
+        if (viewModel.Model.DevMode && viewModel.Model.UseCdn)
+        {
+            log.LogDebug("Listing dev mods from CDN because DevMode and UseCDN is enabled");
+            categories.Add(Category.Dev);
+        }
+
+        if (viewModel.Model.DevMode && isInit)
+        {
+            log.LogWarning("Skipped reading mods and news from FactionFiles because DevMode is enabled");
+        }
+        else
+        {
+            // add categories to query
+            categories.Add(Category.MapPacks);
+            categories.Add(Category.MapsStandalone);
+            categories.Add(Category.MapsPatches);
+            categories.Add(Category.ModsRemaster);
+
+            // upd text
+            var document = await ffClient.GetNewsWiki(token);
+            var header = document.GetElementById("firstHeading").TextContent;
+            var content = document.GetElementById("mw-content-text").InnerHtml;
+            var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
+            log.Clear();
+            log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
+            log.LogInformationXaml(xaml, false);
+        }
+
+        // upd list
+        viewModel.LockedCollectionOperation(() =>
+        {
+            viewModel.OnlineMods.Clear();
+            viewModel.OnlineSelectedCount = 0;
+        });
+
+        await Parallel.ForEachAsync(categories,
+            new ParallelOptions
+            {
+                CancellationToken = token,
+                MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+            },
+            async (category, cancellationToken) =>
+            {
+                var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, log), cancellationToken);
+                viewModel.AddOnlineMods(mods);
+            });
+        return true;
+    }
+
+    public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
+    {
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var mods = await GetAvailableMods(viewModel, storage, token);
+        viewModel.UpdateLocalMods(mods);
+        return true;
+    }
+
+    public async Task<bool> Update(ViewModel viewModel, CancellationToken token)
+    {
+        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
+        // TODO remove me!
+        var mods = (await ffClient.GetMods(Category.ModsStandalone, gameStorage, token)).Concat(await ffClient.GetMods(Category.Local, gameStorage, token)).Concat(await ffClient.GetMods(Category.Dev, gameStorage, token)).ToList();
+        var updates = viewModel.LockedCollectionOperation(() => viewModel.Model.RemoteTerraformUpdates.Concat(viewModel.Model.RemoteRslUpdates).Select(x => mods.Single(y => y.Id == x)).ToList());
+        // patches are not intended to be installed locally, will store them as hidden from local mod list
+        foreach (var x in updates)
+        {
+            x.Hide = true;
+        }
+
+        var installed = viewModel.LockedCollectionOperation(() => viewModel.Model.TerraformUpdates.Concat(viewModel.Model.RslUpdates).ToList());
+        var result = await InstallUpdates(installed, updates, gameStorage, viewModel, token);
+        if (!result.Success)
+        {
+            log.LogError(@"Action needed:
+
+Failed to update game to latest community patch.
+
+SyncFaction can't work until you restore all files to their default state.
+
++ **Steam**: verify integrity of game files and let it download original data
++ **GOG**: reinstall game
+
+Then run SyncFaction again.
+
+*See you later miner!*
+");
+            return false;
+        }
+
+        viewModel.LockedCollectionOperation(() =>
+        {
+            viewModel.Model.TerraformUpdates.Clear();
+            viewModel.Model.TerraformUpdates.AddRange(viewModel.Model.RemoteTerraformUpdates);
+            viewModel.Model.RslUpdates.Clear();
+            viewModel.Model.RslUpdates.AddRange(viewModel.Model.RemoteRslUpdates);
+        });
+        gameStorage.WriteStateFile(viewModel.Model.ToState());
+        log.LogWarning($"Successfully updated game: **{viewModel.GetHumanReadableVersion()}**");
+        viewModel.UpdateRequired = false;
+
+        // populate mod list and stuff
+        return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token);
+    }
+
+    public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
+    {
+        log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
+        // TODO uncomment me!!!
+        //var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
+
+        // TODO remove debug stuff
+        var terraform = new List<long> { 6247 }.Concat(await ffClient.ListPatchIds("rfgcommunityupdate", token)).Concat(new List<long> { 5783686945589925058 }).ToList();
+        var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);
+        viewModel.UpdateUpdates(terraform, rsl);
+    }
+
+    public void WriteState(ViewModel viewModel)
+    {
+        if (string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
+        {
+            // nowhere to save state
+            return;
+        }
+
+        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem, log);
+        appStorage.WriteStateFile(viewModel.Model.ToState());
+    }
+
+    public void ModResetInputs(ModInfo modInfo, ViewModel viewModel)
+    {
+        foreach (var listBox in modInfo.UserInput.OfType<ListBox>())
+        {
+            listBox.SelectedIndex = 0;
+            foreach (var displayOption in listBox.DisplayOptions)
+            {
+                switch (displayOption)
+                {
+                    case CustomOption c:
+                        c.Value = null;
+                        break;
+                }
+            }
+        }
+
+        var mod = viewModel.SelectedMod.Mod;
+        viewModel.Model.Settings.Mods.Remove(mod.Id);
+    }
+
+    public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
+    {
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var files = fileManager.ReportFiles(storage, token).ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
+        var state = viewModel.Model.ToState();
+        var report = new Report(files, state, Title.Value, viewModel.LastException);
+        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+        viewModel.DiagView = json;
+        return true;
     }
 
     private async Task<List<IMod>> GetAvailableMods(ViewModel viewModel, IGameStorage storage, CancellationToken token)
@@ -371,19 +536,18 @@ public class UiCommands
             }
             else
             {
-                var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash( Encoding.UTF8.GetBytes(dir.Name.ToLowerInvariant()) ));
-                var mod = new LocalMod()
+                var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash(Encoding.UTF8.GetBytes(dir.Name.ToLowerInvariant())));
+                var mod = new LocalMod
                 {
                     Id = id,
                     Name = dir.Name,
                     Size = 0,
                     DownloadUrl = string.Empty,
                     ImageUrl = null,
-                    Status = OnlineModStatus.Ready,
+                    Status = OnlineModStatus.Ready
                 };
                 yield return mod;
             }
-
         }
     }
 
@@ -410,7 +574,6 @@ public class UiCommands
             else if (name is "modinfo.xml")
             {
                 flags |= ModFlags.HasModInfo;
-
             }
             else
             {
@@ -427,126 +590,6 @@ public class UiCommands
 
             mod.Flags = flags;
         }
-
-    }
-
-    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token)
-    {
-        return await RefreshOnline(viewModel, token, false);
-    }
-
-    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token, bool isInit)
-    {
-        // always show mods from local directory
-        var categories = new List<Category>()
-        {
-            Category.Local
-        };
-        if (viewModel.Model.DevMode && viewModel.Model.UseCdn)
-        {
-            log.LogDebug("Listing dev mods from CDN because DevMode and UseCDN is enabled");
-            categories.Add(Category.Dev);
-        }
-        if (viewModel.Model.DevMode && isInit)
-        {
-            log.LogWarning($"Skipped reading mods and news from FactionFiles because DevMode is enabled");
-        }
-        else
-        {
-            // add categories to query
-            categories.Add(Category.MapPacks);
-            categories.Add(Category.MapsStandalone);
-            categories.Add(Category.MapsPatches);
-            categories.Add(Category.ModsRemaster);
-
-            // upd text
-            var document = await ffClient.GetNewsWiki(token);
-            var header = document.GetElementById("firstHeading").TextContent;
-            var content = document.GetElementById("mw-content-text").InnerHtml;
-            var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
-            log.Clear();
-            log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
-            log.LogInformationXaml(xaml, false);
-        }
-
-        // upd list
-        viewModel.LockedCollectionOperation(() =>
-        {
-            viewModel.OnlineMods.Clear();
-            viewModel.OnlineSelectedCount = 0;
-        });
-
-        await Parallel.ForEachAsync(categories, new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
-        }, async (category, cancellationToken) =>
-        {
-            var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, log), cancellationToken);
-            viewModel.AddOnlineMods(mods);
-        });
-        return true;
-    }
-
-    public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
-    {
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var mods = await GetAvailableMods(viewModel, storage, token);
-        viewModel.UpdateLocalMods(mods);
-        return true;
-    }
-
-    public async Task<bool> Update(ViewModel viewModel, CancellationToken token)
-    {
-        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
-        // TODO remove me!
-        var mods = (await ffClient.GetMods(Category.ModsStandalone, gameStorage, token))
-            .Concat(await ffClient.GetMods(Category.Local, gameStorage, token))
-            .Concat(await ffClient.GetMods(Category.Dev, gameStorage, token))
-            .ToList();
-        var updates = viewModel.LockedCollectionOperation(() =>
-            viewModel.Model.RemoteTerraformUpdates
-                .Concat(viewModel.Model.RemoteRslUpdates)
-                .Select(x => mods.Single(y => y.Id == x)).ToList());
-        // patches are not intended to be installed locally, will store them as hidden from local mod list
-        foreach (var x in updates)
-        {
-            x.Hide = true;
-        }
-
-        var installed = viewModel.LockedCollectionOperation(() => viewModel.Model.TerraformUpdates.Concat(viewModel.Model.RslUpdates).ToList());
-        var result = await InstallUpdates(installed, updates, gameStorage, viewModel, token);
-        if (!result.Success)
-        {
-            log.LogError(@$"Action needed:
-
-Failed to update game to latest community patch.
-
-SyncFaction can't work until you restore all files to their default state.
-
-+ **Steam**: verify integrity of game files and let it download original data
-+ **GOG**: reinstall game
-
-Then run SyncFaction again.
-
-*See you later miner!*
-");
-            return false;
-        }
-
-        viewModel.LockedCollectionOperation(() =>
-        {
-            viewModel.Model.TerraformUpdates.Clear();
-            viewModel.Model.TerraformUpdates.AddRange(viewModel.Model.RemoteTerraformUpdates);
-            viewModel.Model.RslUpdates.Clear();
-            viewModel.Model.RslUpdates.AddRange(viewModel.Model.RemoteRslUpdates);
-        });
-        gameStorage.WriteStateFile(viewModel.Model.ToState());
-        log.LogWarning($"Successfully updated game: **{viewModel.GetHumanReadableVersion()}**");
-        viewModel.UpdateRequired = false;
-
-        // populate mod list and stuff
-        return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token);
     }
 
     private async Task<ApplyModResult> InstallUpdates(List<long> installed, List<IMod> updates, GameStorage storage, ViewModel viewModel, CancellationToken token)
@@ -561,26 +604,28 @@ Then run SyncFaction again.
         var toProcess = pendingUpdates.Count;
         var success = true;
 
-        await Parallel.ForEachAsync(pendingUpdates, new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
-        }, async (mod, cancellationToken) =>
-        {
-            var modDir = storage.GetModDir(mod);
-            var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
-            if (!clientSuccess)
+        await Parallel.ForEachAsync(pendingUpdates,
+            new ParallelOptions
             {
-                log.LogError("Downloading update failed");
-                success = false;
-                return;
-            }
+                CancellationToken = token,
+                MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+            },
+            async (mod, cancellationToken) =>
+            {
+                var modDir = storage.GetModDir(mod);
+                var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
+                if (!clientSuccess)
+                {
+                    log.LogError("Downloading update failed");
+                    success = false;
+                    return;
+                }
 
-            var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
-            log.LogDebug($"Update contents: {files}");
-            toProcess--;
-            viewModel.CurrentOperation = $"Downloading {toProcess} updates";
-        });
+                var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
+                log.LogDebug($"Update contents: {files}");
+                toProcess--;
+                viewModel.CurrentOperation = $"Downloading {toProcess} updates";
+            });
         if (success == false)
         {
             return new ApplyModResult(new List<GameFile>(), false);
@@ -590,67 +635,4 @@ Then run SyncFaction again.
         var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, token);
         return result;
     }
-
-    public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
-    {
-        log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
-        // TODO uncomment me!!!
-        //var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
-
-        // TODO remove debug stuff
-        var terraform = new List<long>(){6247}
-                .Concat(await ffClient.ListPatchIds("rfgcommunityupdate", token))
-                .Concat(new List<long>(){5783686945589925058})
-                .ToList()
-                ;
-        var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);
-        viewModel.UpdateUpdates(terraform, rsl);
-    }
-
-    public void WriteState(ViewModel viewModel)
-    {
-        if (string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
-        {
-            // nowhere to save state
-            return;
-        }
-        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem, log);
-        appStorage.WriteStateFile(viewModel.Model.ToState());
-    }
-
-    public void ModResetInputs(ModInfo modInfo, ViewModel viewModel)
-    {
-        foreach (var listBox in modInfo.UserInput.OfType<ListBox>())
-        {
-            listBox.SelectedIndex = 0;
-            foreach (var displayOption in listBox.DisplayOptions)
-            {
-                switch (displayOption)
-                {
-                    case CustomOption c:
-                        c.Value = null;
-                        break;
-                }
-            }
-        }
-
-        var mod = viewModel.SelectedMod.Mod;
-        viewModel.Model.Settings.Mods.Remove(mod.Id);
-    }
-
-    public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
-    {
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var files = fileManager.ReportFiles(storage, token).ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
-        var state = viewModel.Model.ToState();
-        var report = new Report(files, state, Title.Value, viewModel.LastException);
-        var json = System.Text.Json.JsonSerializer.Serialize(report, new JsonSerializerOptions()
-        {
-            WriteIndented = true
-        });
-        viewModel.DiagView = json;
-        return true;
-    }
-
-
 }

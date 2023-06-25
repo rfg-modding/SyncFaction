@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Dom;
+using AngleSharp.Html.Parser;
 using FastHashes;
 using JorgeSerrano.Json;
 using Microsoft.Extensions.Logging;
@@ -48,6 +49,186 @@ public class FfClient
         }
 
         return await GetFfMods(category, storage, token);
+    }
+
+    public OnlineModStatus GetModStatus(Mod item, IGameStorage storage)
+    {
+        var modDir = storage.GetModDir(item);
+        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        var descriptionFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
+        if (modDir.Exists && !incompleteDataFile.Exists && descriptionFile.Exists)
+        {
+            return OnlineModStatus.Ready;
+        }
+
+        return OnlineModStatus.None;
+    }
+
+    public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
+    {
+        log.LogDebug($"Downloading mod: {mod.Name} ({(double) mod.Size / 1024 / 1024:F2} MiB)");
+        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        if (modDir.Exists && !incompleteDataFile.Exists)
+        {
+            // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
+            await PersistDescription(modDir, mod); // compatibility with older versions: try to save description anyway
+            log.LogInformation("Found existing data, skip downloading and extraction");
+            mod.Status = OnlineModStatus.Ready;
+            return true;
+        }
+
+        modDir.Create();
+        incompleteDataFile.Create().Close();
+        incompleteDataFile.Refresh();
+
+        var remoteFileInfo = await GetRemoteFileInfo(mod, token);
+        if (remoteFileInfo is null)
+        {
+            return false;
+        }
+
+        var dstFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, remoteFileInfo.FileName));
+
+        var downloadResult = await DownloadWithResume(dstFile, remoteFileInfo.Size, mod, token);
+        if (downloadResult == false)
+        {
+            mod.Status = OnlineModStatus.Failed;
+            return false;
+        }
+
+        var extractResult = await ExtractArchive(dstFile, modDir, incompleteDataFile, token);
+        if (extractResult == false)
+        {
+            mod.Status = OnlineModStatus.Failed;
+            return false;
+        }
+
+        await PersistDescription(modDir, mod);
+        incompleteDataFile.Delete();
+        mod.Status = OnlineModStatus.Ready;
+        return true;
+    }
+
+    public async Task<IHtmlDocument> GetNewsWiki(CancellationToken token)
+    {
+        var response = await client.GetAsync(Constants.WikiPage, token);
+        await using var contentStream = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
+        var parser = new HtmlParser();
+        return await parser.ParseDocumentAsync(contentStream, token);
+    }
+
+    public async Task<List<long>> ListPatchIds(string prefix, CancellationToken token)
+    {
+        var result = new List<long>();
+        var i = 1;
+        long? id;
+        do
+        {
+            id = await GetIdBySearchString($"{prefix}{i}", token);
+            if (id != null)
+            {
+                result.Add(id.Value);
+                log.LogInformation($"Found {prefix} patch part {i}, id: **{id}**");
+            }
+
+            i++;
+        }
+        while (id != null);
+
+        return result;
+    }
+
+    public async Task CopyStreamWithProgress(Stream source, Stream destination, long expectedSize, CancellationToken cancellationToken)
+    {
+        if (source == null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        if (!source.CanRead)
+        {
+            throw new ArgumentException("Has to be readable", nameof(source));
+        }
+
+        if (destination == null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        if (!destination.CanWrite)
+        {
+            throw new ArgumentException("Has to be writable", nameof(destination));
+        }
+
+        var buffer = new byte[8192];
+        var totalBytesRead = destination.Position;
+        int bytesRead;
+        var totalMb = (double) expectedSize / 1024 / 1024;
+        long lastReported = 0;
+        while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) != 0)
+        {
+            await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+            totalBytesRead += bytesRead;
+            var readMiB = (long) Math.Floor((double) totalBytesRead / 1024 / 1024);
+            if (readMiB > 0 && readMiB % 10 == 0)
+            {
+                var current = readMiB / 10;
+                if (current <= lastReported)
+                {
+                    continue;
+                }
+
+                lastReported = current;
+                log.LogInformation($"+ {readMiB:F0} / {totalMb:F0} MiB");
+            }
+        }
+    }
+
+    internal async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, IMod mod, CancellationToken token)
+    {
+        log.LogInformation("Downloading **{id}**: {name}", mod.Id, mod.Name);
+        if (dstFile.Exists && dstFile.Length == contentLength)
+        {
+            // skip only if fully downloaded before
+            log.LogInformation("Found existing data, skip downloading");
+            return true;
+        }
+
+        await using (var dstStream = dstFile.Open(FileMode.OpenOrCreate, FileAccess.Write))
+        {
+            var hasProgress = true;
+            dstStream.Seek(0, SeekOrigin.End);
+            log.LogDebug($"Writing to `{dstFile.FullName}`");
+            log.LogDebug($"Initial file position: `{dstStream.Position}`");
+            log.LogDebug($"ContentLength: `{contentLength}`");
+            do
+            {
+                var positionBefore = dstStream.Position;
+
+                try
+                {
+                    await using var srcStream = await GetHttpStream(mod, contentLength, dstStream.Position, token);
+                    await CopyStreamWithProgress(srcStream, dstStream, contentLength, token);
+                }
+                catch (Exception e)
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        return false;
+                    }
+
+                    log.LogInformation($"Error while downloading, continue in 5 seconds... Details: `{e.Message}`");
+                    await Task.Delay(TimeSpan.FromSeconds(5), token);
+                    continue;
+                }
+
+                hasProgress = positionBefore > dstStream.Position;
+            }
+            while (hasProgress && !token.IsCancellationRequested);
+        }
+
+        dstFile.Refresh();
+        return dstFile.Length == contentLength;
     }
 
     private async Task<IReadOnlyList<IMod>> GetFfMods(Category category, IGameStorage storage, CancellationToken token)
@@ -98,11 +279,8 @@ public class FfClient
     private async Task<IReadOnlyList<IMod>> GetDevMods(IGameStorage storage, CancellationToken token)
     {
         // TODO: any pagination?
-        log.LogDebug($"Reading CDN for dev mods");
-        var url = new UriBuilder(Constants.CdnListUrl)
-        {
-            Query = $"AccessKey={Constants.CdnReadApiKey}"
-        }.Uri;
+        log.LogDebug("Reading CDN for dev mods");
+        var url = new UriBuilder(Constants.CdnListUrl) { Query = $"AccessKey={Constants.CdnReadApiKey}" }.Uri;
 
         var response = await client.GetAsync(url, token);
         await using var content = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
@@ -116,7 +294,6 @@ public class FfClient
         var result = new List<IMod>();
         foreach (var entry in data)
         {
-
             if (string.IsNullOrEmpty(Path.GetExtension(entry.ObjectName)))
             {
                 // skip files cached from FF
@@ -128,6 +305,7 @@ public class FfClient
                 // skip directories (may be useful in the future)
                 continue;
             }
+
             var mod = entry.ToMod();
             mod.Status = GetModStatus(mod, storage);
             result.Add(mod);
@@ -136,22 +314,9 @@ public class FfClient
         return result.OrderByDescending(x => x.CreatedAt).ToList();
     }
 
-    public OnlineModStatus GetModStatus(Mod item, IGameStorage storage)
-    {
-        var modDir = storage.GetModDir(item);
-        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
-        var descriptionFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
-        if (modDir.Exists && !incompleteDataFile.Exists && descriptionFile.Exists)
-        {
-            return OnlineModStatus.Ready;
-        }
-
-        return OnlineModStatus.None;
-    }
-
     private List<LocalMod> GetLocalMods(IAppStorage storage)
     {
-        List<LocalMod> mods = new ();
+        List<LocalMod> mods = new();
         foreach (var dir in storage.App.EnumerateDirectories())
         {
             if (dir.Name.StartsWith("."))
@@ -166,8 +331,8 @@ public class FfClient
                 continue;
             }
 
-            var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash( Encoding.UTF8.GetBytes(dir.Name.ToLowerInvariant()) ));
-            var mod = new LocalMod()
+            var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash(Encoding.UTF8.GetBytes(dir.Name.ToLowerInvariant())));
+            var mod = new LocalMod
             {
                 Id = id,
                 Name = dir.Name,
@@ -186,63 +351,13 @@ public class FfClient
     {
         try
         {
-            return JsonSerializer.Deserialize<CategoryPage>(content, new JsonSerializerOptions()
-            {
-                PropertyNamingPolicy = new JsonSnakeCaseNamingPolicy()
-            });
+            return JsonSerializer.Deserialize<CategoryPage>(content, new JsonSerializerOptions { PropertyNamingPolicy = new JsonSnakeCaseNamingPolicy() });
         }
         catch (JsonException e) when (e.Message.Contains("no files in cat"))
         {
-            return new CategoryPage() { Results = new Dictionary<string, Mod>() };
+            return new CategoryPage { Results = new Dictionary<string, Mod>() };
         }
     }
-
-    public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
-    {
-        log.LogDebug($"Downloading mod: {mod.Name} ({(double)mod.Size/1024/1024:F2} MiB)");
-        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
-        if (modDir.Exists && !incompleteDataFile.Exists)
-        {
-            // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
-            await PersistDescription(modDir, mod);  // compatibility with older versions: try to save description anyway
-            log.LogInformation("Found existing data, skip downloading and extraction");
-            mod.Status = OnlineModStatus.Ready;
-            return true;
-        }
-
-        modDir.Create();
-        incompleteDataFile.Create().Close();
-        incompleteDataFile.Refresh();
-
-        var remoteFileInfo = await GetRemoteFileInfo(mod, token);
-        if (remoteFileInfo is null)
-        {
-            return false;
-        }
-
-        var dstFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, remoteFileInfo.FileName));
-
-        var downloadResult = await DownloadWithResume(dstFile, remoteFileInfo.Size, mod, token);
-        if (downloadResult == false)
-        {
-            mod.Status = OnlineModStatus.Failed;
-            return false;
-        }
-
-        var extractResult = await ExtractArchive(dstFile, modDir, incompleteDataFile, token);
-        if (extractResult == false)
-        {
-            mod.Status = OnlineModStatus.Failed;
-            return false;
-        }
-
-        await PersistDescription(modDir, mod);
-        incompleteDataFile.Delete();
-        mod.Status = OnlineModStatus.Ready;
-        return true;
-    }
-
-    private record RemoteFileInfo(string FileName, long Size);
 
     private async Task<RemoteFileInfo?> GetRemoteFileInfo(IMod mod, CancellationToken token)
     {
@@ -279,54 +394,9 @@ public class FfClient
             return;
         }
 
-        var json = JsonSerializer.Serialize(mod, new JsonSerializerOptions() {WriteIndented = true});
+        var json = JsonSerializer.Serialize(mod, new JsonSerializerOptions { WriteIndented = true });
         await using var writer = descriptionFile.CreateText();
         await writer.WriteAsync(json);
-    }
-
-    internal async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, IMod mod, CancellationToken token)
-    {
-        log.LogInformation("Downloading **{id}**: {name}", mod.Id, mod.Name);
-        if (dstFile.Exists && dstFile.Length == contentLength)
-        {
-            // skip only if fully downloaded before
-            log.LogInformation("Found existing data, skip downloading");
-            return true;
-        }
-
-        await using (var dstStream = dstFile.Open(FileMode.OpenOrCreate, FileAccess.Write))
-        {
-            var hasProgress = true;
-            dstStream.Seek(0, SeekOrigin.End);
-            log.LogDebug($"Writing to `{dstFile.FullName}`");
-            log.LogDebug($"Initial file position: `{dstStream.Position}`");
-            log.LogDebug($"ContentLength: `{contentLength}`");
-            do
-            {
-                var positionBefore = dstStream.Position;
-
-                try
-                {
-                    await using var srcStream = await GetHttpStream(mod, contentLength, dstStream.Position, token);
-                    await CopyStreamWithProgress(srcStream, dstStream, contentLength, token);
-                }
-                catch (Exception e)
-                {
-                    if (token.IsCancellationRequested)
-                    {
-                        return false;
-                    }
-                    log.LogInformation($"Error while downloading, continue in 5 seconds... Details: `{e.Message}`");
-                    await Task.Delay(TimeSpan.FromSeconds(5), token);
-                    continue;
-                }
-
-                hasProgress = positionBefore > dstStream.Position;
-            } while (hasProgress && !token.IsCancellationRequested);
-        }
-
-        dstFile.Refresh();
-        return dstFile.Length == contentLength;
     }
 
     /// <summary>
@@ -383,7 +453,11 @@ public class FfClient
             return true;
         }
 
-        var options = new ExtractionOptions {ExtractFullPath = true, Overwrite = true};
+        var options = new ExtractionOptions
+        {
+            ExtractFullPath = true,
+            Overwrite = true
+        };
         try
         {
             await using var f = downloadedFile.OpenRead();
@@ -419,35 +493,6 @@ public class FfClient
         return true;
     }
 
-    public async Task<IHtmlDocument> GetNewsWiki(CancellationToken token)
-    {
-        var response = await client.GetAsync(Constants.WikiPage, token);
-        await using var contentStream = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
-        var parser = new AngleSharp.Html.Parser.HtmlParser();
-        return await parser.ParseDocumentAsync(contentStream, token);
-
-    }
-
-    public async Task<List<long>> ListPatchIds(string prefix, CancellationToken token)
-    {
-        var result = new List<long>();
-        int i = 1;
-        long? id;
-        do
-        {
-            id = await GetIdBySearchString($"{prefix}{i}", token);
-            if (id != null)
-            {
-                result.Add(id.Value);
-                log.LogInformation($"Found {prefix} patch part {i}, id: **{id}**");
-            }
-
-            i++;
-        } while (id != null);
-
-        return result;
-    }
-
     private async Task<long?> GetIdBySearchString(string searchString, CancellationToken token)
     {
         var builder = new UriBuilder(Constants.FindMapUrl);
@@ -461,6 +506,7 @@ public class FfClient
         {
             return null;
         }
+
         return long.Parse(parts.Last());
     }
 
@@ -475,6 +521,7 @@ public class FfClient
         {
             // BUG: some texts F up regex un-escaping, ignore it
         }
+
         input = input.Replace("\r", "\n");
         input = bold.Replace(input, "**");
         input = italic.Replace(input, "*");
@@ -484,7 +531,6 @@ public class FfClient
         var match = url.Match(input);
         while (match.Success)
         {
-
             var text = match.Groups[2].Value;
             var link = match.Groups[1].Value;
             if (string.IsNullOrWhiteSpace(link))
@@ -499,43 +545,11 @@ public class FfClient
         return input;
     }
 
-    public async Task CopyStreamWithProgress(Stream source, Stream destination, long expectedSize, CancellationToken cancellationToken)
-    {
-        if (source == null)
-            throw new ArgumentNullException(nameof(source));
-        if (!source.CanRead)
-            throw new ArgumentException("Has to be readable", nameof(source));
-        if (destination == null)
-            throw new ArgumentNullException(nameof(destination));
-        if (!destination.CanWrite)
-            throw new ArgumentException("Has to be writable", nameof(destination));
+    private static readonly Regex bold = new(@"\[/?b\]");
+    private static readonly Regex italic = new(@"\[/?i\]");
+    private static readonly Regex underline = new(@"\[/?u\]");
+    private static readonly Regex strike = new(@"\[/?s\]");
+    private static readonly Regex url = new(@"\[url=?(.*?)\](.*?)\[/url\]");
 
-        var buffer = new byte[8192];
-        long totalBytesRead = destination.Position;
-        int bytesRead;
-        var totalMb = (double) expectedSize / 1024 / 1024;
-        long lastReported = 0;
-        while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) != 0)
-        {
-            await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-            totalBytesRead += bytesRead;
-            var readMiB = (long)Math.Floor((double) totalBytesRead / 1024 / 1024);
-            if (readMiB > 0 && readMiB % 10 == 0)
-            {
-                var current = readMiB / 10;
-                if (current <= lastReported)
-                {
-                    continue;
-                }
-                lastReported = current;
-                log.LogInformation($"+ {readMiB:F0} / {totalMb:F0} MiB");
-            }
-        }
-    }
-
-    private static Regex bold = new(@"\[/?b\]");
-    private static Regex italic = new(@"\[/?i\]");
-    private static Regex underline = new(@"\[/?u\]");
-    private static Regex strike = new(@"\[/?s\]");
-    private static Regex url = new(@"\[url=?(.*?)\](.*?)\[/url\]");
+    private record RemoteFileInfo(string FileName, long Size);
 }

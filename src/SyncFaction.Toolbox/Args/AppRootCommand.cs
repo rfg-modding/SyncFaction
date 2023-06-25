@@ -14,16 +14,8 @@ public class AppRootCommand : RootCommand
 
     public class CommandHandler : ICommandHandler
     {
+        public int Invoke(InvocationContext context) => throw new NotImplementedException();
 
-        public int Invoke(InvocationContext context)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<int> InvokeAsync(InvocationContext context)
-        {
-            return 0;
-        }
+        public async Task<int> InvokeAsync(InvocationContext context) => 0;
     }
-
 }

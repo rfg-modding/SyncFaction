@@ -17,9 +17,88 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class ViewModel
 {
+    public GroupedDropHandler DropHandler { get; } = new();
+
+    public bool DisplayModSettings => SelectedTab == Tab.Apply && ModInfo is not null;
+
+    public ModInfo? ModInfo => (SelectedMod as LocalModViewModel)?.Mod.ModInfo;
+
+    /// <summary>
+    /// For simplified binding
+    /// </summary>
+    public bool NotInteractive => !interactive;
+
+    /// <summary>
+    /// For simplified binding
+    /// </summary>
+    public bool UpdateNotRequired => !updateRequired;
+
+    /// <summary>
+    /// UI-bound collection displayed as ListView
+    /// </summary>
+    public ObservableCollection<OnlineModViewModel> OnlineMods { get; } = new();
+
+    public ObservableCollection<LocalModViewModel> LocalMods { get; } = new();
+
+    public IViewAccessor ViewAccessor { get; set; }
+
+    public Theme Theme { get; set; }
+
+    public string LastException { get; set; }
     private readonly UiCommands uiCommands;
     private readonly ILogger<ViewModel> log;
     private readonly object collectionLock = new();
+
+    /// <summary>
+    /// Commands to disable while running something
+    /// </summary>
+    private readonly IReadOnlyList<IRelayCommand> interactiveCommands;
+
+    /// <summary>
+    /// Commands to cancel manually
+    /// </summary>
+    private readonly List<ICommand> cancelCommands;
+
+    [ObservableProperty]
+    private Model model;
+
+    [ObservableProperty]
+    private string currentOperation = string.Empty;
+
+    // TODO save to state to remember last opened tab
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
+    private Tab selectedTab = Tab.Apply;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NotInteractive))]
+    private bool interactive = true;
+
+    [ObservableProperty]
+    private bool generalFailure;
+
+    [ObservableProperty]
+    private bool gridLines;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateNotRequired))]
+    private bool updateRequired;
+
+    [ObservableProperty]
+    private int onlineSelectedCount;
+
+    [ObservableProperty]
+    private int localSelectedCount;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
+    private IModViewModel? selectedMod;
+
+    /// <summary>
+    /// View of diagnostics output
+    /// </summary>
+    [ObservableProperty]
+    private string diagView;
 
     public ViewModel(ILogger<ViewModel> log, UiCommands uiCommands) : this()
     {
@@ -34,7 +113,7 @@ public partial class ViewModel
     /// </summary>
     public ViewModel()
     {
-        interactiveCommands = new List<IRelayCommand>()
+        interactiveCommands = new List<IRelayCommand>
         {
             RefreshCommand,
             RunCommand,
@@ -42,11 +121,10 @@ public partial class ViewModel
             ApplyCommand,
             CancelCommand,
             RestoreCommand,
-            RestoreVanillaCommand,
+            RestoreVanillaCommand
         };
 
-
-        cancelCommands = new List<ICommand>()
+        cancelCommands = new List<ICommand>
         {
             InitCancelCommand,
             RefreshCancelCommand,
@@ -72,77 +150,6 @@ public partial class ViewModel
 
         SetDesignTimeDefaults(true);
     }
-
-    public GroupedDropHandler DropHandler { get; } = new();
-
-    [ObservableProperty] private Model model;
-
-    [ObservableProperty] private string currentOperation = string.Empty;
-
-    // TODO save to state to remember last opened tab
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
-    private Tab selectedTab = Tab.Apply;
-
-    public bool DisplayModSettings => SelectedTab == Tab.Apply && ModInfo is not null;
-
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(NotInteractive))]
-    private bool interactive = true;
-
-    [ObservableProperty] private bool generalFailure;
-
-    [ObservableProperty] private bool gridLines;
-
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(UpdateNotRequired))]
-    private bool updateRequired;
-
-    [ObservableProperty] private int onlineSelectedCount;
-
-    [ObservableProperty] private int localSelectedCount;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DisplayModSettings))]
-    private IModViewModel? selectedMod;
-
-    public ModInfo? ModInfo => (SelectedMod as LocalModViewModel)?.Mod.ModInfo;
-
-    /// <summary>
-    /// For simplified binding
-    /// </summary>
-    public bool NotInteractive => !interactive;
-
-    /// <summary>
-    /// For simplified binding
-    /// </summary>
-    public bool UpdateNotRequired => !updateRequired;
-
-    /// <summary>
-    /// UI-bound collection displayed as ListView
-    /// </summary>
-    public ObservableCollection<OnlineModViewModel> OnlineMods { get; } = new();
-
-    public ObservableCollection<LocalModViewModel> LocalMods { get; } = new();
-
-    /// <summary>
-    /// Commands to disable while running something
-    /// </summary>
-    private readonly IReadOnlyList<IRelayCommand> interactiveCommands;
-
-    /// <summary>
-    /// Commands to cancel manually
-    /// </summary>
-    private readonly List<ICommand> cancelCommands;
-
-    /// <summary>
-    /// View of diagnostics output
-    /// </summary>
-    [ObservableProperty] private string diagView;
-
-    public IViewAccessor ViewAccessor { get; set; }
-
-    public Theme Theme { get; set; }
-
-    public string LastException { get; set; }
-
 
     public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 }

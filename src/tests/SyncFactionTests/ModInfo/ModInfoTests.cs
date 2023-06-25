@@ -1,3 +1,4 @@
+using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using SyncFaction.ModManager;
@@ -11,8 +12,8 @@ public class ModInfoTests
     public void ReadAll(FileInfo fileInfo)
     {
         using var fileStream = fileInfo.OpenRead();
-        var fs = new System.IO.Abstractions.FileSystem();
-        var dir = new System.IO.Abstractions.DirectoryInfoWrapper(fs, fileInfo.Directory);
+        var fs = new FileSystem();
+        var dir = new DirectoryInfoWrapper(fs, fileInfo.Directory);
         var modInfo = new ModTools(Mock.Of<ILogger<ModTools>>()).LoadFromXml(fileStream, dir);
         if (modInfo is null)
         {
@@ -34,8 +35,8 @@ public class ModInfoTests
     {
         using var fileStream = fileInfo.OpenRead();
         var modTools = new ModTools(Mock.Of<ILogger<ModTools>>());
-        var fs = new System.IO.Abstractions.FileSystem();
-        var dir = new System.IO.Abstractions.DirectoryInfoWrapper(fs, fileInfo.Directory);
+        var fs = new FileSystem();
+        var dir = new DirectoryInfoWrapper(fs, fileInfo.Directory);
         var modInfo = modTools.LoadFromXml(fileStream, dir);
         modTools.ApplyUserInput(modInfo);
 

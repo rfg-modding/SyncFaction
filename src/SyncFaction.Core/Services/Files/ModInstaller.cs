@@ -1,8 +1,6 @@
 using System.IO.Abstractions;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Services.Xml;
-using SyncFaction.ModManager;
 using SyncFaction.ModManager.Models;
 using SyncFaction.Packer;
 
@@ -33,59 +31,11 @@ public class ModInstaller : IModInstaller
         var result = modFile.Extension.ToLowerInvariant() switch
         {
             ".xdelta" => await ApplyXdelta(gameFile, modFile, token),
-            _ => ApplyNewFile(gameFile, modFile),
+            _ => ApplyNewFile(gameFile, modFile)
         };
 
         gameFile.FileInfo.Refresh();
         return result;
-    }
-
-    internal virtual bool Skip(GameFile gameFile, IFileInfo modFile)
-    {
-        log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
-        return true;
-    }
-
-    internal virtual async Task<bool> ApplyXdelta(GameFile gameFile, IFileInfo modFile, CancellationToken token)
-    {
-        var tmpFile = gameFile.GetTmpFile();
-        var srcFile = gameFile.FileInfo;
-        var result = await ApplyXdeltaInternal(srcFile, modFile, tmpFile, token);
-        tmpFile.Refresh();
-        tmpFile.MoveTo(gameFile.AbsolutePath, true);
-        return result;
-    }
-
-    private async Task<bool> ApplyXdeltaInternal(IFileInfo srcFile, IFileInfo modFile, IFileInfo dstFile, CancellationToken token)
-    {
-        await using var srcStream = srcFile.OpenRead();
-        await using var patchStream = modFile.OpenRead();
-        await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
-
-        // TODO make it really async?
-        try
-        {
-            using var decoder = xdeltaFactory.Create(srcStream, patchStream, dstStream);
-            // TODO log progress
-            decoder.ProgressChanged += progress => { token.ThrowIfCancellationRequested(); };
-            decoder.Run();
-
-            log.LogInformation($"+ **Patched** `{modFile.Name}`");
-            return true;
-        }
-        catch (Exception e)
-        {
-            log.LogError(e, $"XDelta failed: [{srcFile.FullName}] + [{modFile.FullName}] -> [{dstFile.FullName}]");
-            throw;
-        }
-    }
-
-    internal virtual bool ApplyNewFile(GameFile gameFile, IFileInfo modFile)
-    {
-        EnsureDirectoriesCreated(gameFile.FileInfo);
-        modFile.CopyTo(gameFile.FileInfo.FullName, true);
-        log.LogInformation($"+ Copied `{modFile.Name}`");
-        return true;
     }
 
     public async Task<bool> ApplyVppDirectoryMod(GameFile gameFile, IDirectoryInfo vppDir, CancellationToken token)
@@ -117,7 +67,11 @@ public class ModInstaller : IModInstaller
                             usedKeys.Add(key);
                             var modSrc = modFile.OpenRead();
                             disposables.Add(modSrc);
-                            yield return logicalFile with {Content = modSrc, CompressedContent = null};
+                            yield return logicalFile with
+                            {
+                                Content = modSrc,
+                                CompressedContent = null
+                            };
                         }
                         else
                         {
@@ -139,11 +93,11 @@ public class ModInstaller : IModInstaller
                     disposables.Add(modSrc);
                     logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
                 }
+
                 await using (var dst = tmpFile.OpenWrite())
                 {
-                    await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
+                    await vppArchiver.PackVpp(archive with { LogicalFiles = logicalFiles }, dst, token);
                 }
-
             }
 
             finally
@@ -154,12 +108,12 @@ public class ModInstaller : IModInstaller
                 }
             }
         }
+
         tmpFile.Refresh();
         tmpFile.MoveTo(gameFile.AbsolutePath, true);
         log.LogInformation("Patched files inside [{file}]", gameFile.RelativePath);
 
         return true;
-
     }
 
     public async Task<bool> ApplyModInfo(GameFile gameFile, VppOperations vppOperations, CancellationToken token)
@@ -175,9 +129,8 @@ public class ModInstaller : IModInstaller
 
                 await using (var dst = tmpFile.OpenWrite())
                 {
-                    await vppArchiver.PackVpp(archive with {LogicalFiles = logicalFiles}, dst, token);
+                    await vppArchiver.PackVpp(archive with { LogicalFiles = logicalFiles }, dst, token);
                 }
-
             }
 
             finally
@@ -188,6 +141,7 @@ public class ModInstaller : IModInstaller
                 }
             }
         }
+
         tmpFile.Refresh();
         tmpFile.MoveTo(gameFile.AbsolutePath, true);
         log.LogInformation("Patched xmls inside [{file}]", gameFile.RelativePath);
@@ -195,10 +149,53 @@ public class ModInstaller : IModInstaller
         return true;
     }
 
-    private void EnsureDirectoriesCreated(IFileInfo file)
+    internal virtual bool Skip(GameFile gameFile, IFileInfo modFile)
     {
-        file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
+        log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
+        return true;
     }
 
+    internal virtual async Task<bool> ApplyXdelta(GameFile gameFile, IFileInfo modFile, CancellationToken token)
+    {
+        var tmpFile = gameFile.GetTmpFile();
+        var srcFile = gameFile.FileInfo;
+        var result = await ApplyXdeltaInternal(srcFile, modFile, tmpFile, token);
+        tmpFile.Refresh();
+        tmpFile.MoveTo(gameFile.AbsolutePath, true);
+        return result;
+    }
 
+    internal virtual bool ApplyNewFile(GameFile gameFile, IFileInfo modFile)
+    {
+        EnsureDirectoriesCreated(gameFile.FileInfo);
+        modFile.CopyTo(gameFile.FileInfo.FullName, true);
+        log.LogInformation($"+ Copied `{modFile.Name}`");
+        return true;
+    }
+
+    private async Task<bool> ApplyXdeltaInternal(IFileInfo srcFile, IFileInfo modFile, IFileInfo dstFile, CancellationToken token)
+    {
+        await using var srcStream = srcFile.OpenRead();
+        await using var patchStream = modFile.OpenRead();
+        await using var dstStream = dstFile.Open(FileMode.Create, FileAccess.ReadWrite);
+
+        // TODO make it really async?
+        try
+        {
+            using var decoder = xdeltaFactory.Create(srcStream, patchStream, dstStream);
+            // TODO log progress
+            decoder.ProgressChanged += progress => { token.ThrowIfCancellationRequested(); };
+            decoder.Run();
+
+            log.LogInformation($"+ **Patched** `{modFile.Name}`");
+            return true;
+        }
+        catch (Exception e)
+        {
+            log.LogError(e, $"XDelta failed: [{srcFile.FullName}] + [{modFile.FullName}] -> [{dstFile.FullName}]");
+            throw;
+        }
+    }
+
+    private void EnsureDirectoriesCreated(IFileInfo file) => file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
 }

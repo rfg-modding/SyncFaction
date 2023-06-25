@@ -6,10 +6,11 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class LocalModViewModel : IModViewModel
 {
-    public LocalModViewModel(IMod mod)
-    {
-        Mod = mod;
-    }
+    public ModFlags Flags => Mod.Flags;
+
+    public string Name => Mod.Name;
+
+    public IMod Mod { get; set; }
 
     [ObservableProperty]
     private bool selected;
@@ -20,9 +21,5 @@ public partial class LocalModViewModel : IModViewModel
     [ObservableProperty]
     private LocalModStatus status;
 
-    public ModFlags Flags => Mod.Flags;
-
-    public string Name => Mod.Name;
-
-    public IMod Mod { get; set; }
+    public LocalModViewModel(IMod mod) => Mod = mod;
 }

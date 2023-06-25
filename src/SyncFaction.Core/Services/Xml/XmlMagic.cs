@@ -11,10 +11,7 @@ public class XmlMagic
 {
     private readonly ILogger<XmlMagic> log;
 
-    public XmlMagic(ILogger<XmlMagic> log)
-    {
-        this.log = log;
-    }
+    public XmlMagic(ILogger<XmlMagic> log) => this.log = log;
 
     public LogicalFile ApplyPatches(LogicalFile file, VppOperations vppOperations, List<IDisposable> disposables, CancellationToken token)
     {
@@ -25,7 +22,11 @@ public class XmlMagic
             log.LogDebug("swap [{key}] [{value}]", file.Name, swap.Target);
             var stream = swap.Target.OpenRead();
             disposables.Add(stream);
-            file = file with {Content = stream, CompressedContent = null};
+            file = file with
+            {
+                Content = stream,
+                CompressedContent = null
+            };
         }
 
         var edits = vppOperations.XmlEdits[file.Name];
@@ -55,75 +56,14 @@ public class XmlMagic
             var ms = new MemoryStream();
             disposables.Add(ms);
             gameXml.SerializeToMemoryStream(ms);
-            file = file with {Content = ms, CompressedContent = null};
+            file = file with
+            {
+                Content = ms,
+                CompressedContent = null
+            };
         }
 
         return file;
-    }
-
-    private static void MergeRecursive(XmlNode source, XmlNode target, string? action, bool copyAttrs)
-    {
-        //todo walk xml
-
-        if (copyAttrs)
-        {
-            XmlHelper.CopyAttrs(source, target);
-        }
-
-        if (!source.HasChildNodes)
-        {
-            return;
-        }
-
-        action ??= XmlHelper.GetListAction(source) ?? "add_new";
-        var listAction = XmlHelper.ParseListAction(action);
-        switch (listAction)
-        {
-            case ListAction.AddNew:
-                foreach (XmlNode node in source.ChildNodes)
-                {
-                    AddNew(node, target);
-                }
-
-                break;
-            case ListAction.Add:
-                foreach (XmlNode node in source.ChildNodes)
-                {
-                    Add(node, target);
-                }
-                break;
-            case ListAction.Replace:
-                target.RemoveAll();
-                foreach (XmlNode node in source.ChildNodes)
-                {
-                    Add(node, target);
-                }
-                break;
-            case ListAction.CombineByField:
-                var criteria = action.Substring("combine_by_field:".Length);
-                foreach (XmlNode node in source.ChildNodes)
-                {
-                    var matcher = XmlHelper.BuildSubnodeValueMatcher(criteria, node);
-                    CopyFirstMatch(node, target, matcher);
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
-
-    private static void Add(XmlNode node, XmlNode target)
-    {
-        switch (node.NodeType)
-        {
-            case XmlNodeType.Element:
-                var newChild = XmlHelper.AppendNewChild(node.LocalName, target);
-                CopyRecursive(node, newChild, true);
-                break;
-            case XmlNodeType.Text:
-                XmlHelper.SetNodeXmlTextValue(target, node.InnerText);
-                break;
-        }
     }
 
     /// <summary>
@@ -166,6 +106,74 @@ public class XmlMagic
         }
     }
 
+    private static void MergeRecursive(XmlNode source, XmlNode target, string? action, bool copyAttrs)
+    {
+        //todo walk xml
+
+        if (copyAttrs)
+        {
+            XmlHelper.CopyAttrs(source, target);
+        }
+
+        if (!source.HasChildNodes)
+        {
+            return;
+        }
+
+        action ??= XmlHelper.GetListAction(source) ?? "add_new";
+        var listAction = XmlHelper.ParseListAction(action);
+        switch (listAction)
+        {
+            case ListAction.AddNew:
+                foreach (XmlNode node in source.ChildNodes)
+                {
+                    AddNew(node, target);
+                }
+
+                break;
+            case ListAction.Add:
+                foreach (XmlNode node in source.ChildNodes)
+                {
+                    Add(node, target);
+                }
+
+                break;
+            case ListAction.Replace:
+                target.RemoveAll();
+                foreach (XmlNode node in source.ChildNodes)
+                {
+                    Add(node, target);
+                }
+
+                break;
+            case ListAction.CombineByField:
+                var criteria = action.Substring("combine_by_field:".Length);
+                foreach (XmlNode node in source.ChildNodes)
+                {
+                    var matcher = XmlHelper.BuildSubnodeValueMatcher(criteria, node);
+                    CopyFirstMatch(node, target, matcher);
+                }
+
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private static void Add(XmlNode node, XmlNode target)
+    {
+        switch (node.NodeType)
+        {
+            case XmlNodeType.Element:
+                var newChild = XmlHelper.AppendNewChild(node.LocalName, target);
+                CopyRecursive(node, newChild, true);
+                break;
+            case XmlNodeType.Text:
+                XmlHelper.SetNodeXmlTextValue(target, node.InnerText);
+                break;
+        }
+    }
+
     private static void CopyFirstMatch(XmlNode source, XmlNode target, IXmlNodeMatcher matcher)
     {
         // look for first match
@@ -180,6 +188,5 @@ public class XmlMagic
 
         // if nothing matched, fallback to add
         Add(source, target);
-
     }
 }

@@ -4,7 +4,7 @@ namespace SyncFactionTests;
 
 public class FakeXdeltaFactory : IXdeltaFactory
 {
-    public FakeXdeltaConcat instance = null;
+    public FakeXdeltaConcat instance;
 
     public IXdelta Create(Stream srcStream, Stream patchStream, Stream dstStream)
     {
@@ -12,6 +12,7 @@ public class FakeXdeltaFactory : IXdeltaFactory
         {
             throw new InvalidOperationException();
         }
+
         instance = new FakeXdeltaConcat(srcStream, patchStream, dstStream);
         return instance;
     }

@@ -4,13 +4,9 @@ namespace SyncFaction.ModManager.XmlModels;
 
 public static class Extensions
 {
-    public const string HolderName = "syncfaction_holder";
+    public static XmlNode GetHolderNode(this XmlDocument doc, string nodeName = HolderName) => doc.CreateNode(XmlNodeType.Element, nodeName, null);
 
-    public static readonly string NoOpName = "syncfaction_noop";
-
-    public static XmlNode GetHolderNode(this XmlDocument doc, string nodeName=HolderName) => doc.CreateNode(XmlNodeType.Element, nodeName, null);
-
-    public static XmlNode Wrap(this IReadOnlyList<XmlNode> nodes, string nodeName=HolderName)
+    public static XmlNode Wrap(this IReadOnlyList<XmlNode> nodes, string nodeName = HolderName)
     {
         if (nodes.Count == 0)
         {
@@ -42,4 +38,8 @@ public static class Extensions
 
         return holder;
     }
+
+    public const string HolderName = "syncfaction_holder";
+
+    public static readonly string NoOpName = "syncfaction_noop";
 }

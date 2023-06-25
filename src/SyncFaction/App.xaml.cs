@@ -1,9 +1,9 @@
 ﻿using System.IO.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System.Windows;
 using Dark.Net;
 using MdXaml;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Core.Services.Xml;
@@ -15,15 +15,19 @@ namespace SyncFaction;
 
 public partial class App : Application
 {
-    public static Theme AppTheme = Theme.Light;
-
-    private ServiceProvider serviceProvider;
+    private readonly ServiceProvider serviceProvider;
 
     public App()
     {
-        ServiceCollection services = new ServiceCollection();
+        var services = new ServiceCollection();
         ConfigureServices(services);
         serviceProvider = services.BuildServiceProvider();
+    }
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        DarkNet.Instance.SetCurrentProcessTheme(AppTheme);
+        base.OnStartup(e);
     }
 
     private void ConfigureServices(ServiceCollection services)
@@ -53,12 +57,6 @@ public partial class App : Application
         });
     }
 
-    protected override void OnStartup(StartupEventArgs e)
-    {
-        DarkNet.Instance.SetCurrentProcessTheme(App.AppTheme);
-        base.OnStartup(e);
-    }
-
     private void OnStartup(object sender, StartupEventArgs e)
     {
         var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
@@ -78,4 +76,6 @@ public partial class App : Application
         mainWindow2.Show();
         */
     }
+
+    public static Theme AppTheme = Theme.Light;
 }

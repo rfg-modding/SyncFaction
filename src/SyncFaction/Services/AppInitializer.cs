@@ -81,8 +81,6 @@ public class AppInitializer
 
         log.LogError("Game path unknown. Restart app to try again");
         return false;
-
-
     }
 
     private void InitStateProvider(Model model)
@@ -100,21 +98,21 @@ public class AppInitializer
 
         // SF did not have this flag before so it might be initialized as null
         // or it's first launch and it's really null
-        log.LogWarning($"Determining if it's Steam or GOG version");
+        log.LogWarning("Determining if it's Steam or GOG version");
         if (appStorage.CheckFileHashes(false, threadCount, log, token))
         {
-            log.LogInformation($"+ **Steam** version");
+            log.LogInformation("+ **Steam** version");
             return false;
         }
 
         if (appStorage.CheckFileHashes(true, threadCount, log, token))
         {
-            log.LogInformation($"+ **GOG** version");
+            log.LogInformation("+ **GOG** version");
             return true;
         }
 
         // refuse to work with FUBAR game files
-        log.LogInformation($"+ **Unknown** version");
+        log.LogInformation("+ **Unknown** version");
         throw new InvalidOperationException("Game version is not recognized as Steam or GOG. Validate your installation and try again.");
     }
 

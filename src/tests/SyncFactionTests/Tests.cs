@@ -20,8 +20,27 @@ public class Tests
     public void Setup()
     {
         fileName = "test.txt";
-        fourBytes = new byte[] {4, 8, 15, 16};
+        fourBytes = new byte[]
+        {
+            4,
+            8,
+            15,
+            16
+        };
+    }
 
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            //stream.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        System.IO.File.Delete(fileName);
     }
 
     [Test]
@@ -74,22 +93,18 @@ public class Tests
         stream2.Dispose();
     }
 
-    [Test()]
+    [Test]
     [Explicit("does not work in mock mode, disabled for development")]
     public async Task Test()
     {
         ILogger<FfClient> log = new NullLogger<FfClient>();
         var httpClient = new HttpClient();
         var fs = new FileSystem();
-        var client = new FfClient(httpClient, Mock.Of< IStateProvider>(), fs, log);
+        var client = new FfClient(httpClient, Mock.Of<IStateProvider>(), fs, log);
         var dstFile = fs.FileInfo.New("out.bin");
         dstFile.Delete();
         var url = "https://www.factionfiles.com/ffdownload.php?id=5843";
-        var mod = new Mod()
-        {
-            DownloadUrl = url
-        };
-
+        var mod = new Mod { DownloadUrl = url };
 
         var request = new HttpRequestMessage(HttpMethod.Head, url);
         var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
@@ -120,15 +135,19 @@ public class Tests
         var doc = new XmlDocument();
         doc.Load(@"C:\vault\rfg\test.xml");
         var node = doc.DocumentElement;
-        var dummy = new List<XmlNode>() {node};
+        var dummy = new List<XmlNode> { node };
         var wrapper = dummy.Wrap();
         var overrides = new XmlAttributeOverrides();
-        var attrs = new XmlAttributes()
+        var attrs = new XmlAttributes
         {
             XmlRoot = new XmlRootAttribute("syncfaction_holder"),
             //XmlArray = new XmlArrayAttribute("syncfaction_holder"),
             //XmlArrayItems = {new XmlArrayItemAttribute(typeof(Replace)), new XmlArrayItemAttribute(typeof(Edit))}
-            XmlElements = { new XmlElementAttribute(elementName:nameof(Replace), typeof(Replace)), new XmlElementAttribute(elementName:nameof(Edit), typeof(Edit)) }
+            XmlElements =
+            {
+                new XmlElementAttribute(nameof(Replace), typeof(Replace)),
+                new XmlElementAttribute(nameof(Edit), typeof(Edit))
+            }
         };
         overrides.Add(typeof(List<IChange>), attrs);
         var serializer = new XmlSerializer(typeof(TypedChangesHolder));
@@ -137,20 +156,4 @@ public class Tests
         tc.Should().NotBeNull();
         tc.TypedChanges.Should().NotBeNull().And.NotHaveCount(0);
     }
-
-    [TearDown]
-    public void TearDown()
-    {
-        try
-        {
-            //stream.Dispose();
-        }
-        catch (ObjectDisposedException)
-        {
-
-        }
-
-        System.IO.File.Delete(fileName);
-    }
-
 }

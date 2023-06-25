@@ -1,4 +1,3 @@
-using System.Xml;
 using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
@@ -17,16 +16,12 @@ public class Replace : IChange
     [XmlAttribute]
     public string NewFileUserInput { get; set; }
 
-    public IChange Clone()
-    {
-        return new Replace()
+    public IChange Clone() =>
+        new Replace
         {
             File = File,
             NewFile = NewFile,
             FileUserInput = FileUserInput,
             NewFileUserInput = NewFileUserInput
         };
-    }
-
-
 }

@@ -24,7 +24,7 @@ public class CdnEntry
     public Mod ToMod()
     {
         var id = BitConverter.ToInt64(new MurmurHash64().ComputeHash(Guid.ToByteArray()));
-        return new Mod()
+        return new Mod
         {
             Id = id,
             Category = Category.Dev,
@@ -33,9 +33,7 @@ public class CdnEntry
             Name = ObjectName,
             Size = Length,
             DownloadUrl = $"{Constants.CdnUrl}/dev/{ObjectName}",
-            UploadTime = (long)TimeSpan.FromTicks(DateCreated.Ticks - DateTime.UnixEpoch.Ticks).TotalSeconds,
-
+            UploadTime = (long) TimeSpan.FromTicks(DateCreated.Ticks - DateTime.UnixEpoch.Ticks).TotalSeconds
         };
-
     }
 }

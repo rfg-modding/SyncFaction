@@ -1,46 +1,45 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net6.0-windows</TargetFramework>
-		<PublishSingleFile>true</PublishSingleFile>
-		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<SelfContained>false</SelfContained>
-		<DebugType>embedded</DebugType>
-        <Nullable>enable</Nullable>
-        <UseWPF>true</UseWPF>
-        <ApplicationIcon>icon.ico</ApplicationIcon>
-    </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <PublishSingleFile>true</PublishSingleFile>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <DebugType>embedded</DebugType>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
 
-    <ItemGroup>
-      <None Remove="icon.png" />
-      <None Remove="lego.png" />
-    </ItemGroup>
+  <ItemGroup>
+    <None Remove="icon.png" />
+    <None Remove="lego.png" />
+  </ItemGroup>
 
-    <ItemGroup>
-      <Content Include="icon.ico" />
-    </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon.ico" />
+  </ItemGroup>
 
-	<ItemGroup>
-      <PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
-      <PackageReference Include="DarkNet" Version="2.2.0" />
-      <PackageReference Include="FontAwesome6.Svg" Version="2.5.1" />
-      <PackageReference Include="gong-wpf-dragdrop" Version="3.2.1" />
-      <PackageReference Include="MdXaml" Version="1.17.0" />
-      <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
-      <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.4" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
+    <PackageReference Include="DarkNet" Version="2.2.0" />
+    <PackageReference Include="FontAwesome6.Svg" Version="2.5.1" />
+    <PackageReference Include="gong-wpf-dragdrop" Version="3.2.1" />
+    <PackageReference Include="MdXaml" Version="1.17.0" />
+    <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.4" />
+  </ItemGroup>
 
-	<ItemGroup>
-	  <Resource Include="icon.png" />
-	  <Resource Include="lego.png" />
-	</ItemGroup>
+  <ItemGroup>
+    <Resource Include="icon.png" />
+    <Resource Include="lego.png" />
+  </ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\SyncFaction.Core\SyncFaction.Core.csproj" />
-	  <ProjectReference Include="..\SyncFaction.ModManager\SyncFaction.ModManager.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SyncFaction.Core\SyncFaction.Core.csproj" />
+    <ProjectReference Include="..\SyncFaction.ModManager\SyncFaction.ModManager.csproj" />
+  </ItemGroup>
 
-	
 
 </Project>

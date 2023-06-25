@@ -6,5 +6,5 @@ public enum File
     Dll,
     Vpp,
     Txt,
-    Etc,
+    Etc
 }

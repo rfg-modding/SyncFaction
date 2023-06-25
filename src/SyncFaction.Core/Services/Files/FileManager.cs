@@ -1,12 +1,8 @@
-using System.Collections.Immutable;
 using System.IO.Abstractions;
-using System.Runtime;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.ModManager;
-using SyncFaction.ModManager.Models;
 
 namespace SyncFaction.Core.Services.Files;
 
@@ -25,7 +21,7 @@ public class FileManager
     }
 
     /// <summary>
-    /// Applies mod over current game state. <br/>
+    /// Applies mod over current game state. <br />
     /// WARNING: If this is an update, all mods must be reverted and then re-applied
     /// </summary>
     public async Task<ApplyModResult> InstallMod(IGameStorage storage, IMod mod, bool isUpdate, CancellationToken token)
@@ -72,11 +68,7 @@ public class FileManager
             }
         }
 
-        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Where(x => !x.Directory.IsVppDirectory())
-            .Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex)))
-            .Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant()))
-            .Where(x => x.IsModContent());
+        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Directory.IsVppDirectory()).Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex))).Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant())).Where(x => x.IsModContent());
 
         foreach (var modFile in individualModFiles)
         {
@@ -88,9 +80,7 @@ public class FileManager
             modified.Add(result);
         }
 
-        var repackVppDirectories = modDir.EnumerateDirectories("*", SearchOption.AllDirectories)
-            .Where(x => x.IsVppDirectory())
-            .Where(x => x.EnumerateFiles("*", SearchOption.AllDirectories).Any());
+        var repackVppDirectories = modDir.EnumerateDirectories("*", SearchOption.AllDirectories).Where(x => x.IsVppDirectory()).Where(x => x.EnumerateFiles("*", SearchOption.AllDirectories).Any());
         foreach (var vppDir in repackVppDirectories)
         {
             token.ThrowIfCancellationRequested();
@@ -173,9 +163,7 @@ public class FileManager
     /// </summary>
     public void Rollback(IGameStorage storage, bool toVanilla, CancellationToken token)
     {
-        var files = storage.EnumerateStockFiles()
-            .Concat(storage.EnumeratePatchFiles())
-            .Concat(storage.EnumerateManagedFiles());
+        var files = storage.EnumerateStockFiles().Concat(storage.EnumeratePatchFiles()).Concat(storage.EnumerateManagedFiles());
         foreach (var gameFile in files)
         {
             token.ThrowIfCancellationRequested();
@@ -188,15 +176,6 @@ public class FileManager
         }
 
         // don't automatically nuke patch_bak if restored to vanilla. this allows fast switch between vanilla and updated version
-    }
-
-    /// <summary>
-    /// When terraform patch is diverged with installed things, nuke them to install from scratch. Otherwise, install only what's new, using patch_bak
-    /// </summary>
-    internal void ForgetUpdates(IGameStorage storage)
-    {
-        storage.PatchBak.Delete(true);
-        storage.PatchBak.Create();
     }
 
     public IEnumerable<FileReport> ReportFiles(IAppStorage storage, CancellationToken token)
@@ -213,15 +192,26 @@ public class FileManager
             {
                 case IDirectoryInfo:
                     yield return new FileReport(relativePath + "/", -1, null, created, modified, accessed);
+
                     break;
                 case IFileInfo file:
                     var size = file.Length;
                     var hash = storage.ComputeHash(file);
                     yield return new FileReport(relativePath, size, hash, created, modified, accessed);
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(info));
             }
         }
+    }
+
+    /// <summary>
+    /// When terraform patch is diverged with installed things, nuke them to install from scratch. Otherwise, install only what's new, using patch_bak
+    /// </summary>
+    internal void ForgetUpdates(IGameStorage storage)
+    {
+        storage.PatchBak.Delete(true);
+        storage.PatchBak.Create();
     }
 }

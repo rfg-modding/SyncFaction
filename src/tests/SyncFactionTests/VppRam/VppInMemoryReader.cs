@@ -42,6 +42,7 @@ public class VppInMemoryReader
             {
                 streamSize = ms.Length.ToString();
             }
+
             var msg = $"Failed to unzip data. Stream size = [{streamSize}]. Header = [{vppInMemory.Header}]";
             throw new InvalidOperationException(msg, e);
         }
@@ -50,6 +51,7 @@ public class VppInMemoryReader
         {
             token.ThrowIfCancellationRequested();
             yield return new LogicalInMemoryFile(entryData.Value.File, entryData.XName, entryData.I, entryData.ToString());
+
             entryData.DisposeAndFreeMemory();
         }
     }

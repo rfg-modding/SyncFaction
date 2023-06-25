@@ -9,6 +9,129 @@ namespace SyncFactionTests;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public static class Fs
 {
+    public static MockFileSystem Init(Action<MockFileSystem>? action = null)
+    {
+        var fs = new MockFileSystem();
+        fs.AddDirectory(Game.Root);
+        fs.AddDirectory(Game.Data);
+        fs.AddDirectory(Game.D_SF);
+        action?.Invoke(fs);
+        return fs;
+    }
+
+    public static MockFileSystem Clone(this MockFileSystem src, Action<MockFileSystem>? action = null)
+    {
+        var fs = new MockFileSystem();
+        foreach (var path in src.AllFiles)
+        {
+            var data = new MockFileData(src.GetFile(path).TextContents);
+            fs.AddFile(path, data);
+        }
+
+        action?.Invoke(fs);
+        return fs;
+    }
+
+    public static void ShouldHaveSameFilesAs(this MockFileSystem actual, MockFileSystem expected)
+    {
+        // read all contents; remove "C:" and replace windows slashes to unix
+        var actualDict = actual.AllFiles.ToDictionary(x => x.Substring(2).Replace('\\', '/'), x => actual.GetFile(x).TextContents);
+        var expectedDict = expected.AllFiles.ToDictionary(x => x.Substring(2).Replace('\\', '/'), x => expected.GetFile(x).TextContents);
+
+        actualDict.Should().BeEquivalentTo(expectedDict, SerializedInfo(actualDict, expectedDict));
+    }
+
+    public static TestFile TestFile(this MockFileSystem fs) => new TestFile(fs);
+
+    public static GameFile GetGameFile(this MockFileSystem fs, IGameStorage storage, string path, string name) => new GameFile(storage, fs.Path.Combine(path, name), fs);
+
+    /// <summary>
+    /// Combines several dictionaries. Throws on duplicate keys
+    /// </summary>
+    public static IDictionary<T1, T2> Combine<T1, T2>(IDictionary<T1, T2>[] sources)
+        where T1 : notnull =>
+        sources.SelectMany(dict => dict).ToLookup(pair => pair.Key, pair => pair.Value).ToDictionary(group => group.Key, group => group.Single());
+
+    public static string SerializedInfo(Dictionary<string, string> actual, Dictionary<string, string> expected)
+    {
+        /*return @$"
+Actual:
+{SerializeDictionary(actual)}
+Expected:
+{SerializeDictionary(expected)}
+";*/
+
+        string GetValue(Dictionary<string, string> d, string key)
+        {
+            if (d.TryGetValue(key, out var value))
+            {
+                return value == ""
+                    ? "(empty)"
+                    : value;
+            }
+
+            return " ░░░ "; // visually highlight nonexistent files
+        }
+
+        var allKeys = actual.Keys.Concat(expected.Keys).Distinct();
+        var table = allKeys.Select(x => new Row(x, GetValue(expected, x), GetValue(actual, x))).ToList();
+        var minLength = 10;
+        var keyLength = table.Select(x => x.key.Length)
+            .Concat(new[]
+            {
+                minLength
+            })
+            .Max();
+        var actLength = table.Select(x => x.act.Length)
+            .Concat(new[]
+            {
+                minLength
+            })
+            .Max();
+        var expLength = table.Select(x => x.exp.Length)
+            .Concat(new[]
+            {
+                minLength
+            })
+            .Max();
+        var sb = new StringBuilder("ALL FILES:\n");
+
+        void Serialize(Row x)
+        {
+            var key = x.key.PadRight(keyLength);
+            var act = x.act.PadRight(actLength);
+            var exp = x.exp.PadRight(expLength);
+            var ok = x.act == x.exp
+                ? "✓"
+                : " ";
+            sb.AppendLine($"{key}║{exp}║{act}║{ok}");
+        }
+
+        Serialize(new Row("PATH", $"EXPCTD {expected.Count}", $"ACTUAL {actual.Count}"));
+        var groups = table.GroupBy(x => x.act == x.exp);
+        foreach (var rows in groups.OrderBy(g => g.Key.ToString()))
+        {
+            sb.AppendLine(new string('═', keyLength + actLength + expLength + 4));
+
+            var sorted = rows.OrderBy(x => Path.GetDirectoryName(x.key)).ThenBy(x => Path.GetFileName(x.key));
+
+            foreach (var x in sorted)
+            {
+                Serialize(x);
+            }
+        }
+
+        sb.AppendLine(new string('═', keyLength + actLength + expLength + 4));
+
+        return sb.ToString();
+    }
+
+    public static TestFile MkFile(this MockFileSystem fs, string absPath, File file, Data data)
+    {
+        var f = new TestFile(fs);
+        return f.Make(file, data).In(absPath);
+    }
+
     public const int ModId1 = 1;
     public const int ModId2 = 2;
     public const int PchId1 = 66;
@@ -145,32 +268,12 @@ public static class Fs
         public const string Etc = "file no ext";
     }
 
-
-    public static MockFileSystem Init(Action<MockFileSystem>? action = null)
-    {
-        var fs = new MockFileSystem();
-        fs.AddDirectory(Game.Root);
-        fs.AddDirectory(Game.Data);
-        fs.AddDirectory(Game.D_SF);
-        action?.Invoke(fs);
-        return fs;
-    }
-
-    public static MockFileSystem Clone(this MockFileSystem src, Action<MockFileSystem>? action = null)
-    {
-        var fs = new MockFileSystem();
-        foreach (var path in src.AllFiles)
-        {
-            var data = new MockFileData(src.GetFile(path).TextContents);
-            fs.AddFile(path, data);
-        }
-
-        action?.Invoke(fs);
-        return fs;
-    }
-
     public static class Hashes
     {
+        public static IDictionary<string, string> MakeHashes(string[] fileNames) => new Dictionary<string, string>(fileNames.Select(InitHash));
+
+        public static KeyValuePair<string, string> InitHash(string fileName) => new(fileName, $"hash of {fileName}");
+
         public static IDictionary<string, string> Empty = MakeHashes(new string[]
         {
         });
@@ -181,6 +284,14 @@ public static class Fs
             Names.Dll
         });
 
+        public static IDictionary<string, string> StockInAllDirs = MakeHashes(new[]
+        {
+            Names.Exe,
+            "data/" + Names.Vpp,
+            "etc/" + Names.Dll,
+            "data/etc/" + Names.Etc
+        });
+
         public static class Data
         {
             public static IDictionary<string, string> Vpp = MakeHashes(new[]
@@ -188,114 +299,7 @@ public static class Fs
                 "data/" + Names.Vpp
             });
         }
-
-        public static IDictionary<string, string> StockInAllDirs = MakeHashes(new[]
-        {
-            Names.Exe,
-            "data/" + Names.Vpp,
-            "etc/" + Names.Dll,
-            "data/etc/" + Names.Etc,
-        });
-
-        public static IDictionary<string, string> MakeHashes(string[] fileNames) => new Dictionary<string, string>(fileNames.Select(InitHash));
-
-        public static KeyValuePair<string, string> InitHash(string fileName) => new(fileName, $"hash of {fileName}");
     }
-
-    public static void ShouldHaveSameFilesAs(this MockFileSystem actual, MockFileSystem expected)
-    {
-        // read all contents; remove "C:" and replace windows slashes to unix
-        var actualDict = actual.AllFiles.ToDictionary(x => x.Substring(2).Replace('\\', '/'), x => actual.GetFile(x).TextContents);
-        var expectedDict = expected.AllFiles.ToDictionary(x => x.Substring(2).Replace('\\', '/'), x => expected.GetFile(x).TextContents);
-
-        actualDict.Should().BeEquivalentTo(expectedDict, because: SerializedInfo(actualDict, expectedDict));
-    }
-
-    public static TestFile TestFile(this MockFileSystem fs)
-    {
-        return new TestFile(fs);
-    }
-
-    public static GameFile GetGameFile(this MockFileSystem fs, IGameStorage storage, string path, string name)
-    {
-        return new GameFile(storage, fs.Path.Combine(path, name), fs);
-    }
-
-    /// <summary>
-    /// Combines several dictionaries. Throws on duplicate keys
-    /// </summary>
-    public static IDictionary<T1, T2> Combine<T1, T2>(IDictionary<T1, T2>[] sources)
-        where T1 : notnull =>
-        sources.SelectMany(dict => dict)
-            .ToLookup(pair => pair.Key, pair => pair.Value)
-            .ToDictionary(group => group.Key, group => group.Single());
-
 
     public record Row(string key, string exp, string act);
-
-    public static string SerializedInfo(Dictionary<string, string> actual, Dictionary<string, string> expected)
-    {
-        /*return @$"
-Actual:
-{SerializeDictionary(actual)}
-Expected:
-{SerializeDictionary(expected)}
-";*/
-
-        string GetValue(Dictionary<string, string> d, string key)
-        {
-            if (d.TryGetValue(key, out var value))
-            {
-                return value == "" ? "(empty)" : value;
-            }
-
-            return " ░░░ ";  // visually highlight nonexistent files
-        }
-
-        var allKeys = actual.Keys.Concat(expected.Keys).Distinct();
-        var table = allKeys
-            .Select(x => new Row(x, GetValue(expected, x), GetValue(actual, x)))
-            .ToList();
-        var minLength = 10;
-        var keyLength = table.Select(x => x.key.Length).Concat(new []{minLength}).Max();
-        var actLength = table.Select(x => x.act.Length).Concat(new []{minLength}).Max();
-        var expLength = table.Select(x => x.exp.Length).Concat(new []{minLength}).Max();
-        var sb = new StringBuilder("ALL FILES:\n");
-
-        void Serialize(Row x)
-        {
-            var key = x.key.PadRight(keyLength);
-            var act = x.act.PadRight(actLength);
-            var exp = x.exp.PadRight(expLength);
-            var ok = x.act == x.exp ? "✓" : " ";
-            sb.AppendLine($"{key}║{exp}║{act}║{ok}");
-        }
-
-        Serialize(new Row("PATH", $"EXPCTD {expected.Count}", $"ACTUAL {actual.Count}"));
-        var groups = table.GroupBy(x => x.act == x.exp);
-        foreach (var rows in groups.OrderBy(g => g.Key.ToString()))
-        {
-            sb.AppendLine(new string('═',keyLength+actLength+expLength+4));
-
-            var sorted = rows
-                .OrderBy(x => Path.GetDirectoryName(x.key))
-                .ThenBy(x => Path.GetFileName(x.key))
-                ;
-
-            foreach (var x in sorted)
-            {
-                Serialize(x);
-            }
-        }
-
-        sb.AppendLine(new string('═',keyLength+actLength+expLength+4));
-
-        return sb.ToString();
-    }
-
-    public static TestFile MkFile(this MockFileSystem fs, string absPath, File file, Data data)
-    {
-        var f = new TestFile(fs);
-        return f.Make(file, data).In(absPath);
-    }
 }

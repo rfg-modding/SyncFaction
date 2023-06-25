@@ -10,6 +10,8 @@ public class FakeXdeltaConcat : IXdelta
     private readonly Stream dstStream;
     public bool disposed;
 
+    public event ProgressChangedHandler? ProgressChanged;
+
     public FakeXdeltaConcat(Stream srcStream, Stream patchStream, Stream dstStream)
     {
         this.srcStream = srcStream;
@@ -17,10 +19,7 @@ public class FakeXdeltaConcat : IXdelta
         this.dstStream = dstStream;
     }
 
-    public void Dispose()
-    {
-        disposed = true;
-    }
+    public void Dispose() => disposed = true;
 
     public void Run()
     {
@@ -28,6 +27,4 @@ public class FakeXdeltaConcat : IXdelta
         patchStream.CopyTo(dstStream);
         ProgressChanged?.Invoke(1);
     }
-
-    public event ProgressChangedHandler? ProgressChanged;
 }

@@ -6,62 +6,19 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SyncFaction.Core.Services.Files;
-using SyncFaction.Core.Services.Xml;
 using SyncFaction.Packer;
 
 namespace SyncFactionTests;
 
 public class GameFileTests
 {
+    private IGameStorage Storage => storageMock.Object;
     public MockFileSystem fileSystem;
     public IDirectoryInfo gameDir;
     private Mock<IGameStorage> storageMock;
     private IDirectoryInfo patchBak;
     private IDirectoryInfo bak;
     private IDirectoryInfo managed;
-    private IGameStorage Storage => storageMock.Object;
-
-    public const string DirtyData = "dirty";
-    public const string ModData = "mod";
-    public const string VanillaData = "vanilla";
-    public const string PatchData = "patch";
-
-    /// <summary>
-    /// Creates empty file with directories if needed
-    /// </summary>
-    private void Create(string absPath)
-    {
-        var fileInfo = fileSystem.FileInfo.New(absPath);
-        fileSystem.Directory.CreateDirectory(fileInfo.Directory.FullName);
-        fileInfo.Create().Close();
-    }
-
-    /// <summary>
-    /// Writes to a new file, creating directories if needed
-    /// </summary>
-    private void Write(string absPath, string content)
-    {
-        Create(absPath);
-        var fileInfo = fileSystem.FileInfo.New(absPath);
-        using var s = fileInfo.CreateText();
-        s.Write(content);
-    }
-
-    private string Read(IFileInfo fileInfo)
-    {
-        fileInfo.Refresh();
-        using var s = fileInfo.OpenRead();
-        using var x = new StreamReader(s);
-        return x.ReadToEnd();
-    }
-
-    private static string ToJson(object o)
-    {
-        return JsonSerializer.Serialize(o, new JsonSerializerOptions()
-        {
-            WriteIndented = true
-        });
-    }
 
     [SetUp]
     public void Setup()
@@ -79,26 +36,29 @@ public class GameFileTests
 
         storageMock = new Mock<IGameStorage>();
         storageMock.SetupGet(x => x.Game).Returns(gameDir);
-        storageMock.SetupGet(x => x.RootFiles).Returns(new Dictionary<string, string>()
+        storageMock.SetupGet(x => x.RootFiles)
+        .Returns(new Dictionary<string, string>
         {
-            {"root_file", "root_file"},
-            {"rfg", "rfg.exe"},
-            {"nonexistent.file", "nonexistent.file"}
+            { "root_file", "root_file" },
+            { "rfg", "rfg.exe" },
+            { "nonexistent.file", "nonexistent.file" }
         }.ToImmutableSortedDictionary());
-        storageMock.SetupGet(x => x.DataFiles).Returns(new Dictionary<string, string>()
+        storageMock.SetupGet(x => x.DataFiles)
+        .Returns(new Dictionary<string, string>
         {
-            {"data_file", "data/data_file"},
-            {"table", "data/table.vpp_pc"},
-            {"nonexistent.data", "nonexistent.data"}
+            { "data_file", "data/data_file" },
+            { "table", "data/table.vpp_pc" },
+            { "nonexistent.data", "nonexistent.data" }
         }.ToImmutableSortedDictionary());
-        storageMock.SetupGet(x => x.VanillaHashes).Returns(new Dictionary<string, string>()
+        storageMock.SetupGet(x => x.VanillaHashes)
+        .Returns(new Dictionary<string, string>
         {
-            {"root_file", "hash of root_file"},
-            {"rfg.exe", "hash of rfg.exe"},
-            {"data/data_file", "hash of data_file"},
-            {"data/table.vpp_pc", "hash of table.vpp_pc"},
-            {"nonexistent.file", "hash of nonexistent.file"},
-            {"data/nonexistent.data", "hash of nonexistent.data"},
+            { "root_file", "hash of root_file" },
+            { "rfg.exe", "hash of rfg.exe" },
+            { "data/data_file", "hash of data_file" },
+            { "data/table.vpp_pc", "hash of table.vpp_pc" },
+            { "nonexistent.file", "hash of nonexistent.file" },
+            { "data/nonexistent.data", "hash of nonexistent.data" }
         }.ToImmutableSortedDictionary());
         storageMock.SetupGet(x => x.PatchBak).Returns(patchBak);
         storageMock.SetupGet(x => x.Bak).Returns(bak);
@@ -168,6 +128,7 @@ public class GameFileTests
         {
             Create(fileSystem.Path.Combine(patchBak.FullName, modFile));
         }
+
         if (isManaged)
         {
             Create(fileSystem.Path.Combine(managed.FullName, modFile));
@@ -184,7 +145,6 @@ public class GameFileTests
     [TestCase("data/table.vpp_pc", "x:\\bak\\data\\table.vpp_pc")]
     public void CopyToBackup_KnownFileOnCleanState_CopiesToVanillaOrNowhere(string fileName, string expectedAbsPath)
     {
-
         var gf = new GameFile(Storage, fileName, fileSystem);
 
         var dst = gf.CopyToBackup(false, false);
@@ -208,6 +168,7 @@ public class GameFileTests
         {
             s.Write(data1);
         }
+
         var _ = gf.CopyToBackup(false, false);
         using (var s = gf.FileInfo.CreateText())
         {
@@ -231,6 +192,7 @@ public class GameFileTests
         {
             s.Write(data1);
         }
+
         var _ = gf.CopyToBackup(false, false);
         using (var s = gf.FileInfo.CreateText())
         {
@@ -259,6 +221,7 @@ public class GameFileTests
         {
             s.Write(data1);
         }
+
         var _ = gf.CopyToBackup(false, false);
         using (var s = gf.FileInfo.CreateText())
         {
@@ -309,6 +272,7 @@ public class GameFileTests
         {
             s.Write(data1);
         }
+
         gf.CopyToBackup(false, false);
         gf.CopyToBackup(true, true);
         using (var s = gf.FileInfo.CreateText())
@@ -338,6 +302,7 @@ public class GameFileTests
         {
             s.Write(data1);
         }
+
         var _ = gf.CopyToBackup(false, true);
         using (var s = gf.FileInfo.CreateText())
         {
@@ -388,6 +353,7 @@ public class GameFileTests
         {
             s.Write(data1);
         }
+
         gf.CopyToBackup(false, false);
         gf.CopyToBackup(true, true);
         using (var s = gf.FileInfo.CreateText())
@@ -438,6 +404,7 @@ public class GameFileTests
         {
             fileSystem.FileInfo.New(fileSystem.Path.Combine(bak.FullName, "test")).Create();
         }
+
         if (patchExists)
         {
             fileSystem.FileInfo.New(fileSystem.Path.Combine(patchBak.FullName, "test")).Create();
@@ -446,7 +413,9 @@ public class GameFileTests
         var result = gf.FindBackup();
         var resultDir = result.Directory.FullName;
 
-        var expected = vanillaExpected ? bak.FullName : patchBak.FullName;
+        var expected = vanillaExpected
+            ? bak.FullName
+            : patchBak.FullName;
         resultDir.Should().Be(expected);
     }
 
@@ -456,7 +425,6 @@ public class GameFileTests
     [TestCase("data/table.vpp_pc", true, false, VanillaData)]
     public void RollbackToVanilla_KnownFileHasVanillaBackup_Overwrites(string fileName, bool vanillaExists, bool patchExists, string expected)
     {
-
         var gf = new GameFile(Storage, fileName, fileSystem);
         Write(gf.AbsolutePath, DirtyData);
 
@@ -508,7 +476,6 @@ public class GameFileTests
     [TestCase("data/table.vpp_pc", false, true, PatchData)]
     public void RollbackToPatch_KnownFileHasPatchBackup_Overwrites(string fileName, bool vanillaExists, bool patchExists, string expected)
     {
-
         var gf = new GameFile(Storage, fileName, fileSystem);
         Write(gf.AbsolutePath, DirtyData);
 
@@ -593,7 +560,6 @@ public class GameFileTests
         gf.FileInfo.Refresh();
         managed.Refresh();
 
-
         gf.Rollback(vanilla);
 
         gf.FileInfo.Refresh();
@@ -636,7 +602,7 @@ public class GameFileTests
         var gf = new GameFile(Storage, fileName, fileSystem);
         Write(gf.AbsolutePath, DirtyData);
 
-        var action = () =>gf.Rollback(vanilla);
+        var action = () => gf.Rollback(vanilla);
 
         action.Should().Throw<InvalidOperationException>();
     }
@@ -654,14 +620,8 @@ public class GameFileTests
     public async Task ApplyMod_Xdelta_CallsApplyXdelta(string fileName, string modExt)
     {
         var gf = new GameFile(Storage, fileName, fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
-        modInstallerMock
-            .Setup(x => x.ApplyXdelta(gf, It.IsAny<IFileInfo>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .Verifiable();
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
+        modInstallerMock.Setup(x => x.ApplyXdelta(gf, It.IsAny<IFileInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(true).Verifiable();
 
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
@@ -683,14 +643,8 @@ public class GameFileTests
     public async Task ApplyMod_RfgPatch_CallsSkip(string fileName, string modExt)
     {
         var gf = new GameFile(Storage, fileName, fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
-        modInstallerMock
-            .Setup(x => x.Skip(gf, It.IsAny<IFileInfo>()))
-            .Returns(true)
-            .Verifiable();
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
+        modInstallerMock.Setup(x => x.Skip(gf, It.IsAny<IFileInfo>())).Returns(true).Verifiable();
 
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
@@ -704,14 +658,8 @@ public class GameFileTests
     public async Task ApplyMod_DotModFile_CallsSkip(string fileName, string modExt)
     {
         var gf = new GameFile(Storage, fileName, fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
-        modInstallerMock
-            .Setup(x => x.Skip(gf, It.IsAny<IFileInfo>()))
-            .Returns(true)
-            .Verifiable();
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
+        modInstallerMock.Setup(x => x.Skip(gf, It.IsAny<IFileInfo>())).Returns(true).Verifiable();
 
         var modFile = fileSystem.FileInfo.New(".mod_" + fileName + modExt);
 
@@ -737,14 +685,8 @@ public class GameFileTests
     public async Task ApplyMod_Clutter_CallsSkip(string fileName, string modExt)
     {
         var gf = new GameFile(Storage, fileName, fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
-        modInstallerMock
-            .Setup(x => x.Skip(gf, It.IsAny<IFileInfo>()))
-            .Returns(true)
-            .Verifiable();
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
+        modInstallerMock.Setup(x => x.Skip(gf, It.IsAny<IFileInfo>())).Returns(true).Verifiable();
 
         var modFile = fileSystem.FileInfo.New(fileName + modExt);
 
@@ -759,14 +701,8 @@ public class GameFileTests
     public async Task ApplyMod_Xdelta_CallsApplyNewFile(string fileName)
     {
         var gf = new GameFile(Storage, fileName, fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
-        modInstallerMock
-            .Setup(x => x.ApplyNewFile(gf, It.IsAny<IFileInfo>()))
-            .Returns(true)
-            .Verifiable();
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
+        modInstallerMock.Setup(x => x.ApplyNewFile(gf, It.IsAny<IFileInfo>())).Returns(true).Verifiable();
 
         var modFile = fileSystem.FileInfo.New(fileName);
 
@@ -779,10 +715,7 @@ public class GameFileTests
     public void Skip_ReturnsTrue()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
         modInstallerMock.Object.Skip(gf, Mock.Of<IFileInfo>()).Should().BeTrue();
     }
 
@@ -790,10 +723,7 @@ public class GameFileTests
     public async Task ApplyNewFile_FileExists_Overwrites()
     {
         var gf = new GameFile(Storage, "test", fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
         var modFile = fileSystem.FileInfo.New("mod");
         Write(gf.AbsolutePath, DirtyData);
         Write(modFile.FullName, ModData);
@@ -805,10 +735,7 @@ public class GameFileTests
     public async Task ApplyNewFile_FileDoesNotExist_Copies()
     {
         var gf = new GameFile(Storage, "data/test", fileSystem);
-        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>())
-        {
-            CallBase = true
-        };
+        var modInstallerMock = new Mock<ModInstaller>(Mock.Of<IVppArchiver>(), new FakeXdeltaFactory(), null, new NullLogger<ModInstaller>()) { CallBase = true };
         var modFile = fileSystem.FileInfo.New("mod");
         Write(modFile.FullName, ModData);
         modInstallerMock.Object.ApplyNewFile(gf, modFile);
@@ -902,4 +829,41 @@ public class GameFileTests
 
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
+
+    /// <summary>
+    /// Creates empty file with directories if needed
+    /// </summary>
+    private void Create(string absPath)
+    {
+        var fileInfo = fileSystem.FileInfo.New(absPath);
+        fileSystem.Directory.CreateDirectory(fileInfo.Directory.FullName);
+        fileInfo.Create().Close();
+    }
+
+    /// <summary>
+    /// Writes to a new file, creating directories if needed
+    /// </summary>
+    private void Write(string absPath, string content)
+    {
+        Create(absPath);
+        var fileInfo = fileSystem.FileInfo.New(absPath);
+        using var s = fileInfo.CreateText();
+        s.Write(content);
+    }
+
+    private string Read(IFileInfo fileInfo)
+    {
+        fileInfo.Refresh();
+        using var s = fileInfo.OpenRead();
+        using var x = new StreamReader(s);
+        return x.ReadToEnd();
+    }
+
+    private static string ToJson(object o) =>
+        JsonSerializer.Serialize(o, new JsonSerializerOptions { WriteIndented = true });
+
+    public const string DirtyData = "dirty";
+    public const string ModData = "mod";
+    public const string VanillaData = "vanilla";
+    public const string PatchData = "patch";
 }

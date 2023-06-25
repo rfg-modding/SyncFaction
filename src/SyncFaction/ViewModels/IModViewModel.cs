@@ -4,9 +4,8 @@ namespace SyncFaction;
 
 public interface IModViewModel
 {
-    bool Selected { get; set; }
-
     string Name { get; }
+    bool Selected { get; set; }
 
     IMod Mod { get; set; }
 }

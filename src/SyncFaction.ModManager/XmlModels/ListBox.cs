@@ -5,10 +5,11 @@ namespace SyncFaction.ModManager.XmlModels;
 
 public class ListBox : Input
 {
-    public ListBox()
-    {
-        displayOptionsOnce = new Lazy<List<IOption>>(() => InitDisplayOptions().ToList());
-    }
+    [XmlIgnore]
+    public List<IOption> DisplayOptions => displayOptionsOnce.Value;
+
+    [XmlIgnore]
+    public override XmlNode? SelectedValue => DisplayOptions[SelectedIndex].ValueHolder;
 
     /// <summary>
     /// "default" option which does nothing. TODO experimental. maybe not a good idea because "input value" is separated from a "change operation"
@@ -22,7 +23,8 @@ public class ListBox : Input
     [XmlAttribute]
     public bool AllowCustom { get; set; } = true;
 
-    [XmlAttribute] public string SameOptionsAs { get; set; }
+    [XmlAttribute]
+    public string SameOptionsAs { get; set; }
 
     /// <summary>
     /// options from xml
@@ -31,19 +33,16 @@ public class ListBox : Input
     public List<Option> XmlOptions { get; set; }
 
     [XmlIgnore]
-    public List<IOption> DisplayOptions => displayOptionsOnce.Value;
+    public int SelectedIndex { get; set; }
 
-    [XmlIgnore] public int SelectedIndex { get; set; }
+    private readonly Lazy<List<IOption>> displayOptionsOnce;
 
-    [XmlIgnore]
-    public override XmlNode? SelectedValue => DisplayOptions[SelectedIndex].ValueHolder;
+    public ListBox() => displayOptionsOnce = new Lazy<List<IOption>>(() => InitDisplayOptions().ToList());
 
     /// <summary>
     /// For debug printing with Newtonsoft serializer
     /// </summary>
     public bool ShouldSerializeSelectedValue() => false;
-
-    private readonly Lazy<List<IOption>> displayOptionsOnce;
 
     private IEnumerable<IOption> InitDisplayOptions()
     {
@@ -61,5 +60,5 @@ public class ListBox : Input
         {
             yield return new CustomOption();
         }
-}
+    }
 }

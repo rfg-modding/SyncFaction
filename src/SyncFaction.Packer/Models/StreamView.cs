@@ -8,33 +8,38 @@ namespace SyncFaction.Packer;
 /// </summary>
 public sealed class StreamView : Stream
 {
+    public override bool CanRead => stream.CanRead;
+
+    public override bool CanSeek => false;
+
+    public override bool CanWrite => false;
+
+    public override long Length { get; }
+
+    public override long Position { get; set; }
     private readonly Stream stream;
-    private readonly long viewLength;
     private readonly long viewStart;
 
     public StreamView(Stream stream, long viewStart, long viewLength)
     {
         this.stream = stream;
-        this.viewLength = viewLength;
+        this.Length = viewLength;
         this.viewStart = viewStart;
         Position = 0;
     }
 
-    public override void Flush()
-    {
-        stream.Flush();
-    }
+    public override void Flush() => stream.Flush();
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        if (Position >= viewLength)
+        if (Position >= Length)
         {
             return 0;
         }
 
         // subtracting extra bytes to avoid overflow
-        var extraBytes = Position + count >= viewLength
-            ? (int) (Position + count - viewLength)
+        var extraBytes = Position + count >= Length
+            ? (int) (Position + count - Length)
             : 0;
 
         if (stream.Position != viewStart + Position)
@@ -45,17 +50,18 @@ public sealed class StreamView : Stream
             }
         }
 
-        var result = stream.Read(buffer, offset, count-extraBytes);
+        var result = stream.Read(buffer, offset, count - extraBytes);
         if (result > 0)
         {
             Position += result;
         }
+
         return result;
     }
 
     public override int ReadByte()
     {
-        if (Position+1 >= viewStart+viewLength)
+        if (Position + 1 >= viewStart + Length)
         {
             return -1;
         }
@@ -79,15 +85,15 @@ public sealed class StreamView : Stream
         switch (origin)
         {
             case SeekOrigin.Begin:
-                if (offset < 0 || offset >= viewLength)
+                if (offset < 0 || offset >= Length)
                 {
-                    throw new InvalidOperationException($"Out of bounds: offset is {offset}, origin is {origin}, max length is {viewLength}");
+                    throw new InvalidOperationException($"Out of bounds: offset is {offset}, origin is {origin}, max length is {Length}");
                 }
 
                 if (stream is InflaterInputStream)
                 {
                     // hack to avoid seeking but still allow fast-forwarding
-                    var delta = (int)(offset - Position);
+                    var delta = (int) (offset - Position);
                     if (delta < 0)
                     {
                         throw new InvalidOperationException("Can't seek back to rewind InflaterInputStream");
@@ -100,53 +106,40 @@ public sealed class StreamView : Stream
                     pool.Return(buf);
                     return read;
                 }
+
                 Position = offset;
                 return stream.Seek(viewStart + offset, SeekOrigin.Begin);
             case SeekOrigin.Current:
-                if (0 < Position + offset || Position + offset >= viewLength)
+                if (0 < Position + offset || Position + offset >= Length)
                 {
-                    throw new InvalidOperationException($"Out of bounds: offset is {offset}, position is {Position}, origin is {origin}, max length is {viewLength}");
+                    throw new InvalidOperationException($"Out of bounds: offset is {offset}, position is {Position}, origin is {origin}, max length is {Length}");
                 }
 
                 Position += offset;
                 return stream.Seek(offset, SeekOrigin.Current);
             case SeekOrigin.End:
-                if (offset < 0 || offset >= viewLength)
+                if (offset < 0 || offset >= Length)
                 {
-                    throw new InvalidOperationException($"Out of bounds: offset is {offset}, origin is {origin}, max length is {viewLength}");
+                    throw new InvalidOperationException($"Out of bounds: offset is {offset}, origin is {origin}, max length is {Length}");
                 }
 
-                Position = viewLength - offset;
-                return stream.Seek(viewStart + viewLength - offset, SeekOrigin.Begin);
+                Position = Length - offset;
+                return stream.Seek(viewStart + Length - offset, SeekOrigin.Begin);
             default:
                 throw new ArgumentOutOfRangeException(nameof(origin), origin, null);
         }
     }
 
-    public override void SetLength(long value)
-    {
-        throw new InvalidOperationException($"{nameof(StreamView)} is read-only");
-        //viewLength = value;
-    }
+    public override void SetLength(long value) => throw new InvalidOperationException($"{nameof(StreamView)} is read-only");
 
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        throw new InvalidOperationException($"{nameof(StreamView)} is read-only");
-    }
-
-    public override bool CanRead => stream.CanRead;
-
-    public override bool CanSeek => false;
-
-    public override bool CanWrite => false;
-
-    public override long Length => viewLength;
-
-    public override long Position { get; set; }
+    //viewLength = value;
+    public override void Write(byte[] buffer, int offset, int count) => throw new InvalidOperationException($"{nameof(StreamView)} is read-only");
 
     public override string ToString()
     {
-        var length = stream is InflaterInputStream ? "unsupported" : stream.Length.ToString();
-        return $"stream: len={length} pos={stream.Position}, view: start={viewStart}, len={viewLength}, pos={Position}";
+        var length = stream is InflaterInputStream
+            ? "unsupported"
+            : stream.Length.ToString();
+        return $"stream: len={length} pos={stream.Position}, view: start={viewStart}, len={Length}, pos={Position}";
     }
 }

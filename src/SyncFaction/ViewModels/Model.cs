@@ -18,20 +18,6 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class Model
 {
-    [ObservableProperty] private string gameDirectory = string.Empty;
-
-    [ObservableProperty] private bool devMode;
-
-    [ObservableProperty] private bool useCdn;
-
-    [ObservableProperty] private bool? isGog;
-
-    [ObservableProperty] private bool isVerified;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ThreadCount))]
-    private bool multithreading;
-
     public int ThreadCount => GetThreadCount();
 
     public ObservableCollection<long> TerraformUpdates { get; } = new();
@@ -47,7 +33,26 @@ public partial class Model
     /// <summary>
     /// NOTE: not observable, no UI interaction, only save/load on certain actions
     /// </summary>
-    public Settings Settings { get; set; } = new Settings();
+    public Settings Settings { get; set; } = new();
+
+    [ObservableProperty]
+    private string gameDirectory = string.Empty;
+
+    [ObservableProperty]
+    private bool devMode;
+
+    [ObservableProperty]
+    private bool useCdn;
+
+    [ObservableProperty]
+    private bool? isGog;
+
+    [ObservableProperty]
+    private bool isVerified;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ThreadCount))]
+    private bool multithreading;
 
     public void FromState(State? state)
     {
@@ -55,7 +60,7 @@ public partial class Model
         state ??= new State();
         DevMode = state.DevMode ?? false;
         Multithreading = state.Multithreading ?? true;
-        IsGog = state.IsGog;  // keep nullable because first-time check can be aborted before we know the version
+        IsGog = state.IsGog; // keep nullable because first-time check can be aborted before we know the version
         UseCdn = state.UseCdn ?? true;
         IsVerified = state.IsVerified ?? false;
         Settings = state.Settings ?? new Settings();
@@ -75,7 +80,7 @@ public partial class Model
             TerraformUpdates = TerraformUpdates.ToList(),
             RslUpdates = RslUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),
-            Settings = Settings,
+            Settings = Settings
         };
 
     public int GetThreadCount()
@@ -91,6 +96,10 @@ public partial class Model
         return Math.Clamp(almostAllCpus, 1, 10);
     }
 
+    public AppStorage GetAppStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, log);
+
+    public GameStorage GetGameStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, Hashes.Get(IsGog.Value), log);
+
     private void PopulateList<T>(IEnumerable<T>? src, ObservableCollection<T> dst, bool order)
     {
         dst.Clear();
@@ -100,13 +109,10 @@ public partial class Model
         {
             src = src.OrderBy(x => x);
         }
+
         foreach (var modId in src)
         {
             dst.Add(modId);
         }
     }
-
-    public AppStorage GetAppStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, log);
-
-    public GameStorage GetGameStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, Hashes.Get(IsGog.Value), log);
 }

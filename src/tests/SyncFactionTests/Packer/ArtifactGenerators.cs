@@ -10,6 +10,29 @@ namespace SyncFactionTests.Packer;
 
 public class ArtifactGenerators
 {
+    [OneTimeSetUp]
+    public void Init()
+    {
+        try
+        {
+            TestUtils.ArtifactDir.Create();
+            TestUtils.UnpackDir.Create();
+        }
+        catch
+        {
+            // ignored exceptions when steam game is not installed
+        }
+    }
+
+    [OneTimeTearDown]
+    public void WriteHashes()
+    {
+        if (AllHashes.Any())
+        {
+            System.IO.File.WriteAllText(TestUtils.ArtifactDir + @"\hashes.json", JsonSerializer.Serialize(AllHashes, new JsonSerializerOptions { WriteIndented = true }));
+        }
+    }
+
     [Explicit("Creates new vpp archives with same flags and contents. Repacks str2 files too")]
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
     public async Task RepackAll(FileInfo fileInfo)
@@ -22,7 +45,7 @@ public class ArtifactGenerators
         await using var fileStream = fileInfo.OpenRead();
         var archive = new VppInMemoryReader().Read(fileStream, fileInfo.Name, CancellationToken.None);
         var patchedFiles = PatchFiles(archive.LogicalFiles);
-        var patched = archive with {LogicalFiles = patchedFiles};
+        var patched = archive with { LogicalFiles = patchedFiles };
 
         await using var dstStream = dstFile.OpenWrite();
         var writer = new VppInMemoryWriter(patched);
@@ -45,7 +68,7 @@ public class ArtifactGenerators
         await using var fileStream1 = fileInfo.OpenRead();
         var archive1 = new VppInMemoryReader().Read(fileStream1, fileInfo.Name, CancellationToken.None);
         var patchedFiles1 = PatchFiles(archive1.LogicalFiles);
-        var patched1 = archive1 with {LogicalFiles = patchedFiles1};
+        var patched1 = archive1 with { LogicalFiles = patchedFiles1 };
 
         await using (var dstStream1 = dstFileInMemory.OpenWrite())
         {
@@ -58,14 +81,13 @@ public class ArtifactGenerators
         await using var fileStream2 = fileInfo.OpenRead();
         var archive2 = new VppReader().Read(fileStream2, fileInfo.Name, CancellationToken.None);
         var patchedFiles2 = PatchFiles(archive2.LogicalFiles);
-        var patched2 = archive2 with {LogicalFiles = patchedFiles2};
+        var patched2 = archive2 with { LogicalFiles = patchedFiles2 };
 
         await using (var dstStream2 = dstFileStreamed.OpenWrite())
         {
             var writer2 = new VppWriter(patched2);
             await writer2.WriteAll(dstStream2, CancellationToken.None);
         }
-
 
         //===============================
 
@@ -102,7 +124,6 @@ public class ArtifactGenerators
         dstFileStreamed.Delete();
     }
 
-
     [Explicit("For debugging")]
     [TestCase("edfbarricade_vehicle_a.rfgchunkx.str2_pc")]
     [TestCase("missing_chunk.rfgchunkx.str2_pc")]
@@ -132,6 +153,7 @@ public class ArtifactGenerators
                 // we need to go deeper. run other tests again to see how they process extracted files
             }
         }
+
         Assert.Pass();
     }
 
@@ -164,7 +186,9 @@ public class ArtifactGenerators
         var files = ramArchive.LogicalFiles.Zip(streamedArchive.LogicalFiles);
         foreach ((LogicalInMemoryFile ram, LogicalFile streamed) file in files)
         {
-            var length = file.streamed.Content is InflaterInputStream ? "unsupported" : file.streamed.Content.Length.ToString();
+            var length = file.streamed.Content is InflaterInputStream
+                ? "unsupported"
+                : file.streamed.Content.Length.ToString();
             var info = @$"{file.ram.Order} {file.ram.Name}
 ram len={file.ram.Content.Length} stream len={length}
 {file.streamed.Content.ToString()}";
@@ -204,7 +228,9 @@ ram len={file.ram.Content.Length} stream len={length}
 
     public void HashRecursive(Stream stream, string name, string? parentKey)
     {
-        var key = parentKey == null ? name : $"{parentKey}/{name}";
+        var key = parentKey == null
+            ? name
+            : $"{parentKey}/{name}";
         Console.WriteLine($"hash {key}");
 
         var hashString = TestUtils.ComputeHash(stream);
@@ -222,9 +248,9 @@ ram len={file.ram.Content.Length} stream len={length}
                 zlibInfo = $"{zlib}/{compressionLevel}";
             }
 
-
             hashString += $", compressed={vpp.Header.Flags.Compressed}, condensed={vpp.Header.Flags.Condensed}, alignment={alignment}, entries={vpp.Entries.Count}, zlib={zlibInfo}";
         }
+
         AllHashes[key] = hashString;
         stream.Position = 0;
 
@@ -247,7 +273,7 @@ ram len={file.ram.Content.Length} stream len={length}
             if (Path.GetExtension(logicalFile.Name).ToLower() == ".str2_pc")
             {
                 var repackStr2 = RepackStr2(logicalFile);
-                yield return logicalFile with {Content = repackStr2};
+                yield return logicalFile with { Content = repackStr2 };
             }
             else
             {
@@ -263,7 +289,7 @@ ram len={file.ram.Content.Length} stream len={length}
             if (Path.GetExtension(logicalFile.Name).ToLower() == ".str2_pc")
             {
                 var repackStr2 = RepackStr2(logicalFile);
-                yield return logicalFile with {Content = repackStr2};
+                yield return logicalFile with { Content = repackStr2 };
             }
             else
             {
@@ -295,28 +321,5 @@ ram len={file.ram.Content.Length} stream len={length}
         return dstStream;
     }
 
-    public static readonly Dictionary<string,string> AllHashes = new();
-
-    [OneTimeSetUp]
-    public void Init()
-    {
-        try
-        {
-            TestUtils.ArtifactDir.Create();
-            TestUtils.UnpackDir.Create();
-        }
-        catch
-        {
-            // ignored exceptions when steam game is not installed
-        }
-    }
-
-    [OneTimeTearDown]
-    public void WriteHashes()
-    {
-        if (AllHashes.Any())
-        {
-            System.IO.File.WriteAllText(TestUtils.ArtifactDir + @"\hashes.json", JsonSerializer.Serialize(AllHashes, new JsonSerializerOptions() {WriteIndented = true}));
-        }
-    }
+    public static readonly Dictionary<string, string> AllHashes = new();
 }

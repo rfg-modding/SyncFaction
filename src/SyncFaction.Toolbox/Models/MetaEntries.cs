@@ -1,5 +1,5 @@
 namespace SyncFaction.Toolbox.Models;
 
-class MetaEntries : SortedDictionary<string, EntryMetadata>
+internal class MetaEntries : SortedDictionary<string, EntryMetadata>
 {
 }

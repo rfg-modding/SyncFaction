@@ -5,15 +5,15 @@ namespace SyncFaction.ModManager.XmlModels;
 
 public abstract class HasNestedXml
 {
-    [XmlText]
-    [XmlAnyElement]
-    public List<XmlNode> NestedXml { get; set; }
-
     /// <summary>
     /// For debug printing with Newtonsoft serializer
     /// </summary>
     [XmlIgnore]
-    public string NestedString => String.Join("\n", NestedXml.Select(o => o.OuterXml).ToList());
+    public string NestedString => string.Join("\n", NestedXml.Select(o => o.OuterXml).ToList());
+
+    [XmlText]
+    [XmlAnyElement]
+    public List<XmlNode> NestedXml { get; set; }
 
     /// <summary>
     /// For debug printing with Newtonsoft serializer

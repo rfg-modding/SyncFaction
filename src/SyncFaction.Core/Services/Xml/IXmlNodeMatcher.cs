@@ -2,7 +2,7 @@ using System.Xml;
 
 namespace SyncFaction.Core.Services.Xml;
 
-interface IXmlNodeMatcher
+internal interface IXmlNodeMatcher
 {
     bool DoesNodeMatch(XmlNode node);
 }

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using GongSolutions.Wpf.DragDrop;
+using DragDrop = GongSolutions.Wpf.DragDrop.DragDrop;
 
 namespace SyncFaction;
 
@@ -14,11 +15,10 @@ namespace SyncFaction;
 /// </summary>
 public class GroupedDropHandler : IDropTarget
 {
-
     /// <inheritdoc />
     public void DragOver(IDropInfo dropInfo)
     {
-        GongSolutions.Wpf.DragDrop.DragDrop.DefaultDropHandler.DragOver(dropInfo);
+        DragDrop.DefaultDropHandler.DragOver(dropInfo);
         if (dropInfo.TargetGroup == null)
         {
             throw new InvalidOperationException();
@@ -30,13 +30,14 @@ public class GroupedDropHandler : IDropTarget
             ? "Reorder"
             : dropInfo.TargetGroup.Name.ToString()[..^1];
 
-
         var count = dropInfo.Data switch
         {
             List<object> l => l.Count,
             _ => 1
         };
-        var caption = count == 1 ? "mod" : "mods";
+        var caption = count == 1
+            ? "mod"
+            : "mods";
         dropInfo.DestinationText = $"{count} {caption}";
 
         // higihlght target group
@@ -57,12 +58,40 @@ public class GroupedDropHandler : IDropTarget
         }
     }
 
-    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject? depObj) where T : DependencyObject?
+    /// <inheritdoc />
+    public void Drop(IDropInfo dropInfo)
+    {
+        // The default drop handler don't know how to set an item's group. You need to explicitly set the group on the dropped item like this.
+        DragDrop.DefaultDropHandler.Drop(dropInfo);
+
+        // Now extract the dragged group items and set the new group (target)
+        var data = DefaultDropHandler.ExtractData(dropInfo.Data).OfType<LocalModViewModel>().ToList();
+        if (dropInfo.TargetGroup.Name is not LocalModStatus)
+        {
+            throw new ArgumentOutOfRangeException($"group name type is [{dropInfo.TargetGroup.Name?.GetType()}]");
+        }
+
+        var group = (LocalModStatus) dropInfo.TargetGroup.Name;
+        foreach (var groupedItem in data)
+        {
+            groupedItem.Status = group;
+        }
+
+        // Changing group data at runtime isn't handled well: force a refresh on the collection view.
+        if (dropInfo.TargetCollection is ICollectionView)
+        {
+            ((ICollectionView) dropInfo.TargetCollection).Refresh();
+        }
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject? depObj)
+        where T : DependencyObject?
     {
         if (depObj == null)
         {
             yield break;
         }
+
         var count = VisualTreeHelper.GetChildrenCount(depObj);
         for (var i = 0; i < count; i++)
         {
@@ -77,32 +106,5 @@ public class GroupedDropHandler : IDropTarget
                 yield return childOfChild;
             }
         }
-    }
-
-    /// <inheritdoc />
-    public void Drop(IDropInfo dropInfo)
-    {
-        // The default drop handler don't know how to set an item's group. You need to explicitly set the group on the dropped item like this.
-        GongSolutions.Wpf.DragDrop.DragDrop.DefaultDropHandler.Drop(dropInfo);
-
-        // Now extract the dragged group items and set the new group (target)
-        var data = DefaultDropHandler.ExtractData(dropInfo.Data).OfType<LocalModViewModel>().ToList();
-        if (dropInfo.TargetGroup.Name is not LocalModStatus)
-        {
-            throw new ArgumentOutOfRangeException($"group name type is [{dropInfo.TargetGroup.Name?.GetType()}]");
-        }
-
-        var group = (LocalModStatus)dropInfo.TargetGroup.Name;
-        foreach (var groupedItem in data)
-        {
-            groupedItem.Status = group;
-        }
-
-        // Changing group data at runtime isn't handled well: force a refresh on the collection view.
-        if (dropInfo.TargetCollection is ICollectionView)
-        {
-            ((ICollectionView)dropInfo.TargetCollection).Refresh();
-        }
-
     }
 }

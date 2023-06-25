@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using SyncFaction.Packer;
 using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
@@ -8,6 +7,16 @@ namespace SyncFactionTests.Packer;
 [Explicit("Depend on paths tied to steam version")]
 public class PackLogicalTests
 {
+    [OneTimeSetUp]
+    [TearDown]
+    public void DeleteFiles()
+    {
+        foreach (var file in TestUtils.ArtifactDir.EnumerateFiles("*.repacked"))
+        {
+            file.Delete();
+        }
+    }
+
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllFiles))]
     public async Task Test(FileInfo fileInfo)
     {
@@ -15,6 +24,7 @@ public class PackLogicalTests
         {
             Assert.Ignore("Not an archive");
         }
+
         using var fileStream = fileInfo.OpenRead();
         var packer = new VppInMemoryArchiver(NullLogger<VppInMemoryArchiver>.Instance);
         var archive = await packer.UnpackVppRam(fileStream, fileInfo.Name, CancellationToken.None);
@@ -52,16 +62,6 @@ public class PackLogicalTests
             var hash = TestUtils.ComputeHash(new MemoryStream(srcFile.Content));
             repackHash.Should().Be(hash, description);
             i++;
-        }
-    }
-
-    [OneTimeSetUp]
-    [TearDown]
-    public void DeleteFiles()
-    {
-        foreach (var file in TestUtils.ArtifactDir.EnumerateFiles("*.repacked"))
-        {
-            file.Delete();
         }
     }
 }

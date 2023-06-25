@@ -1,5 +1,3 @@
-using SyncFaction.ModManager.XmlModels;
-
 namespace SyncFaction.ModManager;
 
 public class Settings

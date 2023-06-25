@@ -27,9 +27,7 @@ public class XmlNodeConverter : IValueConverter
         return Encoding.UTF8.GetString(ms.ToArray());
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         // not much sense here
-        return null;
-    }
+        null;
 }

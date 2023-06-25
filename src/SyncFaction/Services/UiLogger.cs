@@ -22,7 +22,9 @@ public class UiLogger : ILogger
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         // TODO get rid of this ugly hack somehow
-        var appState = stateProvider.Initialized ? stateProvider.State : new State();
+        var appState = stateProvider.Initialized
+            ? stateProvider.State
+            : new State();
 
         if (appState.DevMode is not true && logLevel is LogLevel.Debug or LogLevel.Trace)
         {
@@ -52,6 +54,7 @@ public class UiLogger : ILogger
             {
                 render.Clear();
             }
+
             return;
         }
 
@@ -70,28 +73,22 @@ public class UiLogger : ILogger
             LogLevel.Warning => "# ",
             LogLevel.Error => "# ",
             LogLevel.Critical => "# ",
-            LogLevel.None => string.Empty,
+            LogLevel.None => string.Empty
         };
 
         if (category.StartsWith("SyncFaction"))
         {
-            render.Append($"{prefix}{formatter(state,exception)}", audoScroll);
+            render.Append($"{prefix}{formatter(state, exception)}", audoScroll);
         }
         else
         {
-            render.Append($"`{logLevel.ToString().Substring(0,4)} {category.Split('.').Last()} {formatter(state,exception)}`", audoScroll);
+            render.Append($"`{logLevel.ToString().Substring(0, 4)} {category.Split('.').Last()} {formatter(state, exception)}`", audoScroll);
         }
     }
 
-    public bool IsEnabled(LogLevel logLevel)
-    {
-        return true;
-    }
+    public bool IsEnabled(LogLevel logLevel) => true;
 
-    public IDisposable BeginScope<TState>(TState state)
-    {
-        return new NopDisposable();
-    }
+    public IDisposable BeginScope<TState>(TState state) => new NopDisposable();
 
     private class NopDisposable : IDisposable
     {

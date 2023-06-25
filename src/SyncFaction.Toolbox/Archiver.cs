@@ -23,9 +23,6 @@ public class Archiver
         this.log = log;
     }
 
-    private record UnpackResult(string RelativePath, ArchiveMetadata ArchiveMetadata, IReadOnlyList<Task<UnpackResult>> MoreTasks);
-
-
     public async Task Unpack(UnpackSettings settings, CancellationToken token)
     {
         var matcher = new Matcher(StringComparison.OrdinalIgnoreCase);
@@ -48,10 +45,7 @@ public class Archiver
         var sw = Stopwatch.StartNew();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         var metadata = new Metadata();
-        var tasks = archivePaths
-            .Select(archivePath => new FileInfo(archivePath))
-            .Select(x => UnpackArchive(x, output, matcher, settings, string.Empty, cts.Token))
-            .ToList();
+        var tasks = archivePaths.Select(archivePath => new FileInfo(archivePath)).Select(x => UnpackArchive(x, output, matcher, settings, string.Empty, cts.Token)).ToList();
 
         //var batchSize = Environment.ProcessorCount;
         var batchSize = 100;
@@ -73,6 +67,7 @@ public class Archiver
             await File.WriteAllTextAsync(metaFile.FullName, serialized, cts.Token);
             log.LogInformation("Metadata saved to {file}", metaFile.FullName);
         }
+
         log.LogInformation("Completed in {time}", sw.Elapsed);
     }
 
@@ -118,9 +113,7 @@ public class Archiver
         var vpp = await vppArchiver.UnpackVpp(src, archive.Name, token);
         var archiveRelativePath = Path.Combine(relativePath, vpp.Name);
 
-        var matchedFiles = matcher.Match(vpp.LogicalFiles.Select(x => x.Name))
-            .Files.Select(x => x.Path)
-            .ToHashSet();
+        var matchedFiles = matcher.Match(vpp.LogicalFiles.Select(x => x.Name)).Files.Select(x => x.Path).ToHashSet();
         log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", archive.Name, settings.FileGlob, matchedFiles.Count);
 
         var tasks = new List<Task<UnpackResult>>();
@@ -141,7 +134,7 @@ public class Archiver
             outputFile.Refresh();
             await using var s = outputFile.OpenRead();
             var eHash = ComputeHash(s);
-            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong)logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
+            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
 
             var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, DefaultDir, outputFile.Name));
             if (settings.Recursive && isArchive)
@@ -184,11 +177,14 @@ public class Archiver
 
     public const string DefaultDir = ".unpack";
     public const string MetadataFile = ".metadata";
-    public static readonly ImmutableHashSet<string> KnownArchiveExtensions = new HashSet<string>()
+
+    public static readonly ImmutableHashSet<string> KnownArchiveExtensions = new HashSet<string>
     {
         "vpp",
         "vpp_pc",
         "str2",
         "str2_pc"
     }.ToImmutableHashSet();
+
+    private record UnpackResult(string RelativePath, ArchiveMetadata ArchiveMetadata, IReadOnlyList<Task<UnpackResult>> MoreTasks);
 }

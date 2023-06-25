@@ -2,7 +2,7 @@ using System.Xml;
 
 namespace SyncFaction.Core.Services.Xml;
 
-class AlwaysFalseMatcher : IXmlNodeMatcher
+internal class AlwaysFalseMatcher : IXmlNodeMatcher
 {
     public bool DoesNodeMatch(XmlNode node) => false;
 }

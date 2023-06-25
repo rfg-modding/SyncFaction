@@ -7,36 +7,28 @@ namespace SyncFaction.Converters;
 
 public class EmptyStringCollapseConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value switch
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value switch
         {
             null or "" => Visibility.Collapsed,
-            string or _ => Visibility.Visible,
+            string or _ => Visibility.Visible
         };
-    }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         // not much sense here
-        return string.Empty;
-    }
+        string.Empty;
 }
 
 public class EmptyStringDisabledConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value switch
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value switch
         {
             null or "" => false,
-            string or _ => true,
+            string or _ => true
         };
-    }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         // not much sense here
-        return string.Empty;
-    }
+        string.Empty;
 }

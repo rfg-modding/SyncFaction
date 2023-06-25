@@ -42,6 +42,7 @@ public class VppReader
             {
                 streamSize = ms.Length.ToString();
             }
+
             var msg = $"Failed to unzip data. Stream size = [{streamSize}]. Header = [{vpp.Header}]";
             throw new InvalidOperationException(msg, e);
         }

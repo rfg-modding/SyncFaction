@@ -23,9 +23,7 @@ public class ModStatusConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         // not much sense here
-        return string.Empty;
-    }
+        string.Empty;
 }

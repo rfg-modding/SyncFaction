@@ -5,5 +5,5 @@ public enum ListAction
     AddNew,
     Add,
     Replace,
-    CombineByField,
+    CombineByField
 }
