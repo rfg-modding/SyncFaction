@@ -1,6 +1,6 @@
 namespace SyncFaction.Packer;
 
-public class StreamWrapper : Stream
+public sealed class StreamWrapper : Stream
 {
     public override bool CanRead => stream.CanRead;
 
@@ -20,7 +20,12 @@ public class StreamWrapper : Stream
 
     public StreamWrapper(Stream stream) => this.stream = stream;
 
-    public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public override async ValueTask DisposeAsync()
+    {
+        await stream.DisposeAsync();
+        await base.DisposeAsync();
+
+    }
 
     public override void Flush() => stream.Flush();
 
@@ -34,5 +39,7 @@ public class StreamWrapper : Stream
 
     protected override void Dispose(bool disposing)
     {
+        stream.Dispose();
+        base.Dispose(disposing);
     }
 }

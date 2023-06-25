@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Xml;
 using System.Xml.Serialization;
@@ -10,6 +11,8 @@ using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFactionTests;
 
+[SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "Tests")]
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public class Tests
 {
     private string fileName;

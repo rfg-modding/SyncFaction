@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -7,6 +8,7 @@ namespace SyncFaction.Converters;
 /// <summary>
 /// Converts tab enum value to IsSelected=true
 /// </summary>
+[SuppressMessage("Performance", "CA1806:Do not ignore method results", Justification = "Parsing has fallback value")]
 public class TabSelectedByTypeConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

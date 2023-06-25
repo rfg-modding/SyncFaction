@@ -40,11 +40,7 @@ public class XmlMagic
             }
 
             log.LogDebug("edit [{key}] [{value}]", file.Name, edit.Action);
-            // NOTE: StreamReader is important, it handles unicode properly
-            using var reader = new StreamReader(file.Content);
-            var gameXml = new XmlDocument();
-            gameXml.PreserveWhitespace = true;
-            gameXml.Load(reader);
+            var gameXml = ReadXmlDocument(file);
             var xtblRoot = gameXml["root"]?["Table"];
             if (xtblRoot is null)
             {
@@ -64,6 +60,16 @@ public class XmlMagic
         }
 
         return file;
+    }
+
+    private static XmlDocument ReadXmlDocument(LogicalFile file)
+    {
+        // NOTE: StreamReader is important, it handles unicode properly
+        using var reader = new StreamReader(file.Content);
+        var gameXml = new XmlDocument();
+        gameXml.PreserveWhitespace = true;
+        gameXml.Load(reader);
+        return gameXml;
     }
 
     /// <summary>

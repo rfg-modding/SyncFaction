@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FastHashes;
 using SyncFaction.Core.Data;
 
@@ -5,6 +6,7 @@ namespace SyncFaction.Core.Services.FactionFiles;
 
 public class CdnEntry
 {
+    [SuppressMessage("Naming", "CA1720:Identifier contains type name", Justification = "Why not?")]
     public Guid Guid { get; set; }
     public string StorageZoneName { get; set; }
     public string Path { get; set; }

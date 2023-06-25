@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
@@ -8,6 +9,7 @@ public class Edit : HasNestedXml, IChange
     public string File { get; set; }
 
     [XmlAttribute]
+    [SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "XML format requires this")]
     public string LIST_ACTION { get; set; }
 
     public IChange Clone() =>

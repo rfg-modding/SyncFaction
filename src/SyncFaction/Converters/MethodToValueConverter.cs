@@ -9,7 +9,7 @@ namespace SyncFaction.Converters;
 /// </summary>
 public sealed class MethodToValueConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var methodName = parameter as string;
         if (value == null || methodName == null)
@@ -17,13 +17,13 @@ public sealed class MethodToValueConverter : IValueConverter
             return null;
         }
 
-        var methodInfo = value.GetType().GetMethod(methodName, new Type[0]);
+        var methodInfo = value.GetType().GetMethod(methodName, Type.EmptyTypes);
         if (methodInfo == null)
         {
             return null;
         }
 
-        return methodInfo.Invoke(value, new object[0]);
+        return methodInfo.Invoke(value, Array.Empty<object>());
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException(GetType().Name + " can only be used for one way conversion.");

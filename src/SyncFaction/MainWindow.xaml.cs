@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,6 +14,7 @@ using SyncFaction.Services;
 
 namespace SyncFaction;
 
+[SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "Why not?")]
 public partial class MainWindow : Window, IViewAccessor
 {
     public ListView OnlineModListView => OnlineModList;
@@ -58,14 +60,14 @@ public partial class MainWindow : Window, IViewAccessor
         markdownRender.Init(Markdown);
         markdownRender.Append("# Welcome!");
 
-        Application.Current.DispatcherUnhandledException += (s, e) =>
+        Application.Current.DispatcherUnhandledException += (_, e) =>
         {
-            log.LogError(e.Exception, $"Unhandled exception! {e.Exception}");
+            log.LogError(e.Exception, "Unhandled exception!");
             e.Handled = true;
         };
 
         CommandBindings.Add(new CommandBinding(NavigationCommands.GoToPage,
-            (sender, e) =>
+            (_, e) =>
             {
                 var proc = new Process();
                 proc.StartInfo.UseShellExecute = true;

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using SyncFactionTests.VppRam;
@@ -5,6 +6,7 @@ using SyncFactionTests.VppRam;
 namespace SyncFactionTests.Packer;
 
 [Explicit("Depend on paths tied to steam version")]
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public class PackLogicalTests
 {
     [OneTimeSetUp]
@@ -20,7 +22,7 @@ public class PackLogicalTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllFiles))]
     public async Task Test(FileInfo fileInfo)
     {
-        if (fileInfo.Extension != ".vpp_pc" || fileInfo.Extension != ".str2_pc")
+        if (fileInfo.Extension != ".vpp_pc" && fileInfo.Extension != ".str2_pc")
         {
             Assert.Ignore("Not an archive");
         }

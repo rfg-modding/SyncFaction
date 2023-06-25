@@ -104,7 +104,7 @@ public class UnpackTests
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllFiles))]
     public void TestReadFileSignatures(FileInfo fileInfo)
     {
-        var ext = fileInfo.Extension.ToLower();
+        var ext = fileInfo.Extension.ToLowerInvariant();
         if (!TestUtils.Signatures.TryGetValue(ext, out var signature))
         {
             Assert.Ignore($"No known signature for {ext}");

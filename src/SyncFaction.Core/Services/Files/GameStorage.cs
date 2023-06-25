@@ -82,13 +82,13 @@ public class GameStorage : AppStorage, IGameStorage
             },
             (kv, loopState) =>
             {
-                log.LogInformation($"+ *Checking* {kv.Key}");
+                log.LogInformation("+ *Checking* {key}", kv.Key);
                 var file = new GameFile(this, kv.Key, fileSystem);
                 if (!file.IsVanillaByHash())
                 {
-                    log.LogError(@$"Action needed:
+                    log.LogError(@"Action needed:
 
-Found modified game file: {file.RelativePath}
+Found modified game file: {file}
 
 Looks like you've installed some mods before. SyncFaction can't work until you restore all files to their default state.
 
@@ -98,7 +98,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
 Then run SyncFaction again.
 
 *See you later miner!*
-");
+", file.RelativePath);
                     loopState.Stop();
                 }
             });

@@ -69,7 +69,7 @@ public class UiCommands
         catch (Exception ex)
         {
             viewModel.LastException = ex.ToString();
-            log.LogError(ex, $"TODO better exception logging! \n\n{ex}");
+            log.LogError(ex, $"TODO better exception logging!");
             //var exceptionText = string.Join("\n", ex.ToString().Split('\n').Select(x => $"`` {x} ``"));
             //render.Append("---");
             //render.Append(string.Format(Constants.ErrorFormat, description, exceptionText), false);
@@ -105,7 +105,7 @@ public class UiCommands
             new ParallelOptions
             {
                 CancellationToken = token,
-                MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+                MaxDegreeOfParallelism = viewModel.Model.CalculateThreadCount()
             },
             async (mvm, cancellationToken) =>
             {
@@ -124,14 +124,10 @@ public class UiCommands
                 }
 
                 var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
-                log.LogDebug($"Mod contents: {files}");
+                //log.LogDebug($"Mod contents: {files}");
                 toProcess--;
                 viewModel.CurrentOperation = $"Downloading {toProcess} mods";
             });
-        if (success == false)
-        {
-            return false;
-        }
 
         return await RefreshLocal(viewModel, token);
     }
@@ -183,15 +179,15 @@ public class UiCommands
 
         if (mvm.Selected is not true)
         {
-            log.LogWarning($"Attempt to display wrong mod: {mvm.Name}");
+            //log.LogWarning($"Attempt to display wrong mod: {mvm.Name}");
             return false;
         }
 
         log.Clear();
-        log.LogInformation(new EventId(0, "log_false"), mvm.Mod.Markdown);
+        //log.LogInformation(new EventId(0, "log_false"), mvm.Mod.Markdown);
         if (isLocal)
         {
-            log.LogInformation(new EventId(0, "log_false"), "\n---\n\n" + mvm.Mod.InfoMd());
+            //log.LogInformation(new EventId(0, "log_false"), "\n---\n\n" + mvm.Mod.InfoMd());
         }
 
         if (mvm is LocalModViewModel lvm)
@@ -246,7 +242,7 @@ public class UiCommands
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         // create dirs and validate files if required
         gameStorage.InitBakDirectories();
-        var threadCount = viewModel.Model.GetThreadCount();
+        var threadCount = viewModel.Model.CalculateThreadCount();
         if (viewModel.Model.IsVerified != true && !await gameStorage.CheckGameFiles(threadCount, log, token))
         {
             return false;
@@ -269,7 +265,7 @@ public class UiCommands
         }
 
         // populate mod list and stuff
-        return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token, true);
+        return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, true, token);
     }
 
     public Task<bool> Run(ViewModel viewModel, CancellationToken token)
@@ -303,9 +299,9 @@ public class UiCommands
         return Task.FromResult(true);
     }
 
-    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token) => await RefreshOnline(viewModel, token, false);
+    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token) => await RefreshOnline(viewModel, false, token);
 
-    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token, bool isInit)
+    public async Task<bool> RefreshOnline(ViewModel viewModel, bool isInit, CancellationToken token)
     {
         // always show mods from local directory
         var categories = new List<Category> { Category.Local };
@@ -333,7 +329,7 @@ public class UiCommands
             var content = document.GetElementById("mw-content-text").InnerHtml;
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
             log.Clear();
-            log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
+            //log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
             log.LogInformationXaml(xaml, false);
         }
 
@@ -348,7 +344,7 @@ public class UiCommands
             new ParallelOptions
             {
                 CancellationToken = token,
-                MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+                MaxDegreeOfParallelism = viewModel.Model.CalculateThreadCount()
             },
             async (category, cancellationToken) =>
             {
@@ -406,7 +402,7 @@ Then run SyncFaction again.
             viewModel.Model.RslUpdates.AddRange(viewModel.Model.RemoteRslUpdates);
         });
         gameStorage.WriteStateFile(viewModel.Model.ToState());
-        log.LogWarning($"Successfully updated game: **{viewModel.GetHumanReadableVersion()}**");
+        //log.LogWarning($"Successfully updated game: **{viewModel.GetHumanReadableVersion()}**");
         viewModel.UpdateRequired = false;
 
         // populate mod list and stuff
@@ -415,7 +411,7 @@ Then run SyncFaction again.
 
     public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
     {
-        log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
+        //log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
         // TODO uncomment me!!!
         //var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
 
@@ -490,6 +486,7 @@ Then run SyncFaction again.
             return null;
         }
 
+        token.ThrowIfCancellationRequested();
         await using var s = xmlFile.OpenRead();
         var modInfo = modTools.LoadFromXml(s, xmlFile.Directory);
         modTools.CopySameOptions(modInfo);
@@ -506,13 +503,13 @@ Then run SyncFaction again.
         // TODO make async enumerable for ReadAsync()?
         foreach (var dir in storage.App.EnumerateDirectories())
         {
-            if (dir.Name.StartsWith("."))
+            if (dir.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
             {
                 // skip unix-hidden files
                 continue;
             }
 
-            if (dir.Name.StartsWith("Mod_"))
+            if (dir.Name.StartsWith("Mod_", StringComparison.OrdinalIgnoreCase))
             {
                 // read mod description from json
                 var descriptionFile = fileSystem.FileInfo.New(Path.Combine(dir.FullName, Constants.ModDescriptionFile));
@@ -554,7 +551,7 @@ Then run SyncFaction again.
     private void SetFlags(IMod mod, IGameStorage storage)
     {
         var modDir = storage.GetModDir(mod);
-        var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod"));
+        var modFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.StartsWith(".mod", StringComparison.OrdinalIgnoreCase));
         var flags = ModFlags.None;
 
         foreach (var modFile in modFiles)
@@ -582,7 +579,7 @@ Then run SyncFaction again.
 
             // detecting if there are mp_file.vpp or mp_file.xdelta
             var nameNoExt = Path.GetFileNameWithoutExtension(name) + ".";
-            if (Hashes.MultiplayerFiles.Any(x => x.StartsWith(nameNoExt)))
+            if (Hashes.MultiplayerFiles.Any(x => x.StartsWith(nameNoExt, StringComparison.OrdinalIgnoreCase)))
             {
                 // TODO: read modinfo.xml because it can affect MP files too
                 flags |= ModFlags.AffectsMultiplayerFiles;
@@ -599,7 +596,7 @@ Then run SyncFaction again.
         var fromScratch = filteredUpdateIds.Count == updateIds.Count;
 
         var pendingUpdates = updates.Where(x => filteredUpdateIds.Contains(x.Id)).ToList();
-        log.LogDebug($"Updates to install: {JsonConvert.SerializeObject(pendingUpdates)}");
+        //log.LogDebug($"Updates to install: {JsonConvert.SerializeObject(pendingUpdates)}");
 
         var toProcess = pendingUpdates.Count;
         var success = true;
@@ -608,7 +605,7 @@ Then run SyncFaction again.
             new ParallelOptions
             {
                 CancellationToken = token,
-                MaxDegreeOfParallelism = viewModel.Model.GetThreadCount()
+                MaxDegreeOfParallelism = viewModel.Model.CalculateThreadCount()
             },
             async (mod, cancellationToken) =>
             {
@@ -622,14 +619,10 @@ Then run SyncFaction again.
                 }
 
                 var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
-                log.LogDebug($"Update contents: {files}");
+                //log.LogDebug($"Update contents: {files}");
                 toProcess--;
                 viewModel.CurrentOperation = $"Downloading {toProcess} updates";
             });
-        if (success == false)
-        {
-            return new ApplyModResult(new List<GameFile>(), false);
-        }
 
         var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
         var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, token);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Windows.Controls;
@@ -24,7 +25,7 @@ public partial class ViewModel
             value = $"terraform: {terraform}, rsl: {rsl}";
         }
 
-        sb.Append(value ?? "none");
+        sb.Append(value);
         return sb.ToString();
     }
 
@@ -58,14 +59,14 @@ Changelogs and info:
                 var i = 1;
                 foreach (var x in Model.RemoteTerraformUpdates)
                 {
-                    log.LogInformation($"+ [Terraform patch part {i} (id {x})]({FormatUrl(x)})");
+                    //log.LogInformation($"+ [Terraform patch part {i} (id {x})]({FormatUrl(x)})");
                     i++;
                 }
 
                 i = 1;
                 foreach (var x in Model.RemoteRslUpdates)
                 {
-                    log.LogInformation($"+ [Script Loader part {i} (id {x})]({FormatUrl(x)})");
+                    //log.LogInformation($"+ [Script Loader part {i} (id {x})]({FormatUrl(x)})");
                     i++;
                 }
 
@@ -77,7 +78,7 @@ Changelogs and info:
             }
         }
 
-        string FormatUrl(long x) => string.Format(Constants.BrowserUrlTemplate, x);
+        string FormatUrl(long x) => string.Format(CultureInfo.InvariantCulture, Constants.BrowserUrlTemplate, x);
     }
 
     public void AddOnlineMods(IReadOnlyList<IMod> mods) =>

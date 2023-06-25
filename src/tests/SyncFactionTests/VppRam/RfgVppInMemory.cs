@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
 
 namespace SyncFactionTests.VppRam;
 
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public partial class RfgVppInMemory
 {
     /// <summary>

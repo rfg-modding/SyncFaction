@@ -31,7 +31,7 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (!category.StartsWith("SyncFaction") && appState.DevMode is not true)
+        if (!category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase) && appState.DevMode is not true)
         {
             return;
         }
@@ -42,7 +42,7 @@ public class UiLogger : ILogger
             return;
         }
 
-        var audoScroll = !eventId.Name?.EndsWith("false") ?? true;
+        var audoScroll = !eventId.Name?.EndsWith("false", StringComparison.OrdinalIgnoreCase) ?? true;
 
         if (eventId.Name == "clear")
         {
@@ -58,7 +58,7 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (eventId.Name?.StartsWith("xaml") == true)
+        if (eventId.Name?.StartsWith("xaml", StringComparison.OrdinalIgnoreCase) == true)
         {
             var text = formatter(state, exception);
             render.AppendXaml("\n", text, audoScroll);
@@ -76,7 +76,7 @@ public class UiLogger : ILogger
             LogLevel.None => string.Empty
         };
 
-        if (category.StartsWith("SyncFaction"))
+        if (category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase))
         {
             render.Append($"{prefix}{formatter(state, exception)}", audoScroll);
         }

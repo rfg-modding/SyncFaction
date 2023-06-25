@@ -189,7 +189,7 @@ public class ModTools
         foreach (var change in changes)
         {
             var vppPaths = GetPaths(fs, change.File);
-            if (!vppPaths.File.EndsWith(".xtbl"))
+            if (!vppPaths.File.EndsWith(".xtbl", StringComparison.InvariantCultureIgnoreCase))
             {
                 continue;
             }
@@ -244,12 +244,12 @@ public class ModTools
         }
 
         var vpp = parts[1];
-        if (vpp.EndsWith(".vpp"))
+        if (vpp.EndsWith(".vpp", StringComparison.InvariantCultureIgnoreCase))
         {
             vpp += "_pc";
         }
 
-        if (!vpp.EndsWith(".vpp_pc"))
+        if (!vpp.EndsWith(".vpp_pc", StringComparison.InvariantCultureIgnoreCase))
         {
             throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should reference vpp_pc archive");
         }
@@ -273,7 +273,7 @@ public class ModTools
             return;
         }
 
-        if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
+        if (element.Name.Equals(UserInputName, StringComparison.OrdinalIgnoreCase))
         {
             var key = element.InnerText.ToLowerInvariant();
             var replacementHolder = selectedValues[key].Clone();
@@ -319,7 +319,7 @@ public class ModTools
             return false;
         }
 
-        if (element.Name.Equals(UserInputName, StringComparison.InvariantCultureIgnoreCase))
+        if (element.Name.Equals(UserInputName, StringComparison.OrdinalIgnoreCase))
         {
             var parent = element.ParentNode;
             parent.RemoveChild(element);
@@ -351,7 +351,7 @@ public class ModTools
         IgnoreProcessingInstructions = true
     };
 
-    private static readonly string UserInputName = "user_input";
+    private const string UserInputName = "user_input";
 }
 
 /*

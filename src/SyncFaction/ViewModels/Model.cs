@@ -18,7 +18,7 @@ namespace SyncFaction;
 [INotifyPropertyChanged]
 public partial class Model
 {
-    public int ThreadCount => GetThreadCount();
+    public int ThreadCount => CalculateThreadCount();
 
     public ObservableCollection<long> TerraformUpdates { get; } = new();
 
@@ -83,7 +83,7 @@ public partial class Model
             Settings = Settings
         };
 
-    public int GetThreadCount()
+    public int CalculateThreadCount()
     {
         if (Multithreading == false)
         {

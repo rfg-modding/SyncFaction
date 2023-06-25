@@ -77,5 +77,5 @@ public partial class App : Application
         */
     }
 
-    public static Theme AppTheme = Theme.Light;
+    public static readonly Theme AppTheme = Theme.Light;
 }

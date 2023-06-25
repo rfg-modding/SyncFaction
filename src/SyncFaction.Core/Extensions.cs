@@ -9,9 +9,9 @@ namespace SyncFaction.Core;
 
 public static class Extensions
 {
-    public static void Clear(this ILogger log) => log.LogCritical(new EventId(0, "clear"), string.Empty);
+    public static void Clear(this ILogger log) => log.LogCritical(new EventId(0, "clear"), "");
 
-    public static void LogInformationXaml(this ILogger log, string xaml, bool scroll) => log.LogInformation(new EventId(0, $"xaml_{scroll}"), xaml);
+    public static void LogInformationXaml(this ILogger log, string xaml, bool scroll) => log.LogInformation(new EventId(0, $"xaml_{scroll}"), "{xaml}", xaml);
 
     /// <summary>
     /// Filters out common clutter and mod archives
@@ -20,10 +20,10 @@ public static class Extensions
     {
         var name = f.Name.ToLowerInvariant();
         var ext = Path.GetExtension(name);
-        return !name.StartsWith(".mod") && !Constants.IgnoredExtensions.Contains(ext);
+        return !name.StartsWith(".mod", StringComparison.OrdinalIgnoreCase) && !Constants.IgnoredExtensions.Contains(ext);
     }
 
-    public static bool IsVppDirectory(this IDirectoryInfo d) => d.FullName.ToLowerInvariant().EndsWith(".vpp_pc") && !d.Name.Contains(' ');
+    public static bool IsVppDirectory(this IDirectoryInfo d) => d.FullName.ToLowerInvariant().EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase) && !d.Name.Contains(' ');
 
     /// <summary>
     /// Returns update list to install, excluding installed ones if they are in matching order

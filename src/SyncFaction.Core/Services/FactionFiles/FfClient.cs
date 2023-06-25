@@ -14,6 +14,9 @@ using SharpCompress.Readers;
 using SyncFaction.Core.Data;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Extras;
+using System;
+using System.Buffers;
+using System.Globalization;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 
@@ -66,7 +69,7 @@ public class FfClient
 
     public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
     {
-        log.LogDebug($"Downloading mod: {mod.Name} ({(double) mod.Size / 1024 / 1024:F2} MiB)");
+        log.LogDebug("Downloading mod: {mod} ({(double) mod.Size / 1024 / 1024:F2} MiB)", mod.Name);
         var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
         if (modDir.Exists && !incompleteDataFile.Exists)
         {
@@ -128,7 +131,7 @@ public class FfClient
             if (id != null)
             {
                 result.Add(id.Value);
-                log.LogInformation($"Found {prefix} patch part {i}, id: **{id}**");
+                //log.LogInformation($"Found {prefix} patch part {i}, id: **{id}**");
             }
 
             i++;
@@ -160,28 +163,36 @@ public class FfClient
             throw new ArgumentException("Has to be writable", nameof(destination));
         }
 
-        var buffer = new byte[8192];
-        var totalBytesRead = destination.Position;
-        int bytesRead;
-        var totalMb = (double) expectedSize / 1024 / 1024;
-        long lastReported = 0;
-        while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) != 0)
+        var buffer = ArrayPool<byte>.Shared.Rent(8192);
+        try
         {
-            await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-            totalBytesRead += bytesRead;
-            var readMiB = (long) Math.Floor((double) totalBytesRead / 1024 / 1024);
-            if (readMiB > 0 && readMiB % 10 == 0)
+            var totalBytesRead = destination.Position;
+            int bytesRead;
+            var totalMb = (double) expectedSize / 1024 / 1024;
+            long lastReported = 0;
+            while ((bytesRead = await source.ReadAsync(buffer, cancellationToken)) != 0)
             {
-                var current = readMiB / 10;
-                if (current <= lastReported)
+                await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                totalBytesRead += bytesRead;
+                var readMiB = (long) Math.Floor((double) totalBytesRead / 1024 / 1024);
+                if (readMiB > 0 && readMiB % 10 == 0)
                 {
-                    continue;
-                }
+                    var current = readMiB / 10;
+                    if (current <= lastReported)
+                    {
+                        continue;
+                    }
 
-                lastReported = current;
-                log.LogInformation($"+ {readMiB:F0} / {totalMb:F0} MiB");
+                    lastReported = current;
+                    //log.LogInformation($"+ {readMiB:F0} / {totalMb:F0} MiB");
+                }
             }
         }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
     }
 
     internal async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, IMod mod, CancellationToken token)
@@ -198,9 +209,9 @@ public class FfClient
         {
             var hasProgress = true;
             dstStream.Seek(0, SeekOrigin.End);
-            log.LogDebug($"Writing to `{dstFile.FullName}`");
-            log.LogDebug($"Initial file position: `{dstStream.Position}`");
-            log.LogDebug($"ContentLength: `{contentLength}`");
+            //log.LogDebug($"Writing to `{dstFile.FullName}`");
+            //log.LogDebug($"Initial file position: `{dstStream.Position}`");
+            //log.LogDebug($"ContentLength: `{contentLength}`");
             do
             {
                 var positionBefore = dstStream.Position;
@@ -217,7 +228,7 @@ public class FfClient
                         return false;
                     }
 
-                    log.LogInformation($"Error while downloading, continue in 5 seconds... Details: `{e.Message}`");
+                    //log.LogInformation($"Error while downloading, continue in 5 seconds... Details: `{e.Message}`");
                     await Task.Delay(TimeSpan.FromSeconds(5), token);
                     continue;
                 }
@@ -234,7 +245,7 @@ public class FfClient
     private async Task<IReadOnlyList<IMod>> GetFfMods(Category category, IGameStorage storage, CancellationToken token)
     {
         // NOTE: pagination currently is not implemented, everything is returned on first page
-        log.LogDebug($"Reading FactionFiles category: {category}");
+        //log.LogDebug($"Reading FactionFiles category: {category}");
         var builder = new UriBuilder(Constants.ApiUrl);
         builder.Query = $"cat={category:D}&page=1";
         var url = builder.Uri;
@@ -319,13 +330,13 @@ public class FfClient
         List<LocalMod> mods = new();
         foreach (var dir in storage.App.EnumerateDirectories())
         {
-            if (dir.Name.StartsWith("."))
+            if (dir.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
             {
                 // skip unix-hidden files
                 continue;
             }
 
-            if (dir.Name.StartsWith("Mod_"))
+            if (dir.Name.StartsWith("Mod_", StringComparison.OrdinalIgnoreCase))
             {
                 // skip downloaded mods
                 continue;
@@ -368,7 +379,7 @@ public class FfClient
             return new RemoteFileInfo(cdnFileName, mod.Size);
         }
 
-        var request = new HttpRequestMessage(HttpMethod.Head, mod.DownloadUrl);
+        using var request = new HttpRequestMessage(HttpMethod.Head, mod.DownloadUrl);
         var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         var originalName = response.Content.Headers.ContentDisposition?.FileName ?? response.Content.Headers.ContentDisposition?.FileNameStar ?? string.Empty;
         var filteredName = originalName.Trim().Trim('"');
@@ -414,12 +425,12 @@ public class FfClient
     {
         var id = mod.Category is Category.Dev
             ? mod.Name
-            : mod.Id.ToString();
+            : mod.Id.ToString(CultureInfo.InvariantCulture);
         var cdnUrl = $"{Constants.CdnUrl}/mirror/{id}";
         log.LogDebug("Trying CDN: {url}", cdnUrl);
-        var cdnRequest = new HttpRequestMessage(HttpMethod.Get, cdnUrl);
+        using var cdnRequest = new HttpRequestMessage(HttpMethod.Get, cdnUrl);
         cdnRequest.Headers.Range = new RangeHeaderValue(position, contentLength);
-        var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(token, timeout.Token);
         try
         {
@@ -436,7 +447,7 @@ public class FfClient
 
     private async Task<Stream> GetFfHttpStream(IMod mod, long contentLength, long position, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, mod.DownloadUrl);
+        using var request = new HttpRequestMessage(HttpMethod.Get, mod.DownloadUrl);
         request.Headers.Range = new RangeHeaderValue(position, contentLength);
         var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         return await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
@@ -461,15 +472,16 @@ public class FfClient
         try
         {
             await using var f = downloadedFile.OpenRead();
-            var reader = ReaderFactory.Open(f);
+            using var reader = ReaderFactory.Open(f);
             while (reader.MoveToNextEntry())
             {
+                token.ThrowIfCancellationRequested();
                 if (reader.Entry.IsDirectory)
                 {
                     continue;
                 }
 
-                log.LogDebug($"Extracting {reader.Entry.Key}...");
+                //log.LogDebug($"Extracting {reader.Entry.Key}...");
                 reader.WriteEntryToDirectory(modDir.FullName, options);
             }
         }
@@ -477,15 +489,16 @@ public class FfClient
         {
             // SharpCompress doesnt support streaming 7zip, fall back to slow method
             log.LogWarning("This is a `.7z` archive. Falling back to slow extraction method. Sorry!");
-            var archive = ArchiveFactory.Open(downloadedFile.FullName);
+            using var archive = ArchiveFactory.Open(downloadedFile.FullName);
             foreach (var entry in archive.Entries)
             {
+                token.ThrowIfCancellationRequested();
                 if (entry.IsDirectory)
                 {
                     continue;
                 }
 
-                log.LogDebug($"Extracting {entry.Key}...");
+                //log.LogDebug($"Extracting {entry.Key}...");
                 entry.WriteToDirectory(modDir.FullName, options);
             }
         }
@@ -507,7 +520,7 @@ public class FfClient
             return null;
         }
 
-        return long.Parse(parts.Last());
+        return long.Parse(parts.Last(), CultureInfo.InvariantCulture);
     }
 
     private static string BbCodeToMarkdown(string input)

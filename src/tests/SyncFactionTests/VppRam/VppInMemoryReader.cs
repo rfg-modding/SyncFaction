@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using ICSharpCode.SharpZipLib;
 using Kaitai;
 
 namespace SyncFactionTests.VppRam;
 
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public class VppInMemoryReader
 {
     public LogicalInMemoryArchive Read(Stream source, string name, CancellationToken token)
@@ -40,7 +43,7 @@ public class VppInMemoryReader
             var streamSize = "(unknown)";
             if (vppInMemory.M_Io.BaseStream is MemoryStream ms)
             {
-                streamSize = ms.Length.ToString();
+                streamSize = ms.Length.ToString(CultureInfo.InvariantCulture);
             }
 
             var msg = $"Failed to unzip data. Stream size = [{streamSize}]. Header = [{vppInMemory.Header}]";

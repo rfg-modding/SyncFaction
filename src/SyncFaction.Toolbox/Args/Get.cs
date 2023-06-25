@@ -2,11 +2,13 @@ using System.CommandLine;
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using SyncFaction.Toolbox.Models;
 
 namespace SyncFaction.Toolbox.Args;
 
+[SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "Why not?")]
 public class Get : Command
 {
     private readonly Argument<string> archiveArg = new("archive", "vpp_pc to unpack, globs allowed");

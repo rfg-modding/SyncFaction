@@ -68,7 +68,7 @@ public class FileManager
             }
         }
 
-        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Directory.IsVppDirectory()).Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex))).Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant())).Where(x => x.IsModContent());
+        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Directory.IsVppDirectory()).Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex, StringComparison.OrdinalIgnoreCase))).Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant())).Where(x => x.IsModContent());
 
         foreach (var modFile in individualModFiles)
         {

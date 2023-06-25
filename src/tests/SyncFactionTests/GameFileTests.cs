@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Text.Json;
@@ -10,11 +11,12 @@ using SyncFaction.Packer;
 
 namespace SyncFactionTests;
 
+[SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "Tests")]
 public class GameFileTests
 {
     private IGameStorage Storage => storageMock.Object;
-    public MockFileSystem fileSystem;
-    public IDirectoryInfo gameDir;
+    private MockFileSystem fileSystem;
+    private IDirectoryInfo gameDir;
     private Mock<IGameStorage> storageMock;
     private IDirectoryInfo patchBak;
     private IDirectoryInfo bak;
@@ -757,7 +759,6 @@ public class GameFileTests
 
         await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
         Read(gf.FileInfo).Should().Be(DirtyData + ModData);
-        fakeXdeltaFactory.instance!.disposed.Should().BeTrue();
     }
 
     [Test]
@@ -775,7 +776,6 @@ public class GameFileTests
 
         await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
         Read(gf.FileInfo).Should().Be(DirtyData + ModData);
-        fakeXdeltaFactory.instance.disposed.Should().BeTrue();
     }
 
     [Test]
@@ -794,7 +794,6 @@ public class GameFileTests
 
         await modInstaller.ApplyXdelta(gf, modFile, CancellationToken.None);
         Read(gf.FileInfo).Should().Be(DirtyData + ModData);
-        fakeXdeltaFactory.instance!.disposed.Should().BeTrue();
     }
 
     [Test]

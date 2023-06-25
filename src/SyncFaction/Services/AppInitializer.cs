@@ -40,7 +40,7 @@ public class AppInitializer
         viewModel.Model.FromState(stateFromFile);
         var firstLaunch = appStorage.Init();
         OnFirstLaunch(firstLaunch);
-        var threadCount = viewModel.Model.GetThreadCount();
+        var threadCount = viewModel.Model.CalculateThreadCount();
         viewModel.Model.IsGog = await ValidateSteamOrGog(viewModel.Model.IsGog, appStorage, threadCount, token);
         InitStateProvider(viewModel.Model);
         return true;

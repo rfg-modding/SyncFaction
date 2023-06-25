@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using ICSharpCode.SharpZipLib;
 using Kaitai;
 
@@ -5,6 +7,7 @@ namespace SyncFaction.Packer;
 
 public class VppReader
 {
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "I dont care about disposing wrappers")]
     public LogicalArchive Read(Stream source, string name, CancellationToken token)
     {
         var s = new KaitaiStream(source);
@@ -40,7 +43,7 @@ public class VppReader
             var streamSize = "(unknown)";
             if (vpp.M_Io.BaseStream is MemoryStream ms)
             {
-                streamSize = ms.Length.ToString();
+                streamSize = ms.Length.ToString(CultureInfo.InvariantCulture);
             }
 
             var msg = $"Failed to unzip data. Stream size = [{streamSize}]. Header = [{vpp.Header}]";

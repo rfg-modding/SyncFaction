@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace SyncFaction.Packer;
@@ -15,5 +16,7 @@ public record LogicalFile(Stream Content, string Name, int Order, string? Info, 
     public uint CompressedSize { get; set; } = 0xFFFFFFFFu;
 
     public uint Offset { get; set; }
-    public Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
+
+    [SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "Why not?")]
+    public readonly Lazy<byte[]> NameCString = new(() => Encoding.ASCII.GetBytes(Name + "\0"));
 }

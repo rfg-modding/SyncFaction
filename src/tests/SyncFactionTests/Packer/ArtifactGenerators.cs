@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using FluentAssertions;
@@ -8,6 +10,7 @@ using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;
 
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public class ArtifactGenerators
 {
     [OneTimeSetUp]
@@ -148,7 +151,7 @@ public class ArtifactGenerators
             var dstFile = Path.Combine(subdir.FullName, $"{logicalFile.Order:D5}_" + logicalFile.Name);
             System.IO.File.WriteAllBytes(dstFile, logicalFile.Content);
 
-            if (logicalFile.Name.ToLower().EndsWith(".str2_pc"))
+            if (logicalFile.Name.ToLowerInvariant().EndsWith(".str2_pc", StringComparison.OrdinalIgnoreCase))
             {
                 // we need to go deeper. run other tests again to see how they process extracted files
             }
@@ -161,7 +164,7 @@ public class ArtifactGenerators
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
     public void CalculateHashes(FileInfo fileInfo)
     {
-        if (fileInfo.Extension.ToLower() != ".vpp_pc")
+        if (fileInfo.Extension.ToLowerInvariant() != ".vpp_pc")
         {
             Assert.Ignore("This test starts from base vpp archives");
         }
@@ -188,7 +191,7 @@ public class ArtifactGenerators
         {
             var length = file.streamed.Content is InflaterInputStream
                 ? "unsupported"
-                : file.streamed.Content.Length.ToString();
+                : file.streamed.Content.Length.ToString(CultureInfo.InvariantCulture);
             var info = @$"{file.ram.Order} {file.ram.Name}
 ram len={file.ram.Content.Length} stream len={length}
 {file.streamed.Content.ToString()}";
@@ -226,7 +229,7 @@ ram len={file.ram.Content.Length} stream len={length}
         }
     }
 
-    public void HashRecursive(Stream stream, string name, string? parentKey)
+    private void HashRecursive(Stream stream, string name, string? parentKey)
     {
         var key = parentKey == null
             ? name
@@ -235,7 +238,7 @@ ram len={file.ram.Content.Length} stream len={length}
 
         var hashString = TestUtils.ComputeHash(stream);
         stream.Position = 0;
-        if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
+        if (name.EndsWith(".str2_pc", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
         {
             // this is just for reading flags. actual data is read later
             var vpp = new RfgVppInMemory(new KaitaiStream(stream));
@@ -254,7 +257,7 @@ ram len={file.ram.Content.Length} stream len={length}
         AllHashes[key] = hashString;
         stream.Position = 0;
 
-        if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
+        if (name.EndsWith(".str2_pc", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine($"read {key}");
             var entries = new VppInMemoryReader().Read(stream, key, CancellationToken.None).LogicalFiles;
@@ -266,11 +269,11 @@ ram len={file.ram.Content.Length} stream len={length}
         }
     }
 
-    public static IEnumerable<LogicalInMemoryFile> PatchFiles(IEnumerable<LogicalInMemoryFile> files)
+    private static IEnumerable<LogicalInMemoryFile> PatchFiles(IEnumerable<LogicalInMemoryFile> files)
     {
         foreach (var logicalFile in files)
         {
-            if (Path.GetExtension(logicalFile.Name).ToLower() == ".str2_pc")
+            if (Path.GetExtension(logicalFile.Name).ToLowerInvariant() == ".str2_pc")
             {
                 var repackStr2 = RepackStr2(logicalFile);
                 yield return logicalFile with { Content = repackStr2 };
@@ -282,11 +285,11 @@ ram len={file.ram.Content.Length} stream len={length}
         }
     }
 
-    public static IEnumerable<LogicalFile> PatchFiles(IEnumerable<LogicalFile> files)
+    private static IEnumerable<LogicalFile> PatchFiles(IEnumerable<LogicalFile> files)
     {
         foreach (var logicalFile in files)
         {
-            if (Path.GetExtension(logicalFile.Name).ToLower() == ".str2_pc")
+            if (Path.GetExtension(logicalFile.Name).ToLowerInvariant() == ".str2_pc")
             {
                 var repackStr2 = RepackStr2(logicalFile);
                 yield return logicalFile with { Content = repackStr2 };

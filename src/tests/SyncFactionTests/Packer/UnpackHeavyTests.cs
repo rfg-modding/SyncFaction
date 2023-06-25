@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
@@ -6,6 +7,7 @@ using SyncFactionTests.VppRam;
 namespace SyncFactionTests.Packer;
 
 [Explicit("Depend on paths tied to steam version")]
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public class UnpackHeavyTests
 {
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllArchiveFiles))]
@@ -52,7 +54,7 @@ public class UnpackHeavyTests
 
         foreach (var entryData in vpp.BlockEntryData.Value)
         {
-            if (entryData.XName.EndsWith(".precache") && entryData.Value.File.Length == 4)
+            if (entryData.XName.EndsWith(".precache", StringComparison.OrdinalIgnoreCase) && entryData.Value.File.Length == 4)
             {
                 // small precache files are always empty
                 entryData.Value.File.All(x => x == 0).Should().BeTrue(entryData.ToString());
@@ -229,7 +231,7 @@ public class UnpackHeavyTests
         readingOffset.Should().Be(vpp.Header.LenData);
     }
 
-    public static byte[] ReadBytes(Stream stream, int count, CancellationToken cancellationToken)
+    private static byte[] ReadBytes(Stream stream, int count, CancellationToken cancellationToken)
     {
         using var ms = new MemoryStream();
         RfgVppInMemory.CopyStream(stream, ms, count, cancellationToken);

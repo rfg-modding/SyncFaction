@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
@@ -5,7 +6,7 @@ using Kaitai;
 
 namespace SyncFaction.Packer;
 
-public class VppWriter : IDisposable
+public sealed class VppWriter : IDisposable
 {
     private readonly IList<LogicalFile> logicalFiles;
     private readonly RfgVpp.HeaderBlock.Mode mode;
@@ -224,7 +225,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
             * compacted vpp (both flags, 16)
         */
 
-        var ext = Path.GetExtension(logicalArchive.Name).ToLower();
+        var ext = Path.GetExtension(logicalArchive.Name).ToLower(CultureInfo.InvariantCulture);
         // all str2 are the same
         if (ext == ".str2_pc")
         {

@@ -52,7 +52,7 @@ public static class TestUtils
     private static List<TestCaseData> InitAllModInfoOnce()
     {
         var modsDir = new DirectoryInfo(Path.Combine(DefaultPath, "mods"));
-        return modsDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => x.Name.ToLower() == "modinfo.xml").OrderBy(x => x.FullName).Select(x => new TestCaseData(x).SetArgDisplayNames(x.FullName.Substring(modsDir.FullName.Length + 1))).ToList();
+        return modsDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => x.Name.ToLowerInvariant() == "modinfo.xml").OrderBy(x => x.FullName).Select(x => new TestCaseData(x).SetArgDisplayNames(x.FullName.Substring(modsDir.FullName.Length + 1))).ToList();
     }
 
     public const string DefaultPath = @"C:\Program Files (x86)\GOG Galaxy\Games\Red Faction Guerrilla Re-Mars-tered";
@@ -63,7 +63,7 @@ public static class TestUtils
 
     private static readonly IEnumerable<TestCaseData> AllVppFilesOnce = Hashes.Vpp.Concat(Hashes.Gog)
         .Select(x => x.Key)
-        .Where(x => x.ToLowerInvariant().EndsWith(".vpp_pc"))
+        .Where(x => x.ToLowerInvariant().EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
         //.Where(x => x.Contains("table") || x.Contains("anims"))
         .OrderBy(x => x)
         .Select(x => Path.Combine(DefaultPath, x))

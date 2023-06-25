@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -8,6 +9,7 @@ namespace SyncFaction.Converters;
 /// <summary>
 /// Converts tab enum value to Visibility=Visible
 /// </summary>
+[SuppressMessage("Performance", "CA1806:Do not ignore method results", Justification = "Parsing has fallback value")]
 public class TabSelectedByTypeVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

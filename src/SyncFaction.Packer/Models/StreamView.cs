@@ -1,4 +1,6 @@
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
 namespace SyncFaction.Packer;
@@ -17,7 +19,10 @@ public sealed class StreamView : Stream
     public override long Length { get; }
 
     public override long Position { get; set; }
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "This class does not own stream")]
     private readonly Stream stream;
+
     private readonly long viewStart;
 
     public StreamView(Stream stream, long viewStart, long viewLength)
@@ -139,7 +144,7 @@ public sealed class StreamView : Stream
     {
         var length = stream is InflaterInputStream
             ? "unsupported"
-            : stream.Length.ToString();
+            : stream.Length.ToString(CultureInfo.InvariantCulture);
         return $"stream: len={length} pos={stream.Position}, view: start={viewStart}, len={Length}, pos={Position}";
     }
 }

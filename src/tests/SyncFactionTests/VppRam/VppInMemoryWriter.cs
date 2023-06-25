@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
@@ -5,7 +6,7 @@ using SyncFaction.Packer;
 
 namespace SyncFactionTests.VppRam;
 
-public class VppInMemoryWriter : IDisposable
+public sealed class VppInMemoryWriter : IDisposable
 {
     private readonly IList<LogicalInMemoryFile> logicalFiles;
     private readonly RfgVppInMemory.HeaderBlock.Mode mode;
@@ -225,7 +226,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
             * compacted vpp (both flags, 16)
         */
 
-        var ext = Path.GetExtension(logicalInMemoryArchive.Name).ToLower();
+        var ext = Path.GetExtension(logicalInMemoryArchive.Name).ToLowerInvariant();
         // all str2 are the same
         if (ext == ".str2_pc")
         {

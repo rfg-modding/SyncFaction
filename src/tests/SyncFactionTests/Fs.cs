@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO.Abstractions.TestingHelpers;
 using System.Text;
 using FluentAssertions;
@@ -7,6 +8,7 @@ using SyncFaction.Core.Services.Files;
 namespace SyncFactionTests;
 
 [SuppressMessage("ReSharper", "InconsistentNaming")]
+[SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "Tests")]
 public static class Fs
 {
     public static MockFileSystem Init(Action<MockFileSystem>? action = null)
@@ -65,7 +67,7 @@ Expected:
         {
             if (d.TryGetValue(key, out var value))
             {
-                return value == ""
+                return string.IsNullOrEmpty(value)
                     ? "(empty)"
                     : value;
             }
@@ -104,7 +106,7 @@ Expected:
             var ok = x.act == x.exp
                 ? "✓"
                 : " ";
-            sb.AppendLine($"{key}║{exp}║{act}║{ok}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{key}║{exp}║{act}║{ok}");
         }
 
         Serialize(new Row("PATH", $"EXPCTD {expected.Count}", $"ACTUAL {actual.Count}"));
@@ -274,17 +276,15 @@ Expected:
 
         public static KeyValuePair<string, string> InitHash(string fileName) => new(fileName, $"hash of {fileName}");
 
-        public static IDictionary<string, string> Empty = MakeHashes(new string[]
-        {
-        });
+        public static readonly IDictionary<string, string> Empty = MakeHashes(Array.Empty<string>());
 
-        public static IDictionary<string, string> ExeDll = MakeHashes(new[]
+        public static readonly IDictionary<string, string> ExeDll = MakeHashes(new[]
         {
             Names.Exe,
             Names.Dll
         });
 
-        public static IDictionary<string, string> StockInAllDirs = MakeHashes(new[]
+        public static readonly IDictionary<string, string> StockInAllDirs = MakeHashes(new[]
         {
             Names.Exe,
             "data/" + Names.Vpp,
@@ -294,7 +294,7 @@ Expected:
 
         public static class Data
         {
-            public static IDictionary<string, string> Vpp = MakeHashes(new[]
+            public static readonly IDictionary<string, string> Vpp = MakeHashes(new[]
             {
                 "data/" + Names.Vpp
             });

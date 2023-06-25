@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using FluentAssertions;
 using SyncFactionTests.VppRam;
@@ -5,9 +6,10 @@ using SyncFactionTests.VppRam;
 namespace SyncFactionTests.Packer;
 
 [Explicit("Depend on paths tied to steam version")]
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Tests")]
 public class HashTests
 {
-    public static Dictionary<string, string> AllHashes = new();
+    private static Dictionary<string, string> allHashes = new();
 
     [OneTimeSetUp]
     public void LoadHashes()
@@ -16,7 +18,7 @@ public class HashTests
         using var s = file.OpenRead();
         using var sr = new StreamReader(s);
         var text = sr.ReadToEnd();
-        AllHashes = JsonSerializer.Deserialize<Dictionary<string, string>>(text)!;
+        allHashes = JsonSerializer.Deserialize<Dictionary<string, string>>(text)!;
     }
 
     [TestCaseSource(typeof(TestUtils), nameof(TestUtils.AllVppFiles))]
@@ -27,7 +29,7 @@ public class HashTests
         CheckHashRecursive(fileStream, key, null);
     }
 
-    public void CheckHashRecursive(Stream stream, string name, string? parentKey)
+    private void CheckHashRecursive(Stream stream, string name, string? parentKey)
     {
         var key = parentKey == null
             ? name
@@ -38,14 +40,14 @@ public class HashTests
         stream.Position = 0;
 
         // archives themselves can be different, its ok
-        if (!(name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc")))
+        if (!(name.EndsWith(".str2_pc", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase)))
         {
             Console.WriteLine($"chck {key}");
             var expected = GetHash(key);
             hashString.Should().Be(expected, $"Key = {key}");
         }
 
-        if (name.EndsWith(".str2_pc") || name.EndsWith(".vpp_pc"))
+        if (name.EndsWith(".str2_pc", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
         {
             //Console.WriteLine($"read {key}");
             var entries = new VppInMemoryReader().Read(stream, key, CancellationToken.None).LogicalFiles;
@@ -57,5 +59,5 @@ public class HashTests
         }
     }
 
-    private string GetHash(string key) => AllHashes[key].Split(" ")[0];
+    private string GetHash(string key) => allHashes[key].Split(" ")[0];
 }

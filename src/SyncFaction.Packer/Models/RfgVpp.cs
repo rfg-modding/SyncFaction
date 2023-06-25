@@ -93,13 +93,12 @@ public partial class RfgVpp
             throw new InvalidOperationException($"Actual decompressed length {ms.Length} is not equal to expected {decompressedLength}");
         }
 
-        var view = new StreamView(ms, 0, decompressedLength);
         Header.Flags.OverrideFlagsNone();
         foreach (var entryData in BlockEntryData.Value)
         {
             token.ThrowIfCancellationRequested();
             entryData.OverrideAlignmentSize(alignment);
-            entryData.OverrideData(new StreamView(view, entryData.XDataOffset, entryData.XLenData));
+            entryData.OverrideData(new StreamView(new StreamView(ms, 0, decompressedLength), entryData.XDataOffset, entryData.XLenData));
         }
     }
 

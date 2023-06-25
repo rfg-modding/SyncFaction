@@ -2,6 +2,7 @@ namespace SyncFaction.Core.Services.FactionFiles;
 
 public enum Category
 {
+    None = 0,
     Artwork = 37,
     MapsStandalone = 44,
     MapsPatches = 45,

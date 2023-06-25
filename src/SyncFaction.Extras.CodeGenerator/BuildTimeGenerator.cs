@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Globalization;
+using Microsoft.CodeAnalysis;
 
 namespace SyncFaction.Extras;
 
@@ -21,7 +22,7 @@ namespace SyncFaction.Extras
     public static class {typeName}
     {{
         public static string GetValue() =>
-            ""{DateTime.Now.ToString("yyyy-MM-dd HH:mm")}"";
+            ""{DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}"";
     }}
 }}
 ";

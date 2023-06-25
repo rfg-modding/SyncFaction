@@ -3,7 +3,7 @@ using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Services;
 
-public class UiLogBridgeProvider : ILoggerProvider
+public sealed class UiLogBridgeProvider : ILoggerProvider
 {
     private readonly IStateProvider stateProvider;
     private readonly MarkdownRender render;

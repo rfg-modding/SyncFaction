@@ -52,13 +52,13 @@ public static class XmlHelper
             "add" => ListAction.Add,
             "replace" => ListAction.Replace,
             {
-            } s when s.StartsWith("combine_by_field:") => ListAction.CombineByField,
+            } s when s.StartsWith("combine_by_field:", StringComparison.OrdinalIgnoreCase) => ListAction.CombineByField,
 
             // TODO MM has logic for these actions but no mods use them:
             "combine_by_text" => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action"),
             "combine_by_index" => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action"),
             {
-            } s when s.StartsWith("combine_by_attribute:") => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action"),
+            } s when s.StartsWith("combine_by_attribute:", StringComparison.OrdinalIgnoreCase) => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action"),
 
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action")
         };
@@ -85,7 +85,7 @@ public static class XmlHelper
     {
         var xmlText = GetNodeOrSubnodeText(node);
 
-        if (textString == string.Empty)
+        if (string.IsNullOrEmpty(textString))
         {
             if (xmlText is not null)
             {
@@ -119,7 +119,7 @@ public static class XmlHelper
 
         foreach (XmlAttribute attribute in source.Attributes)
         {
-            if (!attribute.LocalName.Equals(ListActionAttribute, StringComparison.InvariantCultureIgnoreCase))
+            if (!attribute.LocalName.Equals(ListActionAttribute, StringComparison.OrdinalIgnoreCase))
             {
                 var newAttr = target.OwnerDocument.CreateAttribute(attribute.LocalName);
                 newAttr.Value = attribute.InnerText;
@@ -132,7 +132,7 @@ public static class XmlHelper
     {
         foreach (XmlAttribute attribute in node.Attributes)
         {
-            if (attribute.LocalName.Equals(ListActionAttribute, StringComparison.InvariantCultureIgnoreCase) && !string.IsNullOrWhiteSpace(attribute.InnerText))
+            if (attribute.LocalName.Equals(ListActionAttribute, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(attribute.InnerText))
             {
                 return attribute.InnerText;
             }
@@ -177,5 +177,5 @@ public static class XmlHelper
         "gtodx"
     }.ToImmutableHashSet();
 
-    public static string ListActionAttribute = "list_action";
+    public const string ListActionAttribute = "list_action";
 }

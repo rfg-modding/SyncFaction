@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
@@ -43,7 +44,7 @@ public class Archiver
         log.LogInformation("Flags: xmlFormat={xmlFormat} force={force}", settings.XmlFormat, settings.Force);
 
         var sw = Stopwatch.StartNew();
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         var metadata = new Metadata();
         var tasks = archivePaths.Select(archivePath => new FileInfo(archivePath)).Select(x => UnpackArchive(x, output, matcher, settings, string.Empty, cts.Token)).ToList();
 
@@ -53,7 +54,7 @@ public class Archiver
         {
             var batch = tasks.Take(batchSize).ToList();
             var completed = await Task.WhenAny(batch);
-            var result = completed.Result;
+            var result = await completed;
             metadata.Add(result.RelativePath, result.ArchiveMetadata);
             tasks.AddRange(result.MoreTasks);
             tasks.Remove(completed);
@@ -76,10 +77,10 @@ public class Archiver
         var sb = new StringBuilder();
         foreach (var (key, (name, mode, size, entryCount, hash, metaEntries)) in metadata)
         {
-            sb.AppendLine($"{key}\t\t{mode}, {entryCount} entries, {size} bytes, {hash}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{key}\t\t{mode}, {entryCount} entries, {size} bytes, {hash}");
             foreach (var (eKey, (eName, order, offset, eSize, compressedSize, eHash)) in metaEntries)
             {
-                sb.AppendLine($"{key}\\{eKey}\t\t{order}, {eSize} bytes, {eHash}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"{key}\\{eKey}\t\t{order}, {eSize} bytes, {eHash}");
             }
         }
 

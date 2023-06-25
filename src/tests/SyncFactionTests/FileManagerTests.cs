@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions.TestingHelpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ using static SyncFactionTests.Fs;
 
 namespace SyncFactionTests;
 
+[SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "Tests")]
 public class FileManagerTests
 {
     private static readonly Mock<IVppArchiver> archiverMock = new();
@@ -121,7 +123,7 @@ public class FileManagerTests
             x.TestFile().Data("7").Name(".mod_unsupported7.vpp_pc").In(Mod1.Root);
             x.TestFile().Data("8").Name(".mod_unsupported8.exe").In(Mod1.Data);
         });
-        var expected = fs.Clone(x =>
+        var expected = fs.Clone(_ =>
         {
         });
         var hashes = Hashes.ExeDll;

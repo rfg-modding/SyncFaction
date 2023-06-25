@@ -1,16 +1,17 @@
+using System.Diagnostics.CodeAnalysis;
 using PleOps.XdeltaSharp;
 using SyncFaction.Core.Services.Files;
 
 namespace SyncFactionTests;
 
-public class FakeXdeltaConcat : IXdelta
+[SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "This class does not own disposable objects")]
+public sealed class FakeXdeltaConcat : IXdelta
 {
     private readonly Stream srcStream;
     private readonly Stream patchStream;
     private readonly Stream dstStream;
-    public bool disposed;
 
-    public event ProgressChangedHandler? ProgressChanged;
+    public event ProgressChangedHandler ProgressChanged;
 
     public FakeXdeltaConcat(Stream srcStream, Stream patchStream, Stream dstStream)
     {
@@ -19,7 +20,7 @@ public class FakeXdeltaConcat : IXdelta
         this.dstStream = dstStream;
     }
 
-    public void Dispose() => disposed = true;
+    public void Dispose() { }
 
     public void Run()
     {

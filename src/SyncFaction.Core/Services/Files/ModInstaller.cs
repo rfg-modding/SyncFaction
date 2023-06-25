@@ -151,7 +151,7 @@ public class ModInstaller : IModInstaller
 
     internal virtual bool Skip(GameFile gameFile, IFileInfo modFile)
     {
-        log.LogInformation($"+ Skipped unsupported mod file `{modFile.Name}`");
+        log.LogInformation("+ Skipped unsupported mod file `{file}`", modFile.Name);
         return true;
     }
 
@@ -169,7 +169,7 @@ public class ModInstaller : IModInstaller
     {
         EnsureDirectoriesCreated(gameFile.FileInfo);
         modFile.CopyTo(gameFile.FileInfo.FullName, true);
-        log.LogInformation($"+ Copied `{modFile.Name}`");
+        log.LogInformation("+ Copied `{file}`", modFile.Name);
         return true;
     }
 
@@ -184,15 +184,15 @@ public class ModInstaller : IModInstaller
         {
             using var decoder = xdeltaFactory.Create(srcStream, patchStream, dstStream);
             // TODO log progress
-            decoder.ProgressChanged += progress => { token.ThrowIfCancellationRequested(); };
+            decoder.ProgressChanged += _ => { token.ThrowIfCancellationRequested(); };
             decoder.Run();
 
-            log.LogInformation($"+ **Patched** `{modFile.Name}`");
+            log.LogInformation("+ **Patched** `{file}`", modFile.Name);
             return true;
         }
         catch (Exception e)
         {
-            log.LogError(e, $"XDelta failed: [{srcFile.FullName}] + [{modFile.FullName}] -> [{dstFile.FullName}]");
+            log.LogError(e, "XDelta failed: [{src}] + [{mod}] -> [{dst}]", srcFile.FullName, modFile.FullName, dstFile.FullName);
             throw;
         }
     }

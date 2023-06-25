@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -99,7 +100,7 @@ public class AppStorage : IAppStorage
             ? nameof(Hashes.Gog)
             : nameof(Hashes.Steam);
         // not checking version-specific VPP files just to detect version, it's very slow
-        var result = Parallel.ForEach(files.Where(x => !x.Key.EndsWith(".vpp_pc")).OrderBy(x => x.Key),
+        var result = Parallel.ForEach(files.Where(x => !x.Key.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Key),
             new ParallelOptions
             {
                 CancellationToken = token,
@@ -125,6 +126,7 @@ public class AppStorage : IAppStorage
         return result.IsCompleted;
     }
 
+    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "I know registry is windows-only")]
     public static async Task<string> DetectGameLocation(ILogger log, CancellationToken token)
     {
         var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -168,7 +170,7 @@ public class AppStorage : IAppStorage
         }
         catch (Exception ex)
         {
-            log.LogDebug($"Could not autodetect GOG location: {ex.Message}");
+            log.LogDebug(ex, "Could not autodetect GOG location");
         }
 
         try
@@ -187,7 +189,7 @@ public class AppStorage : IAppStorage
                 var gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
                 foreach (var location in locations)
                 {
-                    log.LogDebug($"Trying library at `{location}`...");
+                    log.LogDebug("Trying library at `{location}`...", location);
                     var gameDir = Path.Combine(location, gamePath);
                     if (Directory.Exists(gameDir))
                     {
@@ -198,7 +200,7 @@ public class AppStorage : IAppStorage
         }
         catch (Exception ex)
         {
-            log.LogDebug($"Could not autodetect Steam location: {ex.Message}");
+            log.LogDebug(ex, "Could not autodetect Steam location");
         }
 
         log.LogInformation("Game is not found nearby, in Gog via registry, or in any of Steam libraries!");
