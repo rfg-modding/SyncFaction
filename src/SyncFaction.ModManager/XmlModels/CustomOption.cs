@@ -23,7 +23,7 @@ public class CustomOption : IOption
     public string? Value { get; set; }
 
     /// <summary>
-    /// For debug printing with Newtonsoft serializer
+    /// For debug printing as json
     /// </summary>
     public bool ShouldSerializeValueHolder() => false;
 }

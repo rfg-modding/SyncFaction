@@ -6,7 +6,7 @@ namespace SyncFaction.ModManager.XmlModels;
 public abstract class HasNestedXml
 {
     /// <summary>
-    /// For debug printing with Newtonsoft serializer
+    /// For debug printing as json
     /// </summary>
     [XmlIgnore]
     public string NestedString => string.Join("\n", NestedXml.Select(o => o.OuterXml).ToList());
@@ -16,7 +16,7 @@ public abstract class HasNestedXml
     public List<XmlNode> NestedXml { get; set; }
 
     /// <summary>
-    /// For debug printing with Newtonsoft serializer
+    /// For debug printing as json
     /// </summary>
     public bool ShouldSerializeNestedXml() => false;
 }

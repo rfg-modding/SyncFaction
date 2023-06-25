@@ -21,7 +21,7 @@ public class DefaultOption : IOption
     }
 
     /// <summary>
-    /// For debug printing with Newtonsoft serializer
+    /// For debug printing as json
     /// </summary>
     public bool ShouldSerializeValueHolder() => false;
 }

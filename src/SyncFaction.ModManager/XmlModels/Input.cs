@@ -15,7 +15,7 @@ public abstract class Input
     public string DisplayName { get; set; }
 
     /// <summary>
-    /// For debug printing with Newtonsoft serializer
+    /// For debug printing as json
     /// </summary>
     public bool ShouldSerializeSelectedValue() => false;
 }

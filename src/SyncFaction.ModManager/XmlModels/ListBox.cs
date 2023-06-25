@@ -40,7 +40,7 @@ public class ListBox : Input
     public ListBox() => displayOptionsOnce = new Lazy<List<IOption>>(() => InitDisplayOptions().ToList());
 
     /// <summary>
-    /// For debug printing with Newtonsoft serializer
+    /// For debug printing as json
     /// </summary>
     public bool ShouldSerializeSelectedValue() => false;
 

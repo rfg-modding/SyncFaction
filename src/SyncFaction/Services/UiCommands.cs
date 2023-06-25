@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using FastHashes;
 using HTMLConverter;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using SyncFaction.Core;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
@@ -525,7 +524,7 @@ Then run SyncFaction again.
                 using (var reader = descriptionFile.OpenText())
                 {
                     var json = reader.ReadToEnd();
-                    var mod = JsonConvert.DeserializeObject<Mod>(json);
+                    var mod = JsonSerializer.Deserialize<Mod>(json);
                     if (mod.Hide && !devMode)
                     {
                         continue;

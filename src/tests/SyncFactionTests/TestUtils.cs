@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Newtonsoft.Json;
+using System.Text.Json;
 using SyncFaction.Core;
 
 namespace SyncFactionTests;
@@ -31,9 +31,8 @@ public static class TestUtils
 
     public static void PrintJson(object value)
     {
-        // STJ does not support polymorphic serialization!
-        //var json = JsonSerializer.Serialize(value, new JsonSerializerOptions(){WriteIndented = true});
-        var json = JsonConvert.SerializeObject(value, Formatting.Indented);
+        // STJ does not support polymorphic serialization! does cast to object work?
+        var json = JsonSerializer.Serialize(value, new JsonSerializerOptions(){WriteIndented = true});
         Console.WriteLine(json);
     }
 
