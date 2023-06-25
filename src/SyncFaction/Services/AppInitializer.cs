@@ -7,9 +7,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
-using SyncFaction.Services;
+using SyncFaction.ViewModels;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 /// <summary>
 /// UI-bound helper to load state and populate data.

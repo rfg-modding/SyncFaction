@@ -1,3 +1,5 @@
+using SyncFaction.Core.Models;
+
 namespace SyncFaction.Core.Services.FactionFiles;
 
 public interface IStateProvider

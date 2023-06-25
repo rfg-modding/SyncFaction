@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Globalization;
 using System.IO.Abstractions;
 using System.Net.Http.Headers;
 using System.Text;
@@ -11,12 +13,9 @@ using Microsoft.Extensions.Logging;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using SyncFaction.Core.Data;
+using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Extras;
-using System;
-using System.Buffers;
-using System.Globalization;
 
 namespace SyncFaction.Core.Services.FactionFiles;
 

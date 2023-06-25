@@ -9,7 +9,7 @@ using NLog.Extensions.Logging;
 using NLog.Filters;
 using NLog.Layouts;
 using NLog.Targets;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Services;
 using SyncFaction.Toolbox;
 using SyncFaction.Toolbox.Args;
 

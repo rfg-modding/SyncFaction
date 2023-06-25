@@ -1,4 +1,6 @@
-namespace SyncFaction.Packer;
+using SyncFaction.Packer.Models;
+
+namespace SyncFaction.Packer.Services;
 
 public interface IVppArchiver
 {

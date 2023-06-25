@@ -7,10 +7,11 @@ using System.Linq;
 using System.Text;
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Data;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core;
+using SyncFaction.Core.Models.FactionFiles;
+using SyncFaction.Models;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 public partial class ViewModel
 {

@@ -1,7 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
+using SyncFaction.Models;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 [INotifyPropertyChanged]
 public partial class LocalModViewModel : IModViewModel

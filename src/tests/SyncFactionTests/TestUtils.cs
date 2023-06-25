@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using Newtonsoft.Json;
-using SyncFaction.Core.Data;
+using SyncFaction.Core;
 
 namespace SyncFactionTests;
 

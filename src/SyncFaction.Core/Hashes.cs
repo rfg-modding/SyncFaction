@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace SyncFaction.Core.Data;
+namespace SyncFaction.Core;
 
 public static class Hashes
 {

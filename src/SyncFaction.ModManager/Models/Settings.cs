@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace SyncFaction.ModManager;
+namespace SyncFaction.ModManager.Models;
 
 public class Settings
 {

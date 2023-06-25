@@ -8,8 +8,9 @@ using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Core.Services.Xml;
 using SyncFaction.ModManager;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Services;
 using SyncFaction.Services;
+using SyncFaction.ViewModels;
 
 namespace SyncFaction;
 

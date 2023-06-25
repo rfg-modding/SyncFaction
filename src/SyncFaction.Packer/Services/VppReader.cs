@@ -2,8 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ICSharpCode.SharpZipLib;
 using Kaitai;
+using SyncFaction.Packer.Models;
 
-namespace SyncFaction.Packer;
+namespace SyncFaction.Packer.Services;
 
 public class VppReader
 {

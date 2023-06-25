@@ -7,9 +7,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dark.Net;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Models;
 using SyncFaction.ModManager.XmlModels;
+using SyncFaction.Services;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 /// <summary>
 /// UI-bound app state

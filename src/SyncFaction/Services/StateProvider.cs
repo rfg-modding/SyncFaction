@@ -1,6 +1,7 @@
 using System;
-using SyncFaction.Core.Services;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.ViewModels;
 
 namespace SyncFaction.Services;
 

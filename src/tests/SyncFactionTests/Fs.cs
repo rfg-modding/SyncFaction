@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO.Abstractions.TestingHelpers;
 using System.Text;
 using FluentAssertions;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.Core.Services.Files;
 
 namespace SyncFactionTests;

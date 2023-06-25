@@ -1,6 +1,6 @@
-using SyncFaction.ModManager;
+using SyncFaction.ModManager.Models;
 
-namespace SyncFaction.Core.Services;
+namespace SyncFaction.Core.Models;
 
 /// <summary>
 /// Contains state of game, mods, app. Not bound to UI and is not "live".

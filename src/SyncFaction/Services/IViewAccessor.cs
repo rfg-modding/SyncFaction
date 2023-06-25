@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 public interface IViewAccessor
 {

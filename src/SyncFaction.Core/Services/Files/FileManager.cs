@@ -1,9 +1,8 @@
 using System.IO.Abstractions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Data;
-using SyncFaction.Core.Models;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.ModManager;
 
 namespace SyncFaction.Core.Services.Files;

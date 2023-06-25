@@ -1,4 +1,4 @@
-namespace SyncFaction.Packer;
+namespace SyncFaction.Packer.Models;
 
 public sealed class StreamWrapper : Stream
 {

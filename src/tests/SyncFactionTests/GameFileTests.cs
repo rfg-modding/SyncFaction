@@ -6,8 +6,9 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.Core.Services.Files;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Services;
 
 namespace SyncFactionTests;
 

@@ -1,5 +1,5 @@
 using FluentAssertions;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Services;
 using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;

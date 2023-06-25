@@ -1,8 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Models;
 
 namespace SyncFactionTests.VppRam;
 

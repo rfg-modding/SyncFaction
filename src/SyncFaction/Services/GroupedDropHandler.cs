@@ -6,9 +6,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using GongSolutions.Wpf.DragDrop;
+using SyncFaction.Models;
+using SyncFaction.ViewModels;
 using DragDrop = GongSolutions.Wpf.DragDrop.DragDrop;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 /// <summary>
 /// Adopted from drag-drop library samples

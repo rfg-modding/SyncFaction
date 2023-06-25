@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 [INotifyPropertyChanged]
 public partial class OnlineModViewModel : IModViewModel

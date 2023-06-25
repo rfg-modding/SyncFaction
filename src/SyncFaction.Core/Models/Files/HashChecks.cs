@@ -1,4 +1,4 @@
-namespace SyncFaction.Core.Models;
+namespace SyncFaction.Core.Models.Files;
 
 /// <summary>
 /// relative path => sha256

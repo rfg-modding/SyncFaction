@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
+using SyncFaction.Packer.Models;
 
-namespace SyncFaction.Packer;
+namespace SyncFaction.Packer.Services;
 
 public class VppArchiver : IVppArchiver
 {

@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Services;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Services;

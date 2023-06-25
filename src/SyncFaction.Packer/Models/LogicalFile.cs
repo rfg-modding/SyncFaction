@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace SyncFaction.Packer;
+namespace SyncFaction.Packer.Models;
 
 /// <summary>
 /// User-friendly representation of vpp entry

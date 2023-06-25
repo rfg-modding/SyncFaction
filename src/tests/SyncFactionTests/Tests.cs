@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.ModManager.XmlModels;
 

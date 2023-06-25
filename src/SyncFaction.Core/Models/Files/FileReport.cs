@@ -1,4 +1,4 @@
-namespace SyncFaction.Core.Models;
+namespace SyncFaction.Core.Models.Files;
 
 public record FileReport(string Path, long Size, string? Hash, DateTime Created, DateTime Modified, DateTime Accessed)
 {

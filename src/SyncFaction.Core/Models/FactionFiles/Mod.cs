@@ -1,10 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json.Serialization;
-using SyncFaction.Core.Data;
 using SyncFaction.ModManager.XmlModels;
 
-namespace SyncFaction.Core.Services.FactionFiles;
+namespace SyncFaction.Core.Models.FactionFiles;
 
 // TODO: split? this is a mix of transport model, convenient bag of properties to pass around, and a view model of sorts
 [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "Why not?")]

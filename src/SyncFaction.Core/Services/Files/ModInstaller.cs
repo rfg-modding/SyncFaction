@@ -1,8 +1,10 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.Core.Services.Xml;
 using SyncFaction.ModManager.Models;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Models;
+using SyncFaction.Packer.Services;
 
 namespace SyncFaction.Core.Services.Files;
 

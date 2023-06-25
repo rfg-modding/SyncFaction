@@ -1,4 +1,4 @@
-namespace SyncFaction;
+namespace SyncFaction.Models;
 
 public enum Tab
 {

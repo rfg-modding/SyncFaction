@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using Dark.Net;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Models;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 public partial class ViewModel
 {

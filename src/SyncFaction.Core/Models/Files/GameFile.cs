@@ -1,7 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
+using SyncFaction.Core.Services.Files;
 
-namespace SyncFaction.Core.Services.Files;
+namespace SyncFaction.Core.Models.Files;
 
 public class GameFile
 {

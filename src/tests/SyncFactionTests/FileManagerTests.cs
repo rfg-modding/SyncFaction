@@ -4,10 +4,11 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.ModManager;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Services;
 using static SyncFactionTests.Fs;
 
 namespace SyncFactionTests;

@@ -3,7 +3,6 @@ using System.IO.Abstractions;
 using System.Text;
 using System.Xml;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Data;
 
 namespace SyncFaction.Core;
 

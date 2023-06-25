@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
-using SyncFaction.Core.Data;
+using SyncFaction.Core.Models;
 
 namespace SyncFaction.Core.Services.Files;
 

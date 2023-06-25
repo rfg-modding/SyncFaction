@@ -2,7 +2,7 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.XmlModels;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Models;
 
 namespace SyncFaction.Core.Services.Xml;
 

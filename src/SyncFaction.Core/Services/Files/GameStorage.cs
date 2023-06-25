@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Data;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
+using SyncFaction.Core.Models.Files;
 
 namespace SyncFaction.Core.Services.Files;
 

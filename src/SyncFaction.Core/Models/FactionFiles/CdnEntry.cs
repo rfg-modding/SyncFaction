@@ -1,8 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FastHashes;
-using SyncFaction.Core.Data;
 
-namespace SyncFaction.Core.Services.FactionFiles;
+namespace SyncFaction.Core.Models.FactionFiles;
 
 public class CdnEntry
 {

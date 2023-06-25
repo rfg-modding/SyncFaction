@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using SyncFaction.Models;
 
 namespace SyncFaction.Converters;
 

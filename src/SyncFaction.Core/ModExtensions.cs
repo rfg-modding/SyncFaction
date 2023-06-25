@@ -1,4 +1,6 @@
-namespace SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
+
+namespace SyncFaction.Core;
 
 public static class ModExtensions
 {

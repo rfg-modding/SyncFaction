@@ -5,7 +5,8 @@ using System.Text.Json;
 using FluentAssertions;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using Kaitai;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Models;
+using SyncFaction.Packer.Services;
 using SyncFactionTests.VppRam;
 
 namespace SyncFactionTests.Packer;

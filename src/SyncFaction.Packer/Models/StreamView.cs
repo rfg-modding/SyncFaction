@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
-namespace SyncFaction.Packer;
+namespace SyncFaction.Packer.Models;
 
 /// <summary>
 /// TODO check for +-1 byte bugs
@@ -28,7 +28,7 @@ public sealed class StreamView : Stream
     public StreamView(Stream stream, long viewStart, long viewLength)
     {
         this.stream = stream;
-        this.Length = viewLength;
+        Length = viewLength;
         this.viewStart = viewStart;
         Position = 0;
     }

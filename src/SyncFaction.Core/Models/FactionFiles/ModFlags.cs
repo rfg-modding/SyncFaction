@@ -1,4 +1,4 @@
-namespace SyncFaction.Core.Services.FactionFiles;
+namespace SyncFaction.Core.Models.FactionFiles;
 
 [Flags]
 public enum ModFlags

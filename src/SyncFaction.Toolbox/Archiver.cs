@@ -8,7 +8,8 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
 using SyncFaction.Core.Services.Xml;
-using SyncFaction.Packer;
+using SyncFaction.Packer.Models;
+using SyncFaction.Packer.Services;
 using SyncFaction.Toolbox.Models;
 
 namespace SyncFaction.Toolbox;

@@ -1,3 +1,3 @@
-namespace SyncFaction.Core.Services.Files;
+namespace SyncFaction.Core.Models.Files;
 
 public record ApplyModResult(IReadOnlyList<GameFile> ModifiedFiles, bool Success);

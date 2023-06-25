@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Core.Models.FactionFiles;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "Why not?")]
 public interface IModViewModel

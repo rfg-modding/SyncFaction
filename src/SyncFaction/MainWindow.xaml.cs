@@ -7,10 +7,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Dark.Net;
-using Dark.Net.Wpf;
 using GongSolutions.Wpf.DragDrop.Utilities;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Services;
+using SyncFaction.ViewModels;
 
 namespace SyncFaction;
 

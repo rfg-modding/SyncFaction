@@ -13,16 +13,19 @@ using HTMLConverter;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SyncFaction.Core;
-using SyncFaction.Core.Data;
-using SyncFaction.Core.Models;
+using SyncFaction.Core.Models.FactionFiles;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Extras;
+using SyncFaction.Models;
 using SyncFaction.ModManager;
+using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.XmlModels;
+using SyncFaction.ViewModels;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace SyncFaction;
+namespace SyncFaction.Services;
 
 public class UiCommands
 {
@@ -69,7 +72,7 @@ public class UiCommands
         catch (Exception ex)
         {
             viewModel.LastException = ex.ToString();
-            log.LogError(ex, $"TODO better exception logging!");
+            log.LogError(ex, "TODO better exception logging!");
             //var exceptionText = string.Join("\n", ex.ToString().Split('\n').Select(x => $"`` {x} ``"));
             //render.Append("---");
             //render.Append(string.Format(Constants.ErrorFormat, description, exceptionText), false);
@@ -123,7 +126,7 @@ public class UiCommands
                     return;
                 }
 
-                var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
+                var files = string.Join(", ", modDir.GetFiles().Select<IFileInfo, string>(x => $"`{x.Name}`"));
                 //log.LogDebug($"Mod contents: {files}");
                 toProcess--;
                 viewModel.CurrentOperation = $"Downloading {toProcess} mods";

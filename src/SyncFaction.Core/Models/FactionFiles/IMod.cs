@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using SyncFaction.ModManager.XmlModels;
 
-namespace SyncFaction.Core.Services.FactionFiles;
+namespace SyncFaction.Core.Models.FactionFiles;
 
 public interface IMod
 {

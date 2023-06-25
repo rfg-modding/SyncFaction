@@ -1,4 +1,4 @@
-namespace SyncFaction.Core.Services.Files;
+namespace SyncFaction.Core.Models.Files;
 
 public enum FileKind
 {

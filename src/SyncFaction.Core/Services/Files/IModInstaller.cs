@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using SyncFaction.Core.Models.Files;
 using SyncFaction.ModManager.Models;
 
 namespace SyncFaction.Core.Services.Files;

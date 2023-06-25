@@ -5,12 +5,12 @@ using System.IO.Abstractions;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core.Data;
-using SyncFaction.Core.Services;
+using SyncFaction.Core;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.Files;
-using SyncFaction.ModManager;
+using SyncFaction.ModManager.Models;
 
-namespace SyncFaction;
+namespace SyncFaction.ViewModels;
 
 /// <summary>
 /// UI-bound live model, contains state of game, mods, app, excluding UI-only stuff

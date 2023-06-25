@@ -2,8 +2,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
+using Dark.Net;
 
-namespace Dark.Net.Wpf;
+namespace SyncFaction.Services;
 
 public class ElementSkinManager
 {
