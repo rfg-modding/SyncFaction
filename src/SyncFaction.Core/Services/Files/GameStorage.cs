@@ -70,21 +70,22 @@ public class GameStorage : AppStorage, IGameStorage
         }
     }
 
-    public Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token)
+    public async Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token)
     {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         log.LogWarning("Validating game contents. This is one-time thing, but going to take a while");
         // descending name order places bigger files earlier and this gives better check times
-        var result = Parallel.ForEach(VanillaHashes.OrderByDescending(x => x.Key),
+        var result = Parallel.ForEachAsync(VanillaHashes.OrderByDescending(x => x.Key),
             new ParallelOptions
             {
-                CancellationToken = token,
+                CancellationToken = cts.Token,
                 MaxDegreeOfParallelism = threadCount
             },
-            (kv, loopState) =>
+            async (kv, t) =>
             {
                 log.LogInformation("+ *Checking* {key}", kv.Key);
                 var file = new GameFile(this, kv.Key, fileSystem);
-                if (!file.IsVanillaByHash())
+                if (!await file.IsVanillaByHash(t))
                 {
                     log.LogError(@"Action needed:
 
@@ -99,11 +100,11 @@ Then run SyncFaction again.
 
 *See you later miner!*
 ", file.RelativePath);
-                    loopState.Stop();
+                    cts.Cancel();
                 }
             });
 
-        return Task.FromResult(result.IsCompleted);
+        return !cts.IsCancellationRequested;
     }
 
     private static void EnsureCreated(IDirectoryInfo dir)

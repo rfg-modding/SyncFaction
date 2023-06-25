@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -11,13 +12,15 @@ public class FileManager
 {
     private readonly ModTools modTools;
     private readonly IModInstaller modInstaller;
+    private readonly ParallelHelper parallelHelper;
 
     private readonly ILogger log;
 
-    public FileManager(ModTools modTools, IModInstaller modInstaller, ILogger<FileManager> log)
+    public FileManager(ModTools modTools, IModInstaller modInstaller, ParallelHelper parallelHelper, ILogger<FileManager> log)
     {
         this.modTools = modTools;
         this.modInstaller = modInstaller;
+        this.parallelHelper = parallelHelper;
         this.log = log;
     }
 
@@ -114,7 +117,7 @@ public class FileManager
         var hashFile = modDir.EnumerateFiles("*").FirstOrDefault(x => x.Name.Equals(Constants.HashFile, StringComparison.OrdinalIgnoreCase));
         if (hashFile != null)
         {
-            if (!Verify(storage, modDir, hashFile, token))
+            if (!await Verify(storage, modDir, hashFile, token))
             {
                 log.LogError("Hash check failed");
                 return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
@@ -134,7 +137,7 @@ public class FileManager
         return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), true);
     }
 
-    private bool Verify(IAppStorage appStorage, IDirectoryInfo modDir, IFileInfo hashFile, CancellationToken token)
+    private async Task<bool> Verify(IAppStorage appStorage, IDirectoryInfo modDir, IFileInfo hashFile, CancellationToken token)
     {
         // TODO report what's going on
         var fs = modDir.FileSystem;
@@ -150,7 +153,7 @@ public class FileManager
                 return false;
             }
 
-            var hash = appStorage.ComputeHash(file);
+            var hash = await appStorage.ComputeHash(file, token);
             if (hash != expectedHash)
             {
                 return false;
@@ -221,12 +224,17 @@ public class FileManager
         // don't automatically nuke patch_bak if restored to vanilla. this allows fast switch between vanilla and updated version
     }
 
-    public IEnumerable<FileReport> GenerateFileReport(IAppStorage storage, CancellationToken token)
+    public async Task<IReadOnlyList<FileReport>> GenerateFileReport(IAppStorage storage, int threadCount, CancellationToken token)
     {
         var fs = storage.App.FileSystem;
-        foreach (var info in storage.Game.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+        var entries = storage.Game.EnumerateFileSystemInfos("*", SearchOption.AllDirectories).ToList();
+        var results = new ConcurrentBag<FileReport>();
+        await parallelHelper.Execute(entries, ReportFile, threadCount, TimeSpan.FromSeconds(5), "Computing hashes", "files", token);
+        return results.ToList();
+
+        async Task ReportFile(IFileSystemInfo info, CancellationToken t)
         {
-            token.ThrowIfCancellationRequested();
+            t.ThrowIfCancellationRequested();
             var relativePath = fs.Path.GetRelativePath(storage.Game.FullName, info.FullName);
             var created = info.CreationTimeUtc;
             var modified = info.LastWriteTimeUtc;
@@ -234,13 +242,13 @@ public class FileManager
             switch (info)
             {
                 case IDirectoryInfo:
-                    yield return new FileReport(relativePath + "/", -1, null, created, modified, accessed);
+                    results.Add(new FileReport(relativePath + "/", -1, null, created, modified, accessed));
 
                     break;
                 case IFileInfo file:
                     var size = file.Length;
-                    var hash = storage.ComputeHash(file);
-                    yield return new FileReport(relativePath, size, hash, created, modified, accessed);
+                    var hash = await storage.ComputeHash(file, t);
+                    results.Add(new FileReport(relativePath, size, hash, created, modified, accessed));
 
                     break;
                 default:
@@ -248,6 +256,8 @@ public class FileManager
             }
         }
     }
+
+
 
     /// <summary>
     /// When terraform patch is diverged with installed things, nuke them to install from scratch. Otherwise, install only what's new, using patch_bak

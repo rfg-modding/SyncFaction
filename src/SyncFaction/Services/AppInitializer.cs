@@ -99,13 +99,13 @@ public class AppInitializer
         // SF did not have this flag before so it might be initialized as null
         // or it's first launch and it's really null
         log.LogWarning("Determining if it's Steam or GOG version");
-        if (appStorage.CheckFileHashes(false, threadCount, log, token))
+        if (await appStorage.CheckFileHashes(false, threadCount, log, token))
         {
             log.LogInformation("+ **Steam** version");
             return false;
         }
 
-        if (appStorage.CheckFileHashes(true, threadCount, log, token))
+        if (await appStorage.CheckFileHashes(true, threadCount, log, token))
         {
             log.LogInformation("+ **GOG** version");
             return true;

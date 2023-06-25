@@ -72,24 +72,24 @@ public class GameFile
     }
 
     [ExcludeFromCodeCoverage]
-    public string? ComputeHash()
+    public async Task<string?> ComputeHash(CancellationToken token)
     {
         if (!Exists)
         {
             return null;
         }
 
-        return Storage.ComputeHash(FileInfo);
+        return await Storage.ComputeHash(FileInfo, token);
     }
 
     /// <summary>
     /// Compute hash and compare with expected value. Works only for vanilla files!
     /// </summary>
     [ExcludeFromCodeCoverage]
-    public bool IsVanillaByHash()
+    public async Task<bool> IsVanillaByHash(CancellationToken token)
     {
         var expected = Storage.VanillaHashes[RelativePath.Replace("\\", "/")];
-        var hash = ComputeHash();
+        var hash = await ComputeHash(token);
         return (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
     }
 

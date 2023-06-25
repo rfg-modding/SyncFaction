@@ -107,7 +107,10 @@ public partial class ViewModel
     private async Task Test(object x, CancellationToken token) => LocalModCalculateOrder();
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task Restore(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to latest update", uiCommands.Restore, token);
+    private async Task RestorePatch(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to latest patch", uiCommands.RestorePatch, token);
+
+    [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
+    private async Task RestoreMods(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to previous mods", uiCommands.RestoreMods, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task RestoreVanilla(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to vanilla files", uiCommands.RestoreVanilla, token);
@@ -121,5 +124,5 @@ public partial class ViewModel
     }
 
     [RelayCommand(IncludeCancelCommand = true)]
-    private async Task GenerateReport(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Generating report", uiCommands.GenerateReport, token);
+    private async Task GenerateReport(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Collecting diagnostic info", uiCommands.GenerateReport, token);
 }

@@ -12,8 +12,7 @@ public static class Extensions
 {
     public static void Clear(this ILogger log) => log.LogCritical(new EventId(0, SerializeFlags(LogFlags.Clear)), "");
 
-    [SuppressMessage("Usage", "CA2254:Template should be a static expression", Justification = "This is wrapper")]
-    public static void LogInformation(this ILogger log, LogFlags logFlags, string? message, params object?[] args) => log.LogInformation(new EventId(0, SerializeFlags(logFlags)), message, args);
+    public static EventId ToEventId(this LogFlags logFlags) => new EventId(0, SerializeFlags(logFlags));
 
     private static string SerializeFlags(LogFlags logFlags) => ((int)logFlags).ToString(CultureInfo.InvariantCulture);
 

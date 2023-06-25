@@ -122,7 +122,8 @@ public partial class ViewModel
             DownloadCommand,
             ApplyCommand,
             CancelCommand,
-            RestoreCommand,
+            RestoreModsCommand,
+            RestorePatchCommand,
             RestoreVanillaCommand
         };
 
@@ -132,8 +133,10 @@ public partial class ViewModel
             RefreshCancelCommand,
             DownloadCancelCommand,
             ApplyCancelCommand,
-            RestoreCancelCommand,
-            RestoreVanillaCancelCommand
+            RestoreModsCancelCommand,
+            RestorePatchCancelCommand,
+            RestoreVanillaCancelCommand,
+            GenerateReportCancelCommand
         };
 
         // TODO callback to log devMode enable/disable

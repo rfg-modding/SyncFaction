@@ -63,12 +63,12 @@ public class AppStorage : IAppStorage
         File.WriteAllText(file.FullName, data);
     }
 
-    public string ComputeHash(IFileInfo file)
+    public async Task<string> ComputeHash(IFileInfo file, CancellationToken token)
     {
         using var sha = SHA256.Create();
-        using var fileStream = file.Open(FileMode.Open);
+        await using var fileStream = file.Open(FileMode.Open);
         fileStream.Position = 0;
-        var hashValue = sha.ComputeHash(fileStream);
+        var hashValue = await sha.ComputeHashAsync(fileStream, token);
         var hash = BitConverter.ToString(hashValue).Replace("-", "");
         return hash;
     }
@@ -90,7 +90,7 @@ public class AppStorage : IAppStorage
         return createdAppDir;
     }
 
-    public bool CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token)
+    public async Task<bool> CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token)
     {
         var files = isGog
             ? Hashes.Gog
@@ -99,32 +99,37 @@ public class AppStorage : IAppStorage
         var versionName = isGog
             ? nameof(Hashes.Gog)
             : nameof(Hashes.Steam);
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         // not checking version-specific VPP files just to detect version, it's very slow
-        var result = Parallel.ForEach(files.Where(x => !x.Key.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Key),
+        await Parallel.ForEachAsync(files.Where(x => !x.Key.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Key),
             new ParallelOptions
             {
-                CancellationToken = token,
+                CancellationToken = cts.Token,
                 MaxDegreeOfParallelism = threadCount
             },
-            (kv, loopState) =>
-            {
-                //var file = new GameFile(this, kv.Key, fileSystem);
-                var path = Path.Combine(Game.FullName, kv.Key);
-                var fileInfo = fileSystem.FileInfo.New(path);
-                var expected = kv.Value;
-                var hash = fileInfo.Exists
-                    ? ComputeHash(fileInfo)
-                    : null;
-                var isVanilla = (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
-                if (!isVanilla)
-                {
-                    log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
-                    loopState.Stop();
-                }
-            });
+            Body);
 
-        return result.IsCompleted;
+        return !cts.IsCancellationRequested;
+
+        async ValueTask Body(KeyValuePair<string, string> kv, CancellationToken t)
+        {
+            //var file = new GameFile(this, kv.Key, fileSystem);
+            var path = Path.Combine(Game.FullName, kv.Key);
+            var fileInfo = fileSystem.FileInfo.New(path);
+            var expected = kv.Value;
+            var hash = fileInfo.Exists
+                ? await ComputeHash(fileInfo, t)
+                : null;
+            var isVanilla = (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
+            if (!isVanilla)
+            {
+                log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
+                cts.Cancel();
+            }
+        }
     }
+
+
 
     [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "I know registry is windows-only")]
     public static async Task<string> DetectGameLocation(ILogger log, CancellationToken token)

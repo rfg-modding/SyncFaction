@@ -203,7 +203,13 @@ public class UiCommands
         return true;
     }
 
-    public async Task<bool> Restore(ViewModel viewModel, CancellationToken token)
+    public async Task<bool> RestoreMods(ViewModel viewModel, CancellationToken token)
+    {
+        // TODO
+        throw new NotImplementedException();
+    }
+
+    public async Task<bool> RestorePatch(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, false, token);
         return true;
@@ -335,7 +341,7 @@ public class UiCommands
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
             log.Clear();
             //log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
-            log.LogInformation(LogFlags.Xaml, "{xaml}", xaml);
+            log.LogInformation(LogFlags.Xaml.ToEventId(), "{xaml}", xaml);
         }
 
         // upd list
@@ -461,7 +467,8 @@ Then run SyncFaction again.
     public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var files = fileManager.GenerateFileReport(storage, token).ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
+        var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
+        var files = fileReports.ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
         var state = viewModel.Model.ToState();
         var report = new Report(files, state, Title.Value, viewModel.LastException);
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });

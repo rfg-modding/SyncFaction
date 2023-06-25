@@ -3,6 +3,7 @@ using System.IO.Abstractions;
 using System.Xml;
 using System.Xml.Serialization;
 using FluentAssertions;
+using MathNet.Numerics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -160,4 +161,85 @@ public class Tests
         tc.Should().NotBeNull();
         tc.TypedChanges.Should().NotBeNull().And.NotHaveCount(0);
     }
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestRegression()
+    {
+        var xdata = new double[]
+        {
+            10,
+            20,
+            30
+        };
+        var ydata = new double[]
+        {
+            15,
+            20,
+            25
+        };
+
+        var p = Fit.Line(xdata, ydata);
+
+        p.A.Should().Be(10);
+        p.B.Should().Be(0.5);
+    }
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestRegressionFunc()
+    {
+        var xdata = new double[]
+        {
+            10,
+            20,
+            30
+        };
+        var ydata = new double[]
+        {
+            15,
+            20,
+            25
+        };
+
+        var f = Fit.LineFunc(xdata, ydata);
+
+        // a + bx
+        f(1).Should().Be(10.5);
+        f(2).Should().Be(11);
+        f(10).Should().Be(15);
+    }
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestRegressionFuncTime()
+    {
+        var xItems = new double[]
+        {
+            0,
+            113,
+            137,
+            172,
+            193,
+            205
+        };
+        var yTimes = new double[]
+        {
+            0,
+            5,
+            10,
+            15,
+            25,
+            30
+        };
+
+        var f = Fit.LineFunc(xItems, yTimes);
+
+        // a + bx
+        //f(100).Should().Be(10);
+        //f(150).Should().Be(16);
+        //f(200).Should().Be(22);
+        f(300).Should().Be(36);
+    }
+    //[5.2090918,10.3149094,15.6657531,24.9925824,30.3302552],"Measures":[113,137,172,193,205]}}
 }

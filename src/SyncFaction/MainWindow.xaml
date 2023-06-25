@@ -210,10 +210,6 @@
                 <ContentControl Name="ModSettings" Content="{Binding SelectedMod.Mod.ModInfo}" />
             </ScrollViewer>
         </Grid>
-        <Label Grid.Row="3" Grid.Column="2" Width="60" Height="40" Background="{StaticResource SF.Highlight}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding Model.DevMode, Converter={StaticResource BoolShowHide}, ConverterParameter=true}">
-            <TextBlock TextAlignment="Center" xml:space="preserve" Foreground="Black">Warranty
-void!</TextBlock>
-        </Label>
         <fa6:ImageAwesome Name="Spinner" Grid.Column="3" Grid.Row="3" Width="25" Margin="10,5,10,5" HorizontalAlignment="Right" Icon="Solid_Gear" Spin="True" SpinDuration="5" Visibility="{Binding Interactive, Converter={StaticResource BoolShowHide}, ConverterParameter=false}" />
         <Grid Name="GeneralFailure" Visibility="{Binding GeneralFailure, Converter={StaticResource BoolShowHide}, ConverterParameter=true}" Grid.Column="3" Grid.Row="3" Width="25" Height="25" Margin="10,5,10,5" HorizontalAlignment="Left">
             <!--FontAwesome icons are just symbols with transparent background. Need a hack to fill background under ! sign-->
@@ -335,7 +331,7 @@ void!</TextBlock>
             <WrapPanel Margin="10,10,10,10">
                 <Grid>
                     <WrapPanel>
-                        <TextBlock MouseLeftButtonUp="DevModeTextClick">▷ Dev mode&#160;</TextBlock>
+                        <TextBlock MouseLeftButtonUp="DevModeTextClick">▷ Advanced mode&#160;</TextBlock>
                         <CheckBox x:Name="FakeCheckBoxForPadding" Visibility="Hidden" IsEnabled="False" HorizontalAlignment="Right" />
                     </WrapPanel>
                     <!-- TODO something causes shift on other elements when dev panel is shown -->
@@ -379,8 +375,8 @@ void!</TextBlock>
                         </StackPanel>
                     </CheckBox>
                     <CheckBox Margin="10" IsChecked="{Binding Model.UseCdn}" Content="Use CDN: try if slow DL" />
-                    <Button x:Name="Restore" Content="Restore to Patch" Command="{Binding RestoreCommand}" />
-
+                    <Button x:Name="RestoreMods" Content="Restore to Modded" Command="{Binding RestoreModsCommand}" />
+                    <Button x:Name="RestorePatch" Content="Restore to Patch" Command="{Binding RestorePatchCommand}" />
                     <Button x:Name="RestoreVanilla" Content="Restore to Vanilla" Command="{Binding RestoreVanillaCommand}" />
 
                 </StackPanel>

@@ -10,6 +10,7 @@ using NLog.Extensions.Logging;
 using NLog.Filters;
 using NLog.Layouts;
 using NLog.Targets;
+using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Core.Services.Xml;
@@ -52,6 +53,7 @@ public partial class App : Application
         services.AddSingleton<UiCommands>();
         services.AddSingleton<ModTools>();
         services.AddSingleton<XmlMagic>();
+        services.AddSingleton<ParallelHelper>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IVppArchiver, VppArchiver>();
         services.AddSingleton<IModInstaller, ModInstaller>();
@@ -86,7 +88,16 @@ public partial class App : Application
         var memory = new MemoryTarget("memory");
         memory.Layout = layout;
         var rule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, memory);
+
+        var filterRule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, new NullTarget());
+        filterRule.Filters.Add(new ConditionBasedFilter
+        {
+            Action = FilterResult.IgnoreFinal,
+            Condition = "'${logger}' == 'Microsoft.Extensions.Http.DefaultHttpClientFactory'"
+        });
+
         var config = new LoggingConfiguration();
+        config.AddRule(filterRule);
         config.AddRule(rule);
         x.AddNLog(config);
     }

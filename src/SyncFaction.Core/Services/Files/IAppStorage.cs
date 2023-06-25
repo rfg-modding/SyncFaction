@@ -12,7 +12,7 @@ public interface IAppStorage
     IDirectoryInfo Data { get; }
     State? LoadStateFile();
     void WriteStateFile(State state);
-    string ComputeHash(IFileInfo file);
+    Task<string> ComputeHash(IFileInfo file, CancellationToken token);
     bool Init();
-    bool CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token);
+    Task<bool> CheckFileHashes(bool isGog, int threadCount, ILogger log, CancellationToken token);
 }

@@ -105,7 +105,8 @@ public class UiLogger : ILogger
 
     private readonly HashSet<string> noisyLoggers = new HashSet<string>()
     {
-        "System.Net.Http"
+        "System.Net.Http",
+        "Microsoft.Extensions.Http",
     };
 
     private class NopDisposable : IDisposable
