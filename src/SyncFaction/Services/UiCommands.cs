@@ -11,7 +11,10 @@ using System.Threading.Tasks;
 using FastHashes;
 using HTMLConverter;
 using Microsoft.Extensions.Logging;
+using NLog;
+using NLog.Targets;
 using SyncFaction.Core;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
 using SyncFaction.Core.Services.FactionFiles;
@@ -150,7 +153,7 @@ public class UiCommands
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         foreach (var vm in modsToApply)
         {
-            var result = await fileManager.InstallMod(storage, vm.Mod, false, token);
+            var result = await fileManager.InstallMod(storage, vm.Mod, viewModel.Model.IsGog!.Value, false, token);
 
             if (!result.Success)
             {
@@ -332,7 +335,7 @@ public class UiCommands
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
             log.Clear();
             //log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
-            log.LogInformationXaml(xaml, false);
+            log.LogInformation(LogFlags.Xaml, "{xaml}", xaml);
         }
 
         // upd list
@@ -462,7 +465,9 @@ Then run SyncFaction again.
         var state = viewModel.Model.ToState();
         var report = new Report(files, state, Title.Value, viewModel.LastException);
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-        viewModel.DiagView = json;
+        var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(x => x.Name == "memory");
+        var memoryLogs = logger.Logs;
+        viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
         return true;
     }
 
@@ -627,7 +632,7 @@ Then run SyncFaction again.
             });
 
         var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
-        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, token);
+        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, viewModel.Model.IsGog!.Value, token);
         return result;
     }
 }

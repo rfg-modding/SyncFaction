@@ -117,10 +117,11 @@ Or how to get this branch closer to release and not burn out:
     * ~~hash~~
     * ~~order dictionary by file names and attributes so it's always easy to compare~~
     * ~~make a list of all files in game dir?~~
-  * use hashlist file from mod/patch to verify after install
-  * rollback if hashlist check failed? need to do something here
-  * remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing
-  * instruct users to copy-paste to help troubleshoot
+    * instruct users to copy-paste to help troubleshoot
+  * ~~use hashlist file from mod/patch to verify after install~~
+  * ~~rollback if hashlist check failed? need to do something here~~
+  * ~~remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing~~
+  * test hash check
 10. optional compatibility toggle
   * separate button or a checkbox to run game with recommended settings
   * edit %APPDATA%\kaiko\rfg\config.ini and set windows_mode=2 (exclusive fullscreen)
@@ -146,11 +147,8 @@ Or how to get this branch closer to release and not burn out:
     * sane error formatting/handling
     * restore buttons should update mod list / ui
     * modinfo description should be wrapped and have some offset
-19. port/network checker?
-    * inspect how game uses network for client and host modes
-    * check if traffic can flow as required by either mode
-    * need a server side app for this
-20. support mods working differently for steam/gog, eg with subfolders
+20. ~~support mods working differently for steam/gog, eg with subfolders~~
+21. "restore to modded" - load list of mods back (should be stored separately)
 
 ## Dark Mode
 
@@ -167,3 +165,10 @@ Or how to get this branch closer to release and not burn out:
 * ~~fix listview header (GridViewColumnHeader?)~~
 * ~~fix lego mason outline~~
 * fix markdown view (do proper logging first)
+
+## Backlog
+
+* port/network checker?
+  * inspect how game uses network for client and host modes
+  * check if traffic can flow as required by either mode
+  * need a server side app for this

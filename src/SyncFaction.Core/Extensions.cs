@@ -1,16 +1,21 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO.Abstractions;
 using System.Text;
 using System.Xml;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Models;
 
 namespace SyncFaction.Core;
 
 public static class Extensions
 {
-    public static void Clear(this ILogger log) => log.LogCritical(new EventId(0, "clear"), "");
+    public static void Clear(this ILogger log) => log.LogCritical(new EventId(0, SerializeFlags(LogFlags.Clear)), "");
 
-    public static void LogInformationXaml(this ILogger log, string xaml, bool scroll) => log.LogInformation(new EventId(0, $"xaml_{scroll}"), "{xaml}", xaml);
+    [SuppressMessage("Usage", "CA2254:Template should be a static expression", Justification = "This is wrapper")]
+    public static void LogInformation(this ILogger log, LogFlags logFlags, string? message, params object?[] args) => log.LogInformation(new EventId(0, SerializeFlags(logFlags)), message, args);
+
+    private static string SerializeFlags(LogFlags logFlags) => ((int)logFlags).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Filters out common clutter and mod archives

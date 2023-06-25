@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
+using SyncFaction.Models;
 
 namespace SyncFaction.Services;
 
@@ -36,15 +38,19 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (category.Contains("HttpMessageHandler") || category.Contains("DefaultHttpClientFactory"))
+        if (noisyLoggers.Any(x=> category.Contains(x)))
         {
-            // keeps spamming infinitely
             return;
         }
 
-        var audoScroll = !eventId.Name?.EndsWith("false", StringComparison.OrdinalIgnoreCase) ?? true;
+        if (!Enum.TryParse<LogFlags>(eventId.Name, out var logFlags))
+        {
+            logFlags = LogFlags.None;
+        }
 
-        if (eventId.Name == "clear")
+        var autoScroll = !logFlags.HasFlag(LogFlags.NoScroll);
+
+        if (logFlags.HasFlag(LogFlags.Clear))
         {
             if (appState.DevMode is true)
             {
@@ -58,37 +64,49 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (eventId.Name?.StartsWith("xaml", StringComparison.OrdinalIgnoreCase) == true)
+        if (logFlags.HasFlag(LogFlags.Xaml))
         {
             var text = formatter(state, exception);
-            render.AppendXaml("\n", text, audoScroll);
+            render.AppendXaml("\n", text, autoScroll);
             return;
         }
 
-        var prefix = logLevel switch
-        {
-            LogLevel.Trace => "> ",
-            LogLevel.Debug => "> ",
-            LogLevel.Information => string.Empty,
-            LogLevel.Warning => "# ",
-            LogLevel.Error => "# ",
-            LogLevel.Critical => "# ",
-            LogLevel.None => string.Empty
-        };
-
+        var prefix = GetPrefix(logFlags);
         if (category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase))
         {
-            render.Append($"{prefix}{formatter(state, exception)}", audoScroll);
+            // user-friendly message
+            render.Append($"{prefix}{formatter(state, exception)}", autoScroll);
         }
         else
         {
-            render.Append($"`{logLevel.ToString().Substring(0, 4)} {category.Split('.').Last()} {formatter(state, exception)}`", audoScroll);
+            // something completely different
+            render.Append($"`{logLevel.ToString().Substring(0, 4)} {category.Split('.').Last()} {formatter(state, exception)}`", autoScroll);
         }
+    }
+
+    private string GetPrefix(LogFlags logFlags)
+    {
+        if (logFlags.HasFlag(LogFlags.Bullet))
+        {
+            return "* ";
+        }
+
+        if (logFlags.HasFlag(LogFlags.H1))
+        {
+            return "# ";
+        }
+
+        return string.Empty;
     }
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
     public IDisposable BeginScope<TState>(TState state) => new NopDisposable();
+
+    private readonly HashSet<string> noisyLoggers = new HashSet<string>()
+    {
+        "System.Net.Http"
+    };
 
     private class NopDisposable : IDisposable
     {

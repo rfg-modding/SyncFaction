@@ -1,9 +1,15 @@
-﻿using System.IO.Abstractions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO.Abstractions;
 using System.Windows;
 using Dark.Net;
 using MdXaml;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NLog.Config;
+using NLog.Extensions.Logging;
+using NLog.Filters;
+using NLog.Layouts;
+using NLog.Targets;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Core.Services.Xml;
@@ -55,7 +61,34 @@ public partial class App : Application
             x.ClearProviders();
             x.SetMinimumLevel(LogLevel.Trace);
             x.Services.AddSingleton<ILoggerProvider, UiLogBridgeProvider>();
+            AddNlog(x);
         });
+    }
+
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Logger owns disposables")]
+    private void AddNlog(ILoggingBuilder x)
+    {
+        var layout = new JsonLayout()
+        {
+            IncludeScopeProperties = true,
+            IncludeEventProperties = true,
+            Attributes =
+            {
+                new("timestamp", "${date:format=O:universalTime=true}"),
+                new("level", "${level:upperCase=true}"),
+                new("logger", "${logger}"),
+                new("message", "${message}"),
+                new("exception", "${exception}"),
+                new("callsite", "${callsite}"),
+            }
+        };
+
+        var memory = new MemoryTarget("memory");
+        memory.Layout = layout;
+        var rule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, memory);
+        var config = new LoggingConfiguration();
+        config.AddRule(rule);
+        x.AddNLog(config);
     }
 
     private void OnStartup(object sender, StartupEventArgs e)

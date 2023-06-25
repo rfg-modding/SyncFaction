@@ -25,12 +25,18 @@ public class FileManager
     /// Applies mod over current game state. <br />
     /// WARNING: If this is an update, all mods must be reverted and then re-applied
     /// </summary>
-    public async Task<ApplyModResult> InstallMod(IGameStorage storage, IMod mod, bool isUpdate, CancellationToken token)
+    public async Task<ApplyModResult> InstallMod(IGameStorage storage, IMod mod, bool isGog, bool isUpdate, CancellationToken token)
     {
         var modDir = storage.GetModDir(mod);
         var excludeFiles = new HashSet<string>();
         var excludeDirs = new HashSet<string>();
         var modified = new List<ApplyFileResult>();
+
+        var otherVersionSpecificDir = modDir.FileSystem.Path.Combine(modDir.FullName,
+            isGog
+                ? Constants.SteamModDir
+                : Constants.GogModDir);
+        excludeDirs.Add(otherVersionSpecificDir);
 
         if (mod.ModInfo is not null)
         {
@@ -157,7 +163,7 @@ public class FileManager
     /// <summary>
     /// Applies community update on top of patch. Files are reset to community (if present) or vanilla state before installing. Updates community backup.
     /// </summary>
-    public async Task<ApplyModResult> InstallUpdate(IGameStorage storage, List<IMod> pendingUpdates, bool fromScratch, IEnumerable<IMod> installedMods, CancellationToken token)
+    public async Task<ApplyModResult> InstallUpdate(IGameStorage storage, List<IMod> pendingUpdates, bool fromScratch, IEnumerable<IMod> installedMods, bool isGog, CancellationToken token)
     {
         Rollback(storage, fromScratch, token);
         if (fromScratch)
@@ -169,7 +175,7 @@ public class FileManager
         foreach (var update in pendingUpdates)
         {
             token.ThrowIfCancellationRequested();
-            var result = await InstallMod(storage, update, true, token);
+            var result = await InstallMod(storage, update, isGog, true, token);
             modifiedFiles.AddRange(result.ModifiedFiles);
             if (!result.Success)
             {
@@ -182,7 +188,7 @@ public class FileManager
         foreach (var mod in installedMods)
         {
             token.ThrowIfCancellationRequested();
-            var result = await InstallMod(storage, mod, false, token);
+            var result = await InstallMod(storage, mod, isGog, false, token);
             modifiedFiles.AddRange(result.ModifiedFiles);
             if (!result.Success)
             {
