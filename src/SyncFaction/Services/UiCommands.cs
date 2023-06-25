@@ -456,7 +456,7 @@ Then run SyncFaction again.
     public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var files = fileManager.ReportFiles(storage, token).ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
+        var files = fileManager.GenerateFileReport(storage, token).ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
         var state = viewModel.Model.ToState();
         var report = new Report(files, state, Title.Value, viewModel.LastException);
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });

@@ -1,5 +1,7 @@
 using System.IO.Abstractions;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Data;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.ModManager;
@@ -104,6 +106,16 @@ public class FileManager
             return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
         }
 
+        var hashFile = modDir.EnumerateFiles("*").FirstOrDefault(x => x.Name.Equals(Constants.HashFile, StringComparison.OrdinalIgnoreCase));
+        if (hashFile != null)
+        {
+            if (!Verify(storage, modDir, hashFile, token))
+            {
+                log.LogError("Hash check failed");
+                return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
+            }
+        }
+
         if (isUpdate)
         {
             foreach (var result in modified)
@@ -115,6 +127,32 @@ public class FileManager
         }
 
         return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), true);
+    }
+
+    private bool Verify(IAppStorage appStorage, IDirectoryInfo modDir, IFileInfo hashFile, CancellationToken token)
+    {
+        // TODO report what's going on
+        var fs = modDir.FileSystem;
+        using var stream = hashFile.OpenRead();
+        var hashes = JsonSerializer.Deserialize<HashChecks>(stream);
+        foreach (var (relativePath, expectedHash) in hashes)
+        {
+            token.ThrowIfCancellationRequested();
+            var filePath = fs.Path.Combine(modDir.FullName, relativePath);
+            var file = fs.FileInfo.New(filePath);
+            if (!file.Exists)
+            {
+                return false;
+            }
+
+            var hash = appStorage.ComputeHash(file);
+            if (hash != expectedHash)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -178,7 +216,7 @@ public class FileManager
         // don't automatically nuke patch_bak if restored to vanilla. this allows fast switch between vanilla and updated version
     }
 
-    public IEnumerable<FileReport> ReportFiles(IAppStorage storage, CancellationToken token)
+    public IEnumerable<FileReport> GenerateFileReport(IAppStorage storage, CancellationToken token)
     {
         var fs = storage.App.FileSystem;
         foreach (var info in storage.Game.EnumerateFileSystemInfos("*", SearchOption.AllDirectories))

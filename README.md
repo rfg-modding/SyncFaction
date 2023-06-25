@@ -88,7 +88,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 
 ([join Discord!](https://discord.gg/factionfiles))
 
-## Short-term plan 
+## Short-term plan
 
 Or how to get this branch closer to release and not burn out:
 
@@ -127,7 +127,7 @@ Or how to get this branch closer to release and not burn out:
   * find a way to set up windows compatibility settings for game exe
     * registry?
     * bat file?
-    * create .lnk and edit it programmatically? 
+    * create .lnk and edit it programmatically?
 10. steam compatibility
     * create backup of .exe so people can run game with steam
     * add steam shortcut for it automatically if possible?
@@ -135,8 +135,8 @@ Or how to get this branch closer to release and not burn out:
 11. test if preserve whitespace works for files like anim_files.xtbl - they should not be formatted/minimized
 12. Fix patch not installing lol
 13. run with Launcher.exe if found (RSL2)
-15. make xdelta work for managed files 
-16. placeholder text when modinfo has no options? 
+15. make xdelta work for managed files
+16. ~~placeholder text when modinfo has no options?~~
 17. better messages
     * fix logging
     * fix formatting
