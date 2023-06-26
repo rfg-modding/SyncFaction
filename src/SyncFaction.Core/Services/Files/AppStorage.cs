@@ -20,11 +20,16 @@ public class AppStorage : IAppStorage
     public IDirectoryInfo Data { get; }
 
     internal readonly IFileSystem fileSystem;
+
+    [SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "Why not?")]
+    protected readonly ParallelHelper ParallelHelper;
+
     private readonly ILogger log;
 
-    public AppStorage(string gameDir, IFileSystem fileSystem, ILogger log)
+    public AppStorage(string gameDir, IFileSystem fileSystem, ParallelHelper parallelHelper, ILogger log)
     {
         this.fileSystem = fileSystem;
+        this.ParallelHelper = parallelHelper;
         this.log = log;
         Game = fileSystem.DirectoryInfo.FromDirectoryName(gameDir);
         if (!Game.Exists)
@@ -99,19 +104,16 @@ public class AppStorage : IAppStorage
         var versionName = isGog
             ? nameof(Hashes.Gog)
             : nameof(Hashes.Steam);
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         // not checking version-specific VPP files just to detect version, it's very slow
-        await Parallel.ForEachAsync(files.Where(x => !x.Key.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Key),
-            new ParallelOptions
-            {
-                CancellationToken = cts.Token,
-                MaxDegreeOfParallelism = threadCount
-            },
-            Body);
+        var data = files
+            .Where(x => !x.Key.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.Key)
+            .ToList();
+        var failures = 0;
+        await ParallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), $"Probing {versionName} version", "files", token);
+        return Interlocked.CompareExchange(ref failures, 0, 0) == 0;
 
-        return !cts.IsCancellationRequested;
-
-        async ValueTask Body(KeyValuePair<string, string> kv, CancellationToken t)
+        async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
         {
             //var file = new GameFile(this, kv.Key, fileSystem);
             var path = Path.Combine(Game.FullName, kv.Key);
@@ -124,7 +126,8 @@ public class AppStorage : IAppStorage
             if (!isVanilla)
             {
                 log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
-                cts.Cancel();
+                Interlocked.Increment(ref failures);
+                breaker.Cancel();
             }
         }
     }

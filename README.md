@@ -149,6 +149,7 @@ Or how to get this branch closer to release and not burn out:
     * modinfo description should be wrapped and have some offset
 20. ~~support mods working differently for steam/gog, eg with subfolders~~
 21. "restore to modded" - load list of mods back (should be stored separately)
+22. state is saved even if initial check isnt finished - is this OK?
 
 ## Dark Mode
 

@@ -72,6 +72,7 @@ public class UiLogger : ILogger
         }
 
         var prefix = GetPrefix(logFlags);
+        // NOTE: formatter ignores exception
         if (category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase))
         {
             // user-friendly message
@@ -80,7 +81,12 @@ public class UiLogger : ILogger
         else
         {
             // something completely different
-            render.Append($"`{logLevel.ToString().Substring(0, 4)} {category.Split('.').Last()} {formatter(state, exception)}`", autoScroll);
+            render.Append($"`{logLevel.ToString().PadRight(5)} {category.Split('.').Last()} {formatter(state, exception)}`", autoScroll);
+        }
+
+        if (exception is not null)
+        {
+            render.Append(exception.ToString(), autoScroll);
         }
     }
 

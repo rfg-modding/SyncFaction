@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Diagnostics.CodeAnalysis;
 using MathNet.Numerics;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models;
@@ -14,38 +14,82 @@ public class ParallelHelper
     public ParallelHelper(ILogger<ParallelHelper> log)
     {
         this.log = log;
-        progress = new Progress<OperationInfo>(Handler);
+        progress = new Progress<OperationInfo>(ProgressHandler);
     }
 
-    public async Task Execute<T>(IReadOnlyList<T> data, Func<T, CancellationToken, Task> body, int threadCount, TimeSpan period, string operation, string unit, CancellationToken token)
+    public async Task<bool> Execute<T>(IReadOnlyList<T> data, Func<T, CancellationTokenSource, CancellationToken, Task> body, int threadCount, TimeSpan period, string operation, string unit, CancellationToken token)
     {
         var total = data.Count;
         var started = DateTime.UtcNow;
         log.LogInformation(LogFlags.H1.ToEventId(), "{operation}: {total} {unit}", operation, total, unit);
-
         var info = new OperationInfo(new Count(), total, started, new LastTime { Value = started }, period, operation, unit, new List<double>() { 0 }, new List<double>() { 0 });
-        await Parallel.ForEachAsync(data,
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var task = Parallel.ForEachAsync(data,
             new ParallelOptions
             {
-                CancellationToken = token,
+                CancellationToken = cts.Token,
                 MaxDegreeOfParallelism = threadCount
             },
             async (x, t) =>
             {
-                await body(x, t);
+                await body(x, cts, t);
                 progress.Report(info);
             });
+        var timerTask = RunTimer(period, info, cts.Token);
 
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException e) when (cts.IsCancellationRequested)
+        {
+            log.LogTrace(e, "Canceled Parallel.ForEachAsync");
+        }
+
+        var allCompleted = !cts.IsCancellationRequested;
+        // NOTE: canceling anyway to stop timer
+        cts.Cancel();
+        await timerTask;
         var finished = DateTime.UtcNow;
-        var elapsed = finished - started;
-        log.LogInformation("{operation}: {total} {unit} in {elapsed}", operation, total, unit, elapsed);
+        var elapsedSpan = finished - started;
+        var elapsed = FormatTimespan(elapsedSpan);
+        if (!allCompleted)
+        {
+            log.LogInformation("{operation}: {i}/{total} {unit}, canceled after {elapsed}", operation, info.Count.Value, total, unit, elapsed);
+            return false;
+        }
+
+        log.LogInformation("{operation}: {total} {unit}, completed in {elapsed}", operation, total, unit, elapsed);
+        return true;
     }
 
-    private void Handler(OperationInfo info)
+    private async Task RunTimer(TimeSpan period, OperationInfo info, CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(period);
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                Tick(info);
+            }
+        }
+        catch (OperationCanceledException e)
+        {
+            log.LogTrace(e, "Canceled timer.WaitForNextTickAsync");
+        }
+    }
+
+    private void ProgressHandler(OperationInfo info)
+    {
+        info.Count.Increment();
+        Report(info);
+    }
+
+    private void Tick(OperationInfo info) => Report(info);
+
+    private void Report(OperationInfo info)
     {
         var now = DateTime.UtcNow;
-        info.Count.Increment();
-
         var delta = now - info.LastTime.Value;
         if (delta < info.Period)
         {
@@ -54,11 +98,16 @@ public class ParallelHelper
 
         lock (LockObject)
         {
-            info.LastTime.Value = now;
             var elapsed = now - info.Started;
+
             info.LastTime.Value = now;
             info.Times.Add(elapsed.TotalSeconds);
             info.Measures.Add(info.Count.Value);
+
+            if (info.Measures.Count < 2)
+            {
+                log.LogInformation(LogFlags.Bullet.ToEventId(), "{operation}: {i}/{total}, ??? left", info.Operation, info.Count.Value, info.Total);
+            }
 
             var fit = Fit.LineFunc(info.Measures.ToArray(), info.Times.ToArray());
             var estimateSecondsAll = fit(info.Total);

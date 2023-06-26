@@ -23,7 +23,7 @@ public class GameStorage : AppStorage, IGameStorage
     /// <inheritdoc />
     public ImmutableSortedDictionary<string, string> DataFiles { get; }
 
-    public GameStorage(string gameDir, IFileSystem fileSystem, IDictionary<string, string> fileHashes, ILogger log) : base(gameDir, fileSystem, log)
+    public GameStorage(string gameDir, IFileSystem fileSystem, ParallelHelper parallelHelper, IDictionary<string, string> fileHashes, ILogger log) : base(gameDir, fileSystem, parallelHelper, log)
     {
         Bak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.BakDirName));
         PatchBak = fileSystem.DirectoryInfo.FromDirectoryName(Path.Combine(App.FullName, Constants.PatchBakDirName));
@@ -72,22 +72,22 @@ public class GameStorage : AppStorage, IGameStorage
 
     public async Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token)
     {
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         log.LogWarning("Validating game contents. This is one-time thing, but going to take a while");
         // descending name order places bigger files earlier and this gives better check times
-        var result = Parallel.ForEachAsync(VanillaHashes.OrderByDescending(x => x.Key),
-            new ParallelOptions
+        var data = VanillaHashes
+            .OrderByDescending(x => x.Key)
+            .ToList();
+        var failures = 0;
+        await ParallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
+        return Interlocked.CompareExchange(ref failures, 0, 0) == 0;
+
+        async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
+        {
+            log.LogInformation("+ *Checking* {key}", kv.Key);
+            var file = new GameFile(this, kv.Key, fileSystem);
+            if (!await file.IsVanillaByHash(t))
             {
-                CancellationToken = cts.Token,
-                MaxDegreeOfParallelism = threadCount
-            },
-            async (kv, t) =>
-            {
-                log.LogInformation("+ *Checking* {key}", kv.Key);
-                var file = new GameFile(this, kv.Key, fileSystem);
-                if (!await file.IsVanillaByHash(t))
-                {
-                    log.LogError(@"Action needed:
+                log.LogError(@"Action needed:
 
 Found modified game file: {file}
 
@@ -99,12 +99,12 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
 Then run SyncFaction again.
 
 *See you later miner!*
-", file.RelativePath);
-                    cts.Cancel();
-                }
-            });
-
-        return !cts.IsCancellationRequested;
+",
+                    file.RelativePath);
+                Interlocked.Increment(ref failures);
+                breaker.Cancel();
+            }
+        }
     }
 
     private static void EnsureCreated(IDirectoryInfo dir)

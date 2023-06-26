@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.ViewModels;
@@ -19,12 +20,14 @@ public class AppInitializer
     private readonly ILogger<AppInitializer> log;
     private readonly IFileSystem fileSystem;
     private readonly IStateProvider stateProvider;
+    private readonly ParallelHelper parallelHelper;
 
-    public AppInitializer(IFileSystem fileSystem, IStateProvider stateProvider, ILogger<AppInitializer> log)
+    public AppInitializer(IFileSystem fileSystem, IStateProvider stateProvider, ParallelHelper parallelHelper, ILogger<AppInitializer> log)
     {
         this.log = log;
         this.fileSystem = fileSystem;
         this.stateProvider = stateProvider;
+        this.parallelHelper = parallelHelper;
     }
 
     public async Task<bool> Init(ViewModel viewModel, CancellationToken token)
@@ -34,7 +37,7 @@ public class AppInitializer
             return false;
         }
 
-        var appStorage = viewModel.Model.GetAppStorage(fileSystem, log);
+        var appStorage = viewModel.Model.GetAppStorage(fileSystem, parallelHelper, log);
         log.LogInformation("Reading current state...");
         var stateFromFile = appStorage.LoadStateFile();
         viewModel.Model.FromState(stateFromFile);

@@ -17,6 +17,7 @@ using SyncFaction.Core;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
+using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Extras;
@@ -37,8 +38,9 @@ public class UiCommands
     private readonly AppInitializer appInitializer;
     private readonly FileManager fileManager;
     private readonly ModTools modTools;
+    private readonly ParallelHelper parallelHelper;
 
-    public UiCommands(ILogger<UiCommands> log, IFileSystem fileSystem, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ModTools modTools)
+    public UiCommands(IFileSystem fileSystem, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ModTools modTools, ParallelHelper parallelHelper, ILogger<UiCommands> log)
     {
         this.log = log;
         this.fileSystem = fileSystem;
@@ -46,6 +48,7 @@ public class UiCommands
         this.appInitializer = appInitializer;
         this.fileManager = fileManager;
         this.modTools = modTools;
+        this.parallelHelper = parallelHelper;
     }
 
     /// <summary>
@@ -117,7 +120,7 @@ public class UiCommands
                 // display "in progress" regardless of real mod status
                 mvm.Status = OnlineModStatus.InProgress;
                 var mod = mvm.Mod;
-                var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+                var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
                 var modDir = storage.GetModDir(mod);
                 var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
                 mvm.Status = mod.Status; // status is changed by ffClient
@@ -150,7 +153,7 @@ public class UiCommands
             }
         }
 
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
         foreach (var vm in modsToApply)
         {
             var result = await fileManager.InstallMod(storage, vm.Mod, viewModel.Model.IsGog!.Value, false, token);
@@ -223,7 +226,7 @@ public class UiCommands
 
     public async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
     {
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
         fileManager.Rollback(storage, toVanilla, token);
         viewModel.Model.AppliedMods.Clear();
         if (toVanilla)
@@ -250,7 +253,7 @@ public class UiCommands
 
     public async Task<bool> InitPopulateData(ViewModel viewModel, CancellationToken token)
     {
-        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
         // create dirs and validate files if required
         gameStorage.InitBakDirectories();
         var threadCount = viewModel.Model.CalculateThreadCount();
@@ -288,7 +291,7 @@ public class UiCommands
             case true:
                 {
                     log.LogInformation("Launching game via exe...");
-                    var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+                    var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
                     var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
                     Process.Start(new ProcessStartInfo
                     {
@@ -359,7 +362,7 @@ public class UiCommands
             },
             async (category, cancellationToken) =>
             {
-                var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, log), cancellationToken);
+                var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log), cancellationToken);
                 viewModel.AddOnlineMods(mods);
             });
         return true;
@@ -367,7 +370,7 @@ public class UiCommands
 
     public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
     {
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
         var mods = await GetAvailableMods(viewModel, storage, token);
         viewModel.UpdateLocalMods(mods);
         return true;
@@ -375,7 +378,7 @@ public class UiCommands
 
     public async Task<bool> Update(ViewModel viewModel, CancellationToken token)
     {
-        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var gameStorage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
         // TODO remove me!
         var mods = (await ffClient.GetMods(Category.ModsStandalone, gameStorage, token)).Concat(await ffClient.GetMods(Category.Local, gameStorage, token)).Concat(await ffClient.GetMods(Category.Dev, gameStorage, token)).ToList();
         var updates = viewModel.LockedCollectionOperation(() => viewModel.Model.RemoteTerraformUpdates.Concat(viewModel.Model.RemoteRslUpdates).Select(x => mods.Single(y => y.Id == x)).ToList());
@@ -440,7 +443,7 @@ Then run SyncFaction again.
             return;
         }
 
-        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem, log);
+        var appStorage = new AppStorage(viewModel.Model.GameDirectory, fileSystem, parallelHelper, log);
         appStorage.WriteStateFile(viewModel.Model.ToState());
     }
 
@@ -466,7 +469,7 @@ Then run SyncFaction again.
 
     public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
         var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
         var files = fileReports.ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
         var state = viewModel.Model.ToState();

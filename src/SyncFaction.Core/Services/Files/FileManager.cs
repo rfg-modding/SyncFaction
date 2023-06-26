@@ -232,9 +232,8 @@ public class FileManager
         await parallelHelper.Execute(entries, ReportFile, threadCount, TimeSpan.FromSeconds(5), "Computing hashes", "files", token);
         return results.ToList();
 
-        async Task ReportFile(IFileSystemInfo info, CancellationToken t)
+        async Task ReportFile(IFileSystemInfo info, CancellationTokenSource breaker, CancellationToken t)
         {
-            t.ThrowIfCancellationRequested();
             var relativePath = fs.Path.GetRelativePath(storage.Game.FullName, info.FullName);
             var created = info.CreationTimeUtc;
             var modified = info.LastWriteTimeUtc;

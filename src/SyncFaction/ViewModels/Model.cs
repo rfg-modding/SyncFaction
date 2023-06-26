@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
 using SyncFaction.Core.Models;
+using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.ModManager.Models;
 
@@ -96,9 +97,9 @@ public partial class Model
         return Math.Clamp(almostAllCpus, 1, 10);
     }
 
-    public AppStorage GetAppStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, log);
+    public AppStorage GetAppStorage(IFileSystem fileSystem, ParallelHelper parallelHelper, ILogger log) => new(GameDirectory, fileSystem, parallelHelper, log);
 
-    public GameStorage GetGameStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, Hashes.Get(IsGog.Value), log);
+    public GameStorage GetGameStorage(IFileSystem fileSystem, ParallelHelper parallelHelper, ILogger log) => new(GameDirectory, fileSystem, parallelHelper, Hashes.Get(IsGog.Value), log);
 
     private void PopulateList<T>(IEnumerable<T>? src, ObservableCollection<T> dst, bool order)
     {
