@@ -77,9 +77,7 @@ public class GameStorage : AppStorage, IGameStorage
         var data = VanillaHashes
             .OrderByDescending(x => x.Key)
             .ToList();
-        var failures = 0;
-        await ParallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
-        return Interlocked.CompareExchange(ref failures, 0, 0) == 0;
+        return await ParallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
 
         async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
         {
@@ -101,7 +99,6 @@ Then run SyncFaction again.
 *See you later miner!*
 ",
                     file.RelativePath);
-                Interlocked.Increment(ref failures);
                 breaker.Cancel();
             }
         }

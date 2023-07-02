@@ -256,8 +256,6 @@ public class FileManager
         }
     }
 
-
-
     /// <summary>
     /// When terraform patch is diverged with installed things, nuke them to install from scratch. Otherwise, install only what's new, using patch_bak
     /// </summary>

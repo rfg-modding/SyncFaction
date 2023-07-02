@@ -17,38 +17,38 @@ public class ParallelHelper
         progress = new Progress<OperationInfo>(ProgressHandler);
     }
 
-    public async Task<bool> Execute<T>(IReadOnlyList<T> data, Func<T, CancellationTokenSource, CancellationToken, Task> body, int threadCount, TimeSpan period, string operation, string unit, CancellationToken token)
+    public async Task<bool> Execute<T>(IReadOnlyList<T> data, Func<T, CancellationTokenSource, CancellationToken, Task> body, int threadCount, TimeSpan reportPeriod, string operation, string unit, CancellationToken token)
     {
         var total = data.Count;
         var started = DateTime.UtcNow;
         log.LogInformation(Md.H1.ToEventId(), "{operation}: {total} {unit}", operation, total, unit);
-        var info = new OperationInfo(new Count(), total, started, new LastTime { Value = started }, period, operation, unit, new List<double>() { 0 }, new List<double>() { 0 });
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var info = new OperationInfo(new Count(), total, started, new LastTime { Value = started }, reportPeriod, operation, unit, new List<double>() { 0 }, new List<double>() { 0 });
+        using var breaker = CancellationTokenSource.CreateLinkedTokenSource(token);
         var task = Parallel.ForEachAsync(data,
             new ParallelOptions
             {
-                CancellationToken = cts.Token,
+                CancellationToken = breaker.Token,
                 MaxDegreeOfParallelism = threadCount
             },
             async (x, t) =>
             {
-                await body(x, cts, t);
+                await body(x, breaker, t);
                 progress.Report(info);
             });
-        var timerTask = RunTimer(period, info, cts.Token);
+        var timerTask = RunTimer(reportPeriod, info, breaker.Token);
 
         try
         {
             await task;
         }
-        catch (OperationCanceledException e) when (cts.IsCancellationRequested)
+        catch (OperationCanceledException e) when (breaker.IsCancellationRequested)
         {
             log.LogTrace(e, "Canceled Parallel.ForEachAsync");
         }
 
-        var allCompleted = !cts.IsCancellationRequested;
+        var allCompleted = !breaker.IsCancellationRequested;
         // NOTE: canceling anyway to stop timer
-        cts.Cancel();
+        breaker.Cancel();
         await timerTask;
         var finished = DateTime.UtcNow;
         var elapsedSpan = finished - started;

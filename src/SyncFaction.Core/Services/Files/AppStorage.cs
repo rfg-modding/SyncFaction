@@ -109,9 +109,7 @@ public class AppStorage : IAppStorage
             .Where(x => !x.Key.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
             .OrderBy(x => x.Key)
             .ToList();
-        var failures = 0;
-        await ParallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), $"Probing {versionName} version", "files", token);
-        return Interlocked.CompareExchange(ref failures, 0, 0) == 0;
+        return await ParallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), $"Probing {versionName} version", "files", token);
 
         async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
         {
@@ -126,7 +124,6 @@ public class AppStorage : IAppStorage
             if (!isVanilla)
             {
                 log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
-                Interlocked.Increment(ref failures);
                 breaker.Cancel();
             }
         }

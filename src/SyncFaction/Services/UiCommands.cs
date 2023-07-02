@@ -106,38 +106,29 @@ public class UiCommands
             throw new InvalidOperationException($"Collection length {mods.Count} != SelectedCount {viewModel.OnlineSelectedCount}");
         }
 
-        var toProcess = mods.Count;
-        var success = true;
-
-        await Parallel.ForEachAsync(mods,
-            new ParallelOptions
-            {
-                CancellationToken = token,
-                MaxDegreeOfParallelism = viewModel.Model.CalculateThreadCount()
-            },
-            async (mvm, cancellationToken) =>
-            {
-                // display "in progress" regardless of real mod status
-                mvm.Status = OnlineModStatus.InProgress;
-                var mod = mvm.Mod;
-                var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
-                var modDir = storage.GetModDir(mod);
-                var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
-                mvm.Status = mod.Status; // status is changed by ffClient
-                if (!clientSuccess)
-                {
-                    log.LogError("Downloading mod failed");
-                    success = false;
-                    return;
-                }
-
-                var files = string.Join(", ", modDir.GetFiles().Select<IFileInfo, string>(x => $"`{x.Name}`"));
-                //log.LogDebug($"Mod contents: {files}");
-                toProcess--;
-                viewModel.CurrentOperation = $"Downloading {toProcess} mods";
-            });
-
+        var threadCount = viewModel.Model.CalculateThreadCount();
+        await parallelHelper.Execute(mods, Body, threadCount, TimeSpan.FromSeconds(10), $"Downloading {mods.Count} mods", "mods", token);
         return await RefreshLocal(viewModel, token);
+
+        async Task Body(OnlineModViewModel mvm, CancellationTokenSource breaker, CancellationToken t)
+        {
+            // display "in progress" regardless of real mod status
+            mvm.Status = OnlineModStatus.InProgress;
+            var mod = mvm.Mod;
+            var storage = viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log);
+            var modDir = storage.GetModDir(mod);
+            var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, t);
+            mvm.Status = mod.Status; // status is changed by ffClient
+            if (!clientSuccess)
+            {
+                log.LogError("Downloading mod failed");
+                breaker.Cancel();
+                return;
+            }
+
+            var files = string.Join(", ", modDir.GetFiles().Select<IFileInfo, string>(x => $"`{x.Name}`"));
+            //log.LogDebug($"Mod contents: {files}");
+        }
     }
 
     public async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
@@ -354,18 +345,14 @@ public class UiCommands
             viewModel.OnlineSelectedCount = 0;
         });
 
-        await Parallel.ForEachAsync(categories,
-            new ParallelOptions
-            {
-                CancellationToken = token,
-                MaxDegreeOfParallelism = viewModel.Model.CalculateThreadCount()
-            },
-            async (category, cancellationToken) =>
-            {
-                var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log), cancellationToken);
-                viewModel.AddOnlineMods(mods);
-            });
-        return true;
+        var threadCount = viewModel.Model.CalculateThreadCount();
+        return await parallelHelper.Execute(categories, Body, threadCount, TimeSpan.FromSeconds(10), $"Fetching {categories.Count} categories", "categories", token);
+
+        async Task Body(Category category, CancellationTokenSource breaker, CancellationToken t)
+        {
+            var mods = await ffClient.GetMods(category, viewModel.Model.GetGameStorage(fileSystem, parallelHelper, log), t);
+            viewModel.AddOnlineMods(mods);
+        }
     }
 
     public async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
@@ -615,31 +602,27 @@ Then run SyncFaction again.
         var pendingUpdates = updates.Where(x => filteredUpdateIds.Contains(x.Id)).ToList();
         //log.LogDebug($"Updates to install: {JsonConvert.SerializeObject(pendingUpdates)}");
 
-        var toProcess = pendingUpdates.Count;
-        var success = true;
+        var threadCount = viewModel.Model.CalculateThreadCount();
+        var success = await parallelHelper.Execute(pendingUpdates, Body, threadCount, TimeSpan.FromSeconds(10), $"Downloading {pendingUpdates.Count} updates", "update", token);
+        if (!success)
+        {
+            return new ApplyModResult(new List<GameFile>(), false);
+        }
 
-        await Parallel.ForEachAsync(pendingUpdates,
-            new ParallelOptions
+        async Task Body(IMod mod, CancellationTokenSource breaker, CancellationToken t)
+        {
+            var modDir = storage.GetModDir(mod);
+            var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, t);
+            if (!clientSuccess)
             {
-                CancellationToken = token,
-                MaxDegreeOfParallelism = viewModel.Model.CalculateThreadCount()
-            },
-            async (mod, cancellationToken) =>
-            {
-                var modDir = storage.GetModDir(mod);
-                var clientSuccess = await ffClient.DownloadAndUnpackMod(modDir, mod, cancellationToken);
-                if (!clientSuccess)
-                {
-                    log.LogError("Downloading update failed");
-                    success = false;
-                    return;
-                }
+                log.LogError("Downloading update failed");
+                success = false;
+                return;
+            }
 
-                var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
-                //log.LogDebug($"Update contents: {files}");
-                toProcess--;
-                viewModel.CurrentOperation = $"Downloading {toProcess} updates";
-            });
+            var files = string.Join(", ", modDir.GetFiles().Select(x => $"`{x.Name}`"));
+            //log.LogDebug($"Update contents: {files}");
+        }
 
         var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
         var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, viewModel.Model.IsGog!.Value, token);

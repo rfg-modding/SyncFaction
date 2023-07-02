@@ -191,7 +191,6 @@ public class FfClient
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
-
     }
 
     internal async Task<bool> DownloadWithResume(IFileInfo dstFile, long contentLength, IMod mod, CancellationToken token)
