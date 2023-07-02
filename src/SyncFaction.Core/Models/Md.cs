@@ -1,7 +1,7 @@
 namespace SyncFaction.Core.Models;
 
 [Flags]
-public enum LogFlags
+public enum Md
 {
     None = 0,
     NoScroll = 1 << 0,

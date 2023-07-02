@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
+using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using FluentAssertions;
@@ -242,4 +243,17 @@ public class Tests
         f(300).Should().Be(36);
     }
     //[5.2090918,10.3149094,15.6657531,24.9925824,30.3302552],"Measures":[113,137,172,193,205]}}
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestEncoding()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var text = "авб где жзи клм ноп рст уфх цчш щъы ьэю я".ToUpperInvariant();
+        var a = Encoding.GetEncoding("windows-1251").GetBytes(text);
+        var b = Encoding.GetEncoding("windows-1252").GetString(a);
+        Console.WriteLine(text);
+        Console.WriteLine(b);
+        Assert.Pass();
+    }
 }

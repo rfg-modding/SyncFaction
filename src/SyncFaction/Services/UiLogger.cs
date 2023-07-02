@@ -43,14 +43,14 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (!Enum.TryParse<LogFlags>(eventId.Name, out var logFlags))
+        if (!Enum.TryParse<Md>(eventId.Name, out var logFlags))
         {
-            logFlags = LogFlags.None;
+            logFlags = Md.None;
         }
 
-        var autoScroll = !logFlags.HasFlag(LogFlags.NoScroll);
+        var autoScroll = !logFlags.HasFlag(Md.NoScroll);
 
-        if (logFlags.HasFlag(LogFlags.Clear))
+        if (logFlags.HasFlag(Md.Clear))
         {
             if (appState.DevMode is true)
             {
@@ -64,7 +64,7 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (logFlags.HasFlag(LogFlags.Xaml))
+        if (logFlags.HasFlag(Md.Xaml))
         {
             var text = formatter(state, exception);
             render.AppendXaml("\n", text, autoScroll);
@@ -90,14 +90,14 @@ public class UiLogger : ILogger
         }
     }
 
-    private string GetPrefix(LogFlags logFlags)
+    private string GetPrefix(Md md)
     {
-        if (logFlags.HasFlag(LogFlags.Bullet))
+        if (md.HasFlag(Md.Bullet))
         {
             return "* ";
         }
 
-        if (logFlags.HasFlag(LogFlags.H1))
+        if (md.HasFlag(Md.H1))
         {
             return "# ";
         }

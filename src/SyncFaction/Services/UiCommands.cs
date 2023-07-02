@@ -344,7 +344,7 @@ public class UiCommands
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
             log.Clear();
             //log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
-            log.LogInformation(LogFlags.Xaml.ToEventId(), "{xaml}", xaml);
+            log.LogInformation(Md.Xaml.ToEventId(), "{xaml}", xaml);
         }
 
         // upd list

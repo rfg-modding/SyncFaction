@@ -21,7 +21,7 @@ public class ParallelHelper
     {
         var total = data.Count;
         var started = DateTime.UtcNow;
-        log.LogInformation(LogFlags.H1.ToEventId(), "{operation}: {total} {unit}", operation, total, unit);
+        log.LogInformation(Md.H1.ToEventId(), "{operation}: {total} {unit}", operation, total, unit);
         var info = new OperationInfo(new Count(), total, started, new LastTime { Value = started }, period, operation, unit, new List<double>() { 0 }, new List<double>() { 0 });
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         var task = Parallel.ForEachAsync(data,
@@ -106,7 +106,7 @@ public class ParallelHelper
 
             if (info.Measures.Count < 2)
             {
-                log.LogInformation(LogFlags.Bullet.ToEventId(), "{operation}: {i}/{total}, ??? left", info.Operation, info.Count.Value, info.Total);
+                log.LogInformation(Md.Bullet.ToEventId(), "{operation}: {i}/{total}, ??? left", info.Operation, info.Count.Value, info.Total);
             }
 
             var fit = Fit.LineFunc(info.Measures.ToArray(), info.Times.ToArray());
@@ -114,7 +114,7 @@ public class ParallelHelper
             var estimateSecondsLeft = Math.Max(estimateSecondsAll - elapsed.TotalSeconds, 0);
             var estimate = FormatTimespan(TimeSpan.FromSeconds(estimateSecondsLeft));
 
-            log.LogInformation(LogFlags.Bullet.ToEventId(), "{operation}: {i}/{total}, {estimate} left", info.Operation, info.Count.Value, info.Total, estimate);
+            log.LogInformation(Md.Bullet.ToEventId(), "{operation}: {i}/{total}, {estimate} left", info.Operation, info.Count.Value, info.Total, estimate);
         }
     }
 
