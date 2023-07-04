@@ -79,12 +79,14 @@ public class UiCommands
         catch (Exception ex)
         {
             viewModel.LastException = ex.ToString();
-            log.LogError(Md.H1.ToId(), "FAILED: {operation}", viewModel.CurrentOperation);
+            log.LogError(Md.H1.Id(), "FAILED: {operation}", viewModel.CurrentOperation);
             log.LogError("Things to try now:");
-            log.LogError(Md.Bullet.ToId(), "Carefully read log above and error message below");
-            log.LogError(Md.Bullet.ToId(), "Verify your game and try again");
-            log.LogError(Md.Bullet.ToId(), "Generate diagnostics report and ask for help (FF Discord or Github)");
-            log.LogError(ex, "Exception details:");
+            log.LogError(Md.Bullet.Id(), "Carefully read logs and error messages");
+            log.LogError(Md.Bullet.Id(), "Verify your game with Steam or GOG Galaxy and try again");
+            log.LogError(Md.Bullet.Id(), "Generate diagnostics report and ask for help (FF Discord or Github)");
+            log.LogError("Exception details:");
+            await Task.Yield(); // NOTE: without this, scroll always goes to bottom
+            log.LogInformation(Md.NoScroll.Id(), ex, "---");
         }
         finally
         {
@@ -254,6 +256,10 @@ public class UiCommands
         var threadCount = viewModel.Model.CalculateThreadCount();
         if (viewModel.Model.IsVerified != true && !await gameStorage.CheckGameFiles(threadCount, log, token))
         {
+            log.LogError("Looks like you've installed some mods before. SyncFaction can't work until you restore all files to their default state");
+            log.LogError("Verify/reinstall your game");
+            log.LogError("Then run SyncFaction again");
+            log.LogInformation(Md.I.Id(), "See you later miner!");
             return false;
         }
 
@@ -339,7 +345,7 @@ public class UiCommands
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
             log.Clear();
             //log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
-            log.LogInformation(Md.Xaml.ToId(), "{xaml}", xaml);
+            log.LogInformation(Md.Xaml.Id(), "{xaml}", xaml);
         }
 
         // upd list

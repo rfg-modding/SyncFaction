@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Markup;
@@ -43,7 +45,6 @@ public class MarkdownRender
             return;
         }
 
-
         var newDoc = markdown.Transform(update.Value);
         view.Document.Blocks.AddRange(newDoc.Blocks.ToList());
 
@@ -55,7 +56,16 @@ public class MarkdownRender
 
         if (update.Scroll)
         {
+            Debug.WriteLine($"bottom before={Scroll.VerticalOffset}");
             Scroll?.ScrollToBottom();
+            Debug.WriteLine($"bottom after={Scroll.VerticalOffset}");
+        }
+        else
+        {
+            var offset = Scroll.VerticalOffset;
+            Debug.WriteLine($"noscroll before={offset}");
+            Scroll.ScrollToVerticalOffset(offset);
+            Debug.WriteLine($"noscroll before={Scroll.VerticalOffset}");
         }
     }
 

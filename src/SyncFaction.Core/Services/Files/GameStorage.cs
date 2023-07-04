@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
 
@@ -72,7 +73,7 @@ public class GameStorage : AppStorage, IGameStorage
 
     public async Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token)
     {
-        log.LogWarning("Validating game contents. This is one-time thing, but going to take a while");
+        log.LogWarning("Verifying game contents. This is one-time thing, but going to take a while");
         // descending name order places bigger files earlier and this gives better check times
         var data = VanillaHashes
             .OrderByDescending(x => x.Key)
@@ -81,24 +82,11 @@ public class GameStorage : AppStorage, IGameStorage
 
         async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
         {
-            log.LogInformation("+ *Checking* {key}", kv.Key);
+            log.LogDebug("Checking [{file}]", kv.Key);
             var file = new GameFile(this, kv.Key, fileSystem);
             if (!await file.IsVanillaByHash(t))
             {
-                log.LogError(@"Action needed:
-
-Found modified game file: {file}
-
-Looks like you've installed some mods before. SyncFaction can't work until you restore all files to their default state.
-
-+ **Steam**: verify integrity of game files and let it download original data
-+ **GOG**: reinstall game
-
-Then run SyncFaction again.
-
-See you later miner!
-",
-                    file.RelativePath);
+                log.LogInformation("Found modified game file: `{file}`", file.RelativePath);
                 breaker.Cancel();
             }
         }

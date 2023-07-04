@@ -150,6 +150,7 @@ Or how to get this branch closer to release and not burn out:
 20. ~~support mods working differently for steam/gog, eg with subfolders~~
 21. "restore to modded" - load list of mods back (should be stored separately)
 22. state is saved even if initial check isnt finished - is this OK?
+23. remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
 
 ## Dark Mode
 

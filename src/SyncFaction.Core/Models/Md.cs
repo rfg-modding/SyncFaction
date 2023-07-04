@@ -13,5 +13,5 @@ public enum Md
     Block = 1 << 6,
     B = 1 << 7,
     I = 1 << 8,
-
+    Quote = 1 << 9,
 }

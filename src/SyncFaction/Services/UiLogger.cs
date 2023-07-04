@@ -30,7 +30,6 @@ public class UiLogger : ILogger
         var appState = stateProvider.Initialized
             ? stateProvider.State
             : new State();
-        appState.DevMode = true; // TODO REMOVE ME
 
         if (appState.DevMode is not true && logLevel is LogLevel.Debug or LogLevel.Trace)
         {
@@ -93,14 +92,13 @@ public class UiLogger : ILogger
 
         if (!md.HasFlag(Md.Block) && !md.HasFlag(Md.Code))
         {
-            if (logLevel is LogLevel.Warning)
+            value = logLevel switch
             {
-                value = $"%{{color:DarkOrange}}{value}%";
-            }
-            else if (logLevel is LogLevel.Critical or LogLevel.Error)
-            {
-                value = $"%{{color:Firebrick}}{value}%";
-            }
+                LogLevel.Trace or LogLevel.Debug => $"%{{color:LightGray}}{value}%",
+                LogLevel.Warning => $"%{{color:#F59408}}{value}%",
+                LogLevel.Critical or LogLevel.Error => $"%{{color:Firebrick}}{value}%",
+                _ => value
+            };
         }
 
         if (md.HasFlag(Md.H1))
@@ -133,7 +131,10 @@ public class UiLogger : ILogger
             value = $"```\n{value}\n```";
         }
 
-
+        if (md.HasFlag(Md.Quote))
+        {
+            value = $"> {value}";
+        }
 
         return value;
     }

@@ -21,7 +21,8 @@
             <converters:CategoryHumanReadableConverter x:Key="CategoryConverter" />
             <converters:TabSelectedByTypeConverter x:Key="TabSelectedByTypeConverter" />
             <converters:TabSelectedByTypeVisibilityConverter x:Key="TabSelectedByTypeVisibilityConverter" />
-            <converters:BoolShowHideConverter x:Key="BoolShowHide" />
+            <converters:BoolShowHideConverter x:Key="BoolShowHideConverter" />
+            <converters:BoolShowCollapseConverter x:Key="BoolShowCollapseConverter" />
             <converters:ModStatusConverter x:Key="ModStatusConverter" />
             <DataTemplate DataType="{x:Type modXml:ModInfo}">
                 <StackPanel Orientation="Vertical">
@@ -205,13 +206,12 @@
 		        # Markdown example
 		        # Markdown example
 	        </mdxam:MarkdownScrollViewer>
-            <!--Visibility="{Binding DisplayModSettings, Converter={StaticResource BoolShowCollapseConverter}}"-->
-            <ScrollViewer Grid.Column="1" Width="400" Visibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Column="1" Width="400" Visibility="{Binding DisplayModSettings, Converter={StaticResource BoolShowCollapseConverter}}" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ContentControl Name="ModSettings" Content="{Binding SelectedMod.Mod.ModInfo}" />
             </ScrollViewer>
         </Grid>
-        <fa6:ImageAwesome Name="Spinner" Grid.Column="3" Grid.Row="3" Width="25" Margin="10,5,10,5" HorizontalAlignment="Right" Icon="Solid_Gear" Spin="True" SpinDuration="5" Visibility="{Binding Interactive, Converter={StaticResource BoolShowHide}, ConverterParameter=false}" />
-        <Grid Name="GeneralFailure" Visibility="{Binding GeneralFailure, Converter={StaticResource BoolShowHide}, ConverterParameter=true}" Grid.Column="3" Grid.Row="3" Width="25" Height="25" Margin="10,5,10,5" HorizontalAlignment="Left">
+        <fa6:ImageAwesome Name="Spinner" Grid.Column="3" Grid.Row="3" Width="25" Margin="10,5,10,5" HorizontalAlignment="Right" Icon="Solid_Gear" Spin="True" SpinDuration="5" Visibility="{Binding Interactive, Converter={StaticResource BoolShowHideConverter}, ConverterParameter=false}" />
+        <Grid Name="GeneralFailure" Visibility="{Binding GeneralFailure, Converter={StaticResource BoolShowHideConverter}, ConverterParameter=true}" Grid.Column="3" Grid.Row="3" Width="25" Height="25" Margin="10,5,10,5" HorizontalAlignment="Left">
             <!--FontAwesome icons are just symbols with transparent background. Need a hack to fill background under ! sign-->
             <fa6:ImageAwesome Icon="Solid_Play" Height="20" Rotation="270" Margin="0 2 0 0" PrimaryColor="Black" />
             <fa6:ImageAwesome Width="25" Icon="Solid_TriangleExclamation" PrimaryColor="{StaticResource SF.Highlight}" />
@@ -331,7 +331,7 @@
             <WrapPanel Margin="10,10,10,10">
                 <Grid>
                     <WrapPanel>
-                        <TextBlock MouseLeftButtonUp="DevModeTextClick">▷ Advanced mode&#160;</TextBlock>
+                        <TextBlock MouseLeftButtonUp="DevModeTextClick">▷ Dev mode&#160;</TextBlock>
                         <CheckBox x:Name="FakeCheckBoxForPadding" Visibility="Hidden" IsEnabled="False" HorizontalAlignment="Right" />
                     </WrapPanel>
                     <!-- TODO something causes shift on other elements when dev panel is shown -->

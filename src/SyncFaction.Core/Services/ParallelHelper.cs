@@ -21,7 +21,7 @@ public class ParallelHelper
     {
         var total = data.Count;
         var started = DateTime.UtcNow;
-        log.LogInformation(Md.H1.ToId(), "{operation}: {total} {unit}", operation, total, unit);
+        log.LogInformation(Md.H1.Id(), "{operation}: {total} {unit}", operation, total, unit);
         var info = new OperationInfo(new Count(), total, started, new LastTime { Value = started }, reportPeriod, operation, unit, new List<double>() { 0 }, new List<double>() { 0 });
         using var breaker = CancellationTokenSource.CreateLinkedTokenSource(token);
         var task = Parallel.ForEachAsync(data,
@@ -41,9 +41,9 @@ public class ParallelHelper
         {
             await task;
         }
-        catch (OperationCanceledException e) when (breaker.IsCancellationRequested)
+        catch (OperationCanceledException) when (breaker.IsCancellationRequested)
         {
-            log.LogTrace(e, "Canceled Parallel.ForEachAsync");
+            log.LogTrace("Canceled Parallel.ForEachAsync");
         }
 
         var allCompleted = !breaker.IsCancellationRequested;
@@ -55,11 +55,11 @@ public class ParallelHelper
         var elapsed = FormatTimespan(elapsedSpan);
         if (!allCompleted)
         {
-            log.LogInformation("{operation}: {i}/{total} {unit}, canceled after {elapsed}", operation, info.Count.Value, total, unit, elapsed);
+            log.LogInformation("{operation}: {i}/{total} {unit}, failed after {elapsed}", operation, info.Count.Value, total, unit, elapsed);
             return false;
         }
 
-        log.LogInformation("{operation}: {total} {unit}, completed in {elapsed}", operation, total, unit, elapsed);
+        log.LogInformation("{operation}: {i}/{total} {unit}, completed in {elapsed}", operation, info.Count.Value, total, unit, elapsed);
         return true;
     }
 
@@ -73,9 +73,9 @@ public class ParallelHelper
                 Tick(info);
             }
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
-            log.LogTrace(e, "Canceled timer.WaitForNextTickAsync");
+            log.LogTrace("Canceled timer.WaitForNextTickAsync");
         }
     }
 
@@ -106,7 +106,7 @@ public class ParallelHelper
 
             if (info.Measures.Count < 2)
             {
-                log.LogInformation(Md.Bullet.ToId(), "{operation}: {i}/{total}, ??? left", info.Operation, info.Count.Value, info.Total);
+                log.LogInformation(Md.Bullet.Id(), "{operation}: {i}/{total}, ??? left", info.Operation, info.Count.Value, info.Total);
             }
 
             var fit = Fit.LineFunc(info.Measures.ToArray(), info.Times.ToArray());
@@ -114,7 +114,7 @@ public class ParallelHelper
             var estimateSecondsLeft = Math.Max(estimateSecondsAll - elapsed.TotalSeconds, 0);
             var estimate = FormatTimespan(TimeSpan.FromSeconds(estimateSecondsLeft));
 
-            log.LogInformation(Md.Bullet.ToId(), "{operation}: {i}/{total}, {estimate} left", info.Operation, info.Count.Value, info.Total, estimate);
+            log.LogInformation(Md.Bullet.Id(), "{operation}: {i}/{total}, {estimate} left", info.Operation, info.Count.Value, info.Total, estimate);
         }
     }
 

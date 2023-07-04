@@ -12,7 +12,7 @@ public static class Extensions
 {
     public static void Clear(this ILogger log) => log.LogCritical(new EventId(Constants.LogEventId, SerializeFlags(Md.Clear)), "");
 
-    public static EventId ToId(this Md md) => new EventId(Constants.LogEventId, SerializeFlags(md));
+    public static EventId Id(this Md md) => new EventId(Constants.LogEventId, SerializeFlags(md));
 
     private static string SerializeFlags(Md md) => ((int)md).ToString(CultureInfo.InvariantCulture);
 

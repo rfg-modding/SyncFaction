@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using SyncFaction.Core;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
@@ -101,22 +103,22 @@ public class AppInitializer
 
         // SF did not have this flag before so it might be initialized as null
         // or it's first launch and it's really null
-        log.LogWarning("Determining if it's Steam or GOG version");
+        log.LogInformation(Md.H1.Id(), "Determining if it's Steam or GOG version");
         if (await appStorage.CheckFileHashes(false, threadCount, log, token))
         {
-            log.LogInformation("+ **Steam** version");
+            log.LogInformation("Game version: **Steam**");
             return false;
         }
 
         if (await appStorage.CheckFileHashes(true, threadCount, log, token))
         {
-            log.LogInformation("+ **GOG** version");
+            log.LogInformation("Game version: **GOG**");
             return true;
         }
 
         // refuse to work with FUBAR game files
-        log.LogInformation("+ **Unknown** version");
-        throw new InvalidOperationException("Game version is not recognized as Steam or GOG. Validate your installation and try again.");
+        log.LogError("Game version: **unknown**");
+        throw new InvalidOperationException("Game version is not recognized as Steam or GOG");
     }
 
     private void OnFirstLaunch(bool firstLaunch)
