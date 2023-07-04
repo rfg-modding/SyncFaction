@@ -96,7 +96,7 @@ Looks like you've installed some mods before. SyncFaction can't work until you r
 
 Then run SyncFaction again.
 
-*See you later miner!*
+See you later miner!
 ",
                     file.RelativePath);
                 breaker.Cancel();

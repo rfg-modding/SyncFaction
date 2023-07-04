@@ -15,6 +15,7 @@ public static class Constants
     public const string SteamModDir = ".steam";
     public const string GogModDir = ".gog";
     public const string ModInfoFile = "modinfo.xml";
+    public const int LogEventId = 42;
 
     /// <summary>
     /// This file is written to mod dir as a marker of ongoing downloading and unpacking.
@@ -28,7 +29,7 @@ public static class Constants
 
     public const string WikiPage = "https://www.redfactionwiki.com/wiki/RF:G_Game_Night_News";
 
-    //public const string PatchSearchStringPrefix = "rfgterraform";  // TODO uncomment me!!!
+    //public const string PatchSearchStringPrefix = "rfgterraform";  // TODO uncomment me when Camo releases patch rebuild
     public const string PatchSearchStringPrefix = "rfgcommunitypatch";
     public const string RslSearchStringPrefix = "rfgscriptloader";
 

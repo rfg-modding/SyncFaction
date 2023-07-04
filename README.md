@@ -138,9 +138,9 @@ Or how to get this branch closer to release and not burn out:
 13. run with Launcher.exe if found (RSL2)
 15. make xdelta work for managed files
 16. ~~placeholder text when modinfo has no options?~~
-17. better messages
+17. better messages <-------------------------------------------------------------- stopped here
     * fix logging
-    * fix formatting
+    * ~~fix formatting~~
     * user-friendly messages
     * proper operations log
     * fix progress display

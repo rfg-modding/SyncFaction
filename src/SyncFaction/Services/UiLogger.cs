@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Models;
@@ -23,10 +25,12 @@ public class UiLogger : ILogger
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
+        // NOTE: default formatter func ignores exception
         // TODO get rid of this ugly hack somehow
         var appState = stateProvider.Initialized
             ? stateProvider.State
             : new State();
+        appState.DevMode = true; // TODO REMOVE ME
 
         if (appState.DevMode is not true && logLevel is LogLevel.Debug or LogLevel.Trace)
         {
@@ -43,9 +47,10 @@ public class UiLogger : ILogger
             return;
         }
 
-        if (!Enum.TryParse<Md>(eventId.Name, out var logFlags))
+        var logFlags = Md.None;
+        if (eventId.Id == Constants.LogEventId)
         {
-            logFlags = Md.None;
+            logFlags = Enum.Parse<Md>(eventId.Name!);
         }
 
         var autoScroll = !logFlags.HasFlag(Md.NoScroll);
@@ -54,7 +59,7 @@ public class UiLogger : ILogger
         {
             if (appState.DevMode is true)
             {
-                render.Append("---");
+                render.Append("---", true);
             }
             else
             {
@@ -71,38 +76,66 @@ public class UiLogger : ILogger
             return;
         }
 
-        var prefix = GetPrefix(logFlags);
-        // NOTE: formatter ignores exception
-        if (category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase))
-        {
-            // user-friendly message
-            render.Append($"{prefix}{formatter(state, exception)}", autoScroll);
-        }
-        else
-        {
-            // something completely different
-            render.Append($"`{logLevel.ToString().PadRight(5)} {category.Split('.').Last()} {formatter(state, exception)}`", autoScroll);
-        }
-
+        // user-friendly message
+        var value = FormatMarkdown(logFlags, logLevel, formatter(state, exception));
+        render.Append($"{value}", autoScroll);
         if (exception is not null)
         {
-            render.Append(exception.ToString(), autoScroll);
+            // collapsed spoiler
+            var stacktrace = FormatMarkdown(Md.Block, logLevel, exception.ToString());
+            render.Append(stacktrace, autoScroll);
         }
     }
 
-    private string GetPrefix(Md md)
+    private static string FormatMarkdown(Md md, LogLevel logLevel, string value)
     {
-        if (md.HasFlag(Md.Bullet))
+        value = value.Trim();
+
+        if (!md.HasFlag(Md.Block) && !md.HasFlag(Md.Code))
         {
-            return "* ";
+            if (logLevel is LogLevel.Warning)
+            {
+                value = $"%{{color:DarkOrange}}{value}%";
+            }
+            else if (logLevel is LogLevel.Critical or LogLevel.Error)
+            {
+                value = $"%{{color:Firebrick}}{value}%";
+            }
         }
 
         if (md.HasFlag(Md.H1))
         {
-            return "# ";
+            value = $"# {value}";
         }
 
-        return string.Empty;
+        if (md.HasFlag(Md.Bullet))
+        {
+            value = $"* {value}";
+        }
+
+        if (md.HasFlag(Md.B))
+        {
+            value = $"**{value}**";
+        }
+
+        if (md.HasFlag(Md.I))
+        {
+            value = $"*{value}*";
+        }
+
+        if (md.HasFlag(Md.Code))
+        {
+            value = $"`{value}`";
+        }
+
+        if (md.HasFlag(Md.Block))
+        {
+            value = $"```\n{value}\n```";
+        }
+
+
+
+        return value;
     }
 
     public bool IsEnabled(LogLevel logLevel) => true;

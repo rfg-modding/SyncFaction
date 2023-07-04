@@ -27,6 +27,8 @@ public partial class ViewModel
         };
         DarkNet.Instance.SetWindowThemeWpf(ViewAccessor.WindowView, Theme);
         ViewAccessor.WindowView.SkinManager.UpdateTheme(Theme);
+        ViewAccessor.WindowView.UpdateDefaultStyle();
+        ViewAccessor.WindowView.Markdown.Foreground = ViewAccessor.WindowView.Apply.Foreground;
     }
 
     [RelayCommand(IncludeCancelCommand = true)]

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
@@ -77,10 +79,12 @@ public class UiCommands
         catch (Exception ex)
         {
             viewModel.LastException = ex.ToString();
-            log.LogError(ex, "TODO better exception logging!");
-            //var exceptionText = string.Join("\n", ex.ToString().Split('\n').Select(x => $"`` {x} ``"));
-            //render.Append("---");
-            //render.Append(string.Format(Constants.ErrorFormat, description, exceptionText), false);
+            log.LogError(Md.H1.ToId(), "FAILED: {operation}", viewModel.CurrentOperation);
+            log.LogError("Things to try now:");
+            log.LogError(Md.Bullet.ToId(), "Carefully read log above and error message below");
+            log.LogError(Md.Bullet.ToId(), "Verify your game and try again");
+            log.LogError(Md.Bullet.ToId(), "Generate diagnostics report and ask for help (FF Discord or Github)");
+            log.LogError(ex, "Exception details:");
         }
         finally
         {
@@ -335,7 +339,7 @@ public class UiCommands
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
             log.Clear();
             //log.LogInformation(new EventId(0, "log_false"), $"# {header}\n\n");
-            log.LogInformation(Md.Xaml.ToEventId(), "{xaml}", xaml);
+            log.LogInformation(Md.Xaml.ToId(), "{xaml}", xaml);
         }
 
         // upd list
@@ -390,7 +394,7 @@ SyncFaction can't work until you restore all files to their default state.
 
 Then run SyncFaction again.
 
-*See you later miner!*
+See you later miner!
 ");
             return false;
         }
@@ -412,12 +416,8 @@ Then run SyncFaction again.
 
     public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
     {
-        //log.LogInformation($"Installed community patch and updates: **{viewModel.GetHumanReadableVersion()}**");
-        // TODO uncomment me!!!
-        //var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
-
-        // TODO remove debug stuff
-        var terraform = new List<long> { 6247 }.Concat(await ffClient.ListPatchIds("rfgcommunityupdate", token)).Concat(new List<long> { 5783686945589925058 }).ToList();
+        log.LogInformation("Installed community patch and updates: **{installer}**", viewModel.GetHumanReadableVersion());
+        var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
         var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);
         viewModel.UpdateUpdates(terraform, rsl);
     }

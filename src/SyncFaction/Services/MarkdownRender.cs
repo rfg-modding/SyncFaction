@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Markup;
+using System.Windows.Media;
 using MdXaml;
 
 namespace SyncFaction.Services;
@@ -23,14 +24,14 @@ public class MarkdownRender
     public void Init(MarkdownScrollViewer markdownScrollViewer)
     {
         view = markdownScrollViewer;
-        view.MarkdownStyle = MarkdownStyle.Compact;
+        view.MarkdownStyle = MarkdownStyle.SasabuneCompact;
         // init with empty contents
         view.Document.Blocks.Clear();
     }
 
-    public void Append(string value, bool autoScroll = true) => progress.Report(new Update(value, autoScroll));
+    public void Append(string value, bool autoScroll) => progress.Report(new Update(value, autoScroll));
 
-    public void AppendXaml(string value, string xaml, bool autoScroll = true) => progress.Report(new Update(value, autoScroll, xaml));
+    public void AppendXaml(string value, string xaml, bool autoScroll) => progress.Report(new Update(value, autoScroll, xaml));
 
     public void Clear() => progress.Report(new Update("", false));
 
@@ -42,12 +43,13 @@ public class MarkdownRender
             return;
         }
 
+
         var newDoc = markdown.Transform(update.Value);
         view.Document.Blocks.AddRange(newDoc.Blocks.ToList());
 
-        if (!string.IsNullOrEmpty(update.xaml))
+        if (!string.IsNullOrEmpty(update.Xaml))
         {
-            var docFromHtml = XamlReader.Parse(update.xaml) as FlowDocument;
+            var docFromHtml = XamlReader.Parse(update.Xaml) as FlowDocument;
             view.Document.Blocks.AddRange(docFromHtml.Blocks.ToList());
         }
 
@@ -57,5 +59,5 @@ public class MarkdownRender
         }
     }
 
-    private record Update(string Value, bool Scroll, string? xaml = null);
+    private record Update(string Value, bool Scroll, string? Xaml = null);
 }
