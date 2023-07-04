@@ -122,5 +122,5 @@ public partial class App : Application
         */
     }
 
-    public static readonly Theme AppTheme = Theme.Light;
+    public static readonly Theme AppTheme = Theme.Light; // TODO set to auto for release
 }

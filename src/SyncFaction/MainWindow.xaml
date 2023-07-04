@@ -48,7 +48,7 @@
                     </GroupBox>
                     <GroupBox Margin="10 5 10 5" Padding="5" Header="This mod has no settings">
                         <GroupBox.Style>
-                            <Style TargetType="{x:Type GroupBox}">
+                            <Style TargetType="{x:Type GroupBox}" BasedOn="{StaticResource CustomizableGroupBox}">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">
@@ -65,7 +65,7 @@
                     <GroupBox Margin="10 5 10 5" Padding="5" Header="Actions">
                         <Button Click="ModResetInputs_Click">Reset to default values</Button>
                         <GroupBox.Style>
-                            <Style TargetType="{x:Type GroupBox}">
+                            <Style TargetType="{x:Type GroupBox}" BasedOn="{StaticResource CustomizableGroupBox}">
                                 <Setter Property="Visibility" Value="Visible" />
                                 <Style.Triggers>
                                     <DataTrigger Value="{x:Null}" Binding="{Binding UserInput}">

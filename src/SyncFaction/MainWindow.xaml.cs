@@ -91,7 +91,7 @@ public partial class MainWindow : Window, IViewAccessor
     {
         devModeGridSize = DevModeGrid.ActualHeight;
         ChangeWindowSizeForDevModeGrid();
-        // event is fired again when window size is changed manually and again on visibility toggle after that, to recalculate size. we don't need this at all
+        // NOTE: event is fired again when window size is changed manually and again on visibility toggle after that, to recalculate size. we don't need this at all
         DevModeGrid.SizeChanged -= DevModeGrid_OnSizeChanged;
     }
 

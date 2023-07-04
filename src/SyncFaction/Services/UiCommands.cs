@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
@@ -28,7 +26,6 @@ using SyncFaction.ModManager;
 using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.XmlModels;
 using SyncFaction.ViewModels;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace SyncFaction.Services;
 

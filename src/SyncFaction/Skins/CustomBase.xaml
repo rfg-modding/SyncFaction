@@ -135,5 +135,6 @@
         </Setter>
     </Style>
 
+    <Style TargetType="{x:Type GroupBox}" x:Key="CustomizableGroupBox" BasedOn="{StaticResource {x:Type GroupBox}}"></Style>
 
 </ResourceDictionary>
