@@ -1,17 +1,16 @@
 using System;
 using System.Globalization;
-using System.Windows;
 using System.Windows.Data;
 
 namespace SyncFaction.Converters;
 
-public class EmptyStringCollapseConverter : IValueConverter
+public class EmptyStringDisabledConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
         value switch
         {
-            null or "" => Visibility.Collapsed,
-            string or _ => Visibility.Visible
+            null or "" => false,
+            string or _ => true
         };
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>

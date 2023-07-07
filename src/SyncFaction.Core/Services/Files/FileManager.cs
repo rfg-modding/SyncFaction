@@ -1,29 +1,22 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
-using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
-using SyncFaction.ModManager;
 
 namespace SyncFaction.Core.Services.Files;
 
 public class FileManager
 {
-    private readonly ModInfoTools modInfoTools;
     private readonly IModInstaller modInstaller;
     private readonly ParallelHelper parallelHelper;
     private readonly FileChecker fileChecker;
 
     private readonly ILogger log;
 
-    public FileManager(ModInfoTools modInfoTools, IModInstaller modInstaller, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<FileManager> log)
+    public FileManager(IModInstaller modInstaller, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<FileManager> log)
     {
-        this.modInfoTools = modInfoTools;
         this.modInstaller = modInstaller;
         this.parallelHelper = parallelHelper;
         this.fileChecker = fileChecker;
@@ -48,11 +41,10 @@ public class FileManager
         log.LogTrace("Excluded other version specific dir [{dir}]", otherVersionSpecificDir);
         excludeDirs.Add(otherVersionSpecificDir);
 
-        // TODO stopped here: refactoring, creating logs, and marking visited methods with bookmarks
+        //TODO stopped here: refactoring, creating logs, and marking visited methods with bookmarks
         if (mod.ModInfo is not null)
         {
-            var operations = modInfoTools.BuildOperations(mod.ModInfo);
-
+            var operations = mod.ModInfo.BuildOperations();
             excludeFiles.Add(modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).First().FullName.ToLowerInvariant());
             foreach (var op in operations.FileSwaps)
             {

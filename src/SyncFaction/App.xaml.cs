@@ -14,18 +14,17 @@ using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Core.Services.Xml;
-using SyncFaction.ModManager;
 using SyncFaction.Packer.Services;
 using SyncFaction.Services;
 using SyncFaction.ViewModels;
 
 namespace SyncFaction;
 
-public partial class App : Application
+public partial class App
 {
     private readonly ServiceProvider serviceProvider;
 
-    public App()
+    internal App()
     {
         var services = new ServiceCollection();
         ConfigureServices(services);
@@ -38,7 +37,7 @@ public partial class App : Application
         base.OnStartup(e);
     }
 
-    private void ConfigureServices(ServiceCollection services)
+    private static void ConfigureServices(IServiceCollection services)
     {
         services.AddHttpClient();
         services.AddTransient<MainWindow>();
@@ -51,7 +50,6 @@ public partial class App : Application
         services.AddSingleton<ViewModel>();
         services.AddSingleton<AppInitializer>();
         services.AddSingleton<UiCommands>();
-        services.AddSingleton<ModInfoTools>();
         services.AddSingleton<XmlMagic>();
         services.AddSingleton<ModLoader>();
         services.AddSingleton<FileChecker>();
@@ -60,7 +58,7 @@ public partial class App : Application
         services.AddSingleton<IVppArchiver, VppArchiver>();
         services.AddSingleton<IModInstaller, ModInstaller>();
         services.AddSingleton<IXdeltaFactory, XdeltaFactory>();
-        services.AddLogging(x =>
+        services.AddLogging(static x =>
         {
             x.ClearProviders();
             x.SetMinimumLevel(LogLevel.Trace);
@@ -70,9 +68,9 @@ public partial class App : Application
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Logger owns disposables")]
-    private void AddNlog(ILoggingBuilder x)
+    private static void AddNlog(ILoggingBuilder x)
     {
-        var layout = new JsonLayout()
+        var layout = new JsonLayout
         {
             IncludeScopeProperties = true,
             IncludeEventProperties = true,
@@ -83,7 +81,7 @@ public partial class App : Application
                 new("logger", "${logger}"),
                 new("message", "${message}"),
                 new("exception", "${exception}"),
-                new("callsite", "${callsite}"),
+                new("callsite", "${callsite}")
             }
         };
 
@@ -124,5 +122,5 @@ public partial class App : Application
         */
     }
 
-    public static readonly Theme AppTheme = Theme.Light; // TODO set to auto for release
+    internal const Theme AppTheme = Theme.Light; // TODO set to auto for release
 }

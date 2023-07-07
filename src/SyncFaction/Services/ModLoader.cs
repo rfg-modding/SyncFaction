@@ -14,7 +14,6 @@ using SyncFaction.Core;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
-using SyncFaction.ModManager;
 using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.XmlModels;
 
@@ -25,15 +24,13 @@ public class ModLoader
     private readonly HttpClient client;
     private readonly IFileSystem fileSystem;
     private readonly FfClient ffClient;
-    private readonly ModInfoTools modInfoTools;
     private readonly ILogger<ModLoader> log;
 
-    public ModLoader(HttpClient client, IFileSystem fileSystem, FfClient ffClient, ModInfoTools modInfoTools, ILogger<ModLoader> log)
+    public ModLoader(HttpClient client, IFileSystem fileSystem, FfClient ffClient, ILogger<ModLoader> log)
     {
         this.client = client;
         this.fileSystem = fileSystem;
         this.ffClient = ffClient;
-        this.modInfoTools = modInfoTools;
         this.log = log;
     }
 
@@ -168,12 +165,12 @@ public class ModLoader
         token.ThrowIfCancellationRequested();
         log.LogTrace("Mod [{id}]: modinfo.xml found", mod.Id);
         await using var s = xmlFile.OpenRead();
-        var modInfo = modInfoTools.LoadFromXml(s, xmlFile.Directory!);
-        modInfoTools.CopySameOptions(modInfo);
+        var modInfo = ModInfo.LoadFromXml(s, xmlFile.Directory!, log);
+        modInfo.CopySameOptions();
         if (settings.Mods.TryGetValue(mod.Id, out var modSettings))
         {
             log.LogTrace("Mod [{id}]: modinfo.xml has saved settings in state, loading", mod.Id);
-            modInfoTools.LoadSettings(modSettings, modInfo);
+            modInfo.LoadSettings(modSettings);
         }
 
         return modInfo;
@@ -269,13 +266,13 @@ public class ModLoader
         if (mod.ModInfo is not null)
         {
             flags |= ModFlags.HasModInfo;
-            // NOTE: this may not work properly if user inputs change what files are edited
-            modInfoTools.ApplyUserInput(mod.ModInfo);
-            var archive = modInfoTools.GetPaths(storage.FileSystem, mod.ModInfo.TypedChanges.First().File).Archive;
+            // NOTE: this may not work properly if user inputs mention different vpps depending on selected values
+            mod.ModInfo.ApplyUserInput();
+            var archive = mod.ModInfo.GetPaths(storage.FileSystem, mod.ModInfo.TypedChanges.First().File).Archive;
             var nameNoExt = Path.GetFileNameWithoutExtension(archive) + ".";
             if (Hashes.MultiplayerFiles.Any(x => x.StartsWith(nameNoExt, StringComparison.OrdinalIgnoreCase)))
             {
-                log.LogTrace("Mod [{id}]: modinfo.xml affects multiplayer [{file}]", mod.Id, archive);
+                log.LogTrace("Mod [{id}]: modinfo.xml probably affects multiplayer [{file}]", mod.Id, archive);
                 flags |= ModFlags.AffectsMultiplayerFiles;
             }
         }

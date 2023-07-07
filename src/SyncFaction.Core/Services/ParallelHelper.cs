@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using MathNet.Numerics;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models;

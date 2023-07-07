@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
-using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
 

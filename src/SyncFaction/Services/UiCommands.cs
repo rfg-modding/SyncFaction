@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
@@ -20,7 +19,6 @@ using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.Extras;
 using SyncFaction.Models;
-using SyncFaction.ModManager;
 using SyncFaction.ModManager.XmlModels;
 using SyncFaction.ViewModels;
 
@@ -35,11 +33,10 @@ public class UiCommands
     private readonly FfClient ffClient;
     private readonly AppInitializer appInitializer;
     private readonly FileManager fileManager;
-    private readonly ModInfoTools modInfoTools;
     private readonly ParallelHelper parallelHelper;
     private readonly FileChecker fileChecker;
 
-    public UiCommands(IFileSystem fileSystem, ModLoader modLoader, IStateProvider stateProvider, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ModInfoTools modInfoTools, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<UiCommands> log)
+    public UiCommands(IFileSystem fileSystem, ModLoader modLoader, IStateProvider stateProvider, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<UiCommands> log)
     {
         this.log = log;
         this.fileSystem = fileSystem;
@@ -48,7 +45,6 @@ public class UiCommands
         this.ffClient = ffClient;
         this.appInitializer = appInitializer;
         this.fileManager = fileManager;
-        this.modInfoTools = modInfoTools;
         this.parallelHelper = parallelHelper;
         this.fileChecker = fileChecker;
     }
@@ -96,8 +92,8 @@ public class UiCommands
         {
             if (mvm.Mod.ModInfo is not null)
             {
-                viewModel.Model.Settings.Mods[mvm.Mod.Id] = modInfoTools.SaveCurrentSettings(mvm.Mod.ModInfo);
-                modInfoTools.ApplyUserInput(mvm.Mod.ModInfo);
+                viewModel.Model.Settings.Mods[mvm.Mod.Id] = mvm.Mod.ModInfo.SaveCurrentSettings();
+                mvm.Mod.ModInfo.ApplyUserInput();
             }
         }
 

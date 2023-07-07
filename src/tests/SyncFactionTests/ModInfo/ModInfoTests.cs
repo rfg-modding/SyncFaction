@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using SyncFaction.ModManager;
 
 namespace SyncFactionTests.ModInfo;
 
@@ -14,7 +14,7 @@ public class ModInfoTests
         using var fileStream = fileInfo.OpenRead();
         var fs = new FileSystem();
         var dir = new DirectoryInfoWrapper(fs, fileInfo.Directory);
-        var modInfo = new ModInfoTools(Mock.Of<ILogger<ModInfoTools>>()).LoadFromXml(fileStream, dir);
+        var modInfo = SyncFaction.ModManager.XmlModels.ModInfo.LoadFromXml(fileStream, dir, Mock.Of<ILogger<SyncFaction.ModManager.XmlModels.ModInfo>>());
         if (modInfo is null)
         {
             Assert.Fail("should not be null!");
@@ -34,11 +34,10 @@ public class ModInfoTests
     public void ApplyEditsAll(FileInfo fileInfo)
     {
         using var fileStream = fileInfo.OpenRead();
-        var modTools = new ModInfoTools(Mock.Of<ILogger<ModInfoTools>>());
         var fs = new FileSystem();
         var dir = new DirectoryInfoWrapper(fs, fileInfo.Directory);
-        var modInfo = modTools.LoadFromXml(fileStream, dir);
-        modTools.ApplyUserInput(modInfo);
+        var modInfo = SyncFaction.ModManager.XmlModels.ModInfo.LoadFromXml(fileStream, dir, new NullLogger<SyncFaction.ModManager.XmlModels.ModInfo>());
+        modInfo.ApplyUserInput();
 
         TestUtils.PrintJson(modInfo);
         fileStream.Position = 0;

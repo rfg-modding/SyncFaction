@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -23,11 +22,11 @@ public partial class ViewModel
     /// Lock UI, filter duplicate button clicks, display exceptions. Return true if action succeeded
     /// </summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
-    public async Task ExecuteSafe(ViewModel viewModel, string description, Func<ViewModel, CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi = true)
+    private async Task ExecuteSafe(ViewModel viewModel, string description, Func<ViewModel, CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi = true)
     {
         if (lockUi && !viewModel.Interactive)
         {
-            log.LogWarning("Attempt to run UI-locking command while not interactive, this should not happen normally");
+            log.LogWarning("Attempt to run UI-locking command while not interactive, this should not happen normally. Operation: [{operation}]", description);
         }
 
         if (lockUi)
@@ -140,9 +139,8 @@ If you don't need this: install mods manually, suggest an improvement on Github 
             // lock whole batch for less noisy UI updates, inserting category by category
             lock (collectionLock)
             {
-                foreach (var mod in mods)
+                foreach (var vm in mods.Select(static mod => new OnlineModViewModel(mod) { Mod = mod }))
                 {
-                    var vm = new OnlineModViewModel(mod) { Mod = mod };
                     vm.PropertyChanged += OnlineModChanged;
                     OnlineMods.Add(vm);
                 }
@@ -158,9 +156,8 @@ If you don't need this: install mods manually, suggest an improvement on Github 
             {
                 LocalMods.Clear();
                 var tmp = new List<LocalModViewModel>();
-                foreach (var mod in mods)
+                foreach (var vm in mods.Select(static mod => new LocalModViewModel(mod)))
                 {
-                    var vm = new LocalModViewModel(mod);
                     vm.Status = LocalModStatus.Disabled;
                     vm.PropertyChanged += LocalModRecalculateOrder;
                     vm.PropertyChanged += LocalModChanged;
@@ -181,7 +178,7 @@ If you don't need this: install mods manually, suggest an improvement on Github 
                 }
 
                 // NOTE: initial collection order is important!
-                foreach (var x in tmp.OrderBy(x => x.Order).ThenBy(x => x.Name))
+                foreach (var x in tmp.OrderBy(static x => x.Order).ThenBy(static x => x.Name))
                 {
                     LocalMods.Add(x);
                 }
@@ -308,26 +305,26 @@ If you don't need this: install mods manually, suggest an improvement on Github 
 
     private void LocalModChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(LocalModViewModel.Selected))
+        switch (e.PropertyName)
         {
-            var target = sender as LocalModViewModel;
-            // it's AsyncCommand, ok to call this way, awaited inside Execute()
-            DisplayCommand.Execute(target);
-        }
+            case nameof(LocalModViewModel.Selected):
+                var target = sender as LocalModViewModel;
+                // it's AsyncCommand, ok to call this way, awaited inside Execute()
+                DisplayCommand.Execute(target);
+                break;
+            case nameof(LocalModViewModel.Status):
+                lock (collectionLock)
+                {
+                    LocalSelectedCount = LocalMods.Count(static x => x.Status == LocalModStatus.Enabled);
+                }
 
-        else if (e.PropertyName == nameof(LocalModViewModel.Status))
-        {
-            lock (collectionLock)
-            {
-                LocalSelectedCount = LocalMods.Count(x => x.Status == LocalModStatus.Enabled);
-            }
+                break;
         }
     }
 
-    private void ResizeColumns(ListView listView)
+    private static void ResizeColumns(ListView listView)
     {
-        var view = listView.View as GridView;
-        if (view == null || view.Columns.Count < 1)
+        if (listView.View is not GridView view || view.Columns.Count < 1)
         {
             return;
         }
