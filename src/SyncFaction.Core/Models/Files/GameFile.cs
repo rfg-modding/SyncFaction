@@ -1,11 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
+using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Services.Files;
 
 namespace SyncFaction.Core.Models.Files;
 
 public class GameFile
 {
+    private readonly ILogger log;
+
     [ExcludeFromCodeCoverage]
     public string Name => FileInfo.FileSystem.Path.GetFileNameWithoutExtension(FileInfo.Name);
 
@@ -62,35 +65,14 @@ public class GameFile
 
     internal IFileInfo FileInfo { get; }
 
-    private IGameStorage Storage { get; }
+    public IGameStorage Storage { get; }
 
     public GameFile(IGameStorage storage, string relativePath, IFileSystem fileSystem)
     {
         var path = fileSystem.Path.Combine(storage.Game.FullName, relativePath);
         FileInfo = fileSystem.FileInfo.New(path);
         Storage = storage;
-    }
-
-    [ExcludeFromCodeCoverage]
-    public async Task<string?> ComputeHash(CancellationToken token)
-    {
-        if (!Exists)
-        {
-            return null;
-        }
-
-        return await Storage.ComputeHash(FileInfo, token);
-    }
-
-    /// <summary>
-    /// Compute hash and compare with expected value. Works only for vanilla files!
-    /// </summary>
-    [ExcludeFromCodeCoverage]
-    public async Task<bool> IsVanillaByHash(CancellationToken token)
-    {
-        var expected = Storage.VanillaHashes[RelativePath.Replace("\\", "/")];
-        var hash = await ComputeHash(token);
-        return (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
+        log = storage.Log; // yeah i know it's stupid but we already store reference to GameStorage here
     }
 
     public IFileInfo GetVanillaBackupLocation() => FileInfo.FileSystem.FileInfo.New(FileInfo.FileSystem.Path.Combine(Storage.Bak.FullName, RelativePath));
@@ -129,7 +111,7 @@ public class GameFile
     [ExcludeFromCodeCoverage]
     public bool BackupExists() => FindBackup().Exists;
 
-    public IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
+    internal IFileInfo? CopyToBackup(bool overwrite, bool isUpdate)
     {
         static FileKind DetermineKind(bool isUpdate, bool isKnown)
         {
@@ -223,7 +205,7 @@ public class GameFile
     /// <summary>
     /// Reverts file back to default state
     /// </summary>
-    public bool Rollback(bool vanilla)
+    internal bool Rollback(bool vanilla)
     {
         var result = RollbackInternal(vanilla);
         var extraModFile = GetManagedLocation();
@@ -231,12 +213,14 @@ public class GameFile
         {
             // we don't need to track it anymore
             extraModFile.Delete();
+            log.LogTrace("Rollback [{file}]: deleted managed file [{managed}]", AbsolutePath, extraModFile.FullName);
         }
 
+        log.LogTrace("Rollback [{file}]: {result}", AbsolutePath, result);
         return result;
     }
 
-    public bool RollbackInternal(bool vanilla)
+    private bool RollbackInternal(bool vanilla)
     {
         switch (Kind)
         {
@@ -246,16 +230,18 @@ public class GameFile
                     : FindBackup();
                 if (!src.Exists)
                 {
-                    // stock file not present in backups == it was never modified
+                    log.LogTrace("RollbackInternal Stock [{file}]: backup [{src}] does not exist, meaning it was never modified", AbsolutePath, src.FullName);
                     return false;
                 }
 
                 src.CopyTo(FileInfo.FullName, true);
+                log.LogTrace("RollbackInternal Stock [{file}]: copied from [{src}]", AbsolutePath, src.FullName);
                 return true;
             case FileKind.FromPatch:
                 if (vanilla)
                 {
                     Delete();
+                    log.LogTrace("RollbackInternal FromPatch [{file}]: deleted because rolling back to vanilla", AbsolutePath);
                     return true;
                 }
 
@@ -266,11 +252,17 @@ public class GameFile
                 }
 
                 srcPatch.CopyTo(FileInfo.FullName, true);
+                log.LogTrace("RollbackInternal FromPatch [{file}]: copied from [{src}]", AbsolutePath, srcPatch.FullName);
                 return true;
             case FileKind.FromMod:
                 if (FileInfo.Exists)
                 {
                     Delete();
+                    log.LogTrace("RollbackInternal FromMod [{file}]: deleted", AbsolutePath);
+                }
+                else
+                {
+                    log.LogTrace("RollbackInternal FromMod [{file}]: nothing to do, file does not exist", AbsolutePath);
                 }
 
                 return true;

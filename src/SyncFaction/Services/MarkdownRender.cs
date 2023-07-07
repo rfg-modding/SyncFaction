@@ -1,11 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Markup;
-using System.Windows.Media;
 using MdXaml;
 
 namespace SyncFaction.Services;

@@ -13,6 +13,7 @@ using SyncFaction.Services;
 
 namespace SyncFaction.ViewModels;
 
+/// <inheritdoc />
 /// <summary>
 /// UI-bound app state
 /// </summary>
@@ -23,7 +24,7 @@ public partial class ViewModel
 
     public bool DisplayModSettings => SelectedTab == Tab.Apply && ModInfo is not null;
 
-    public ModInfo? ModInfo => (SelectedMod as LocalModViewModel)?.Mod.ModInfo;
+    private ModInfo? ModInfo => (SelectedMod as LocalModViewModel)?.Mod.ModInfo;
 
     /// <summary>
     /// For simplified binding
@@ -42,13 +43,16 @@ public partial class ViewModel
 
     public ObservableCollection<LocalModViewModel> LocalMods { get; } = new();
 
-    public IViewAccessor ViewAccessor { get; set; }
+    internal IViewAccessor ViewAccessor { get; set; } = null!;
 
-    public Theme Theme { get; set; }
+    internal Theme Theme { get; set; }
 
-    public string LastException { get; set; }
-    private readonly UiCommands uiCommands;
-    private readonly ILogger<ViewModel> log;
+    internal string? LastException { get; set; }
+
+    private readonly UiCommands uiCommands = null!;
+
+    private readonly ILogger<ViewModel> log = null!;
+
     private readonly object collectionLock = new();
 
     /// <summary>
@@ -100,7 +104,7 @@ public partial class ViewModel
     /// View of diagnostics output
     /// </summary>
     [ObservableProperty]
-    private string diagView;
+    private string? diagView;
 
     public ViewModel(ILogger<ViewModel> log, UiCommands uiCommands) : this()
     {
@@ -139,7 +143,6 @@ public partial class ViewModel
             GenerateReportCancelCommand
         };
 
-        // TODO callback to log devMode enable/disable
         PropertyChanged += NotifyInteractiveCommands;
         model = new Model();
         LocalMods.CollectionChanged += LocalModsOnCollectionChanged;
@@ -156,5 +159,5 @@ public partial class ViewModel
         SetDesignTimeDefaults(true);
     }
 
-    public static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
+    internal static readonly SolidColorBrush Highlight = new((Color) ColorConverter.ConvertFromString("#F59408"));
 }

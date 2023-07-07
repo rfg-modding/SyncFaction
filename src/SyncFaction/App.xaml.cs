@@ -51,8 +51,10 @@ public partial class App : Application
         services.AddSingleton<ViewModel>();
         services.AddSingleton<AppInitializer>();
         services.AddSingleton<UiCommands>();
-        services.AddSingleton<ModTools>();
+        services.AddSingleton<ModInfoTools>();
         services.AddSingleton<XmlMagic>();
+        services.AddSingleton<ModLoader>();
+        services.AddSingleton<FileChecker>();
         services.AddSingleton<ParallelHelper>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IVppArchiver, VppArchiver>();

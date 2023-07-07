@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
-using SyncFaction.Models;
 
 namespace SyncFaction.Services;
 
@@ -89,6 +87,12 @@ public class UiLogger : ILogger
     private static string FormatMarkdown(Md md, LogLevel logLevel, string value)
     {
         value = value.Trim();
+
+        if (logLevel is not LogLevel.Information && value.Contains('`'))
+        {
+            // sanity check to avoid broken output
+            throw new InvalidOperationException($"MdXaml does not support code blocks inside colored blocks. Remove backticks or change log level to Information. Bad message: [{value}]");
+        }
 
         if (!md.HasFlag(Md.Block) && !md.HasFlag(Md.Code))
         {

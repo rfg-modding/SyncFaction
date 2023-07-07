@@ -7,12 +7,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
 using SyncFaction.Core.Models;
-using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.ModManager.Models;
 
 namespace SyncFaction.ViewModels;
 
+/// <inheritdoc />
 /// <summary>
 /// UI-bound live model, contains state of game, mods, app, excluding UI-only stuff
 /// </summary>
@@ -55,7 +55,7 @@ public partial class Model
     [NotifyPropertyChangedFor(nameof(ThreadCount))]
     private bool multithreading;
 
-    public void FromState(State? state)
+    internal void FromState(State? state)
     {
         // NOTE: carefully loading state from text file as fields may be missing (from older versions)
         state ??= new State();
@@ -70,7 +70,7 @@ public partial class Model
         PopulateList(state.AppliedMods, AppliedMods, false);
     }
 
-    public State ToState() =>
+    internal State ToState() =>
         new()
         {
             DevMode = DevMode,
@@ -84,22 +84,24 @@ public partial class Model
             Settings = Settings
         };
 
-    public int CalculateThreadCount()
+    /// <summary>
+    /// Do not load system at 100% but do not get lower than 1;<br/>
+    /// Also limit to some sane value for network calls
+    /// </summary>
+    internal int CalculateThreadCount()
     {
         if (Multithreading == false)
         {
             return 1;
         }
 
-        // do not load system at 100% but do not get lower than 1
-        // also limit to some sane value for network calls
         var almostAllCpus = Environment.ProcessorCount - 2;
         return Math.Clamp(almostAllCpus, 1, 10);
     }
 
-    public AppStorage GetAppStorage(IFileSystem fileSystem, ParallelHelper parallelHelper, ILogger log) => new(GameDirectory, fileSystem, parallelHelper, log);
+    internal AppStorage GetAppStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, log);
 
-    public GameStorage GetGameStorage(IFileSystem fileSystem, ParallelHelper parallelHelper, ILogger log) => new(GameDirectory, fileSystem, parallelHelper, Hashes.Get(IsGog.Value), log);
+    internal GameStorage GetGameStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, Hashes.Get(IsGog.Value), log);
 
     private void PopulateList<T>(IEnumerable<T>? src, ObservableCollection<T> dst, bool order)
     {

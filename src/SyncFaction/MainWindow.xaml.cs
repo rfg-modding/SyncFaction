@@ -123,7 +123,11 @@ public partial class MainWindow : Window, IViewAccessor
 
     private void ModResetInputs_Click(object sender, RoutedEventArgs e) => viewModel.ModResetInputsCommand.Execute(null);
 
-    private void CopyReport_Click(object sender, RoutedEventArgs e) => Clipboard.SetText(viewModel.DiagView);
+    private void CopyReport_Click(object sender, RoutedEventArgs e)
+    {
+        Clipboard.SetText(viewModel.DiagView);
+        log.LogInformation("Copied report to clipboard");
+    }
 
     private static void UpdateOptionValueText(object sender)
     {

@@ -2,12 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Models;
 
@@ -15,22 +19,75 @@ namespace SyncFaction.ViewModels;
 
 public partial class ViewModel
 {
-    public string GetHumanReadableVersion()
+    /// <summary>
+    /// Lock UI, filter duplicate button clicks, display exceptions. Return true if action succeeded
+    /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
+    public async Task ExecuteSafe(ViewModel viewModel, string description, Func<ViewModel, CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi = true)
     {
-        var sb = new StringBuilder();
-        string value;
+        if (lockUi && !viewModel.Interactive)
+        {
+            log.LogWarning("Attempt to run UI-locking command while not interactive, this should not happen normally");
+        }
+
+        if (lockUi)
+        {
+            // disables all clickable controls
+            viewModel.Interactive = false;
+        }
+
+        viewModel.CurrentOperation = description;
+        var success = false;
+        try
+        {
+            success = await Task.Run(async () => await action(viewModel, token), token);
+        }
+        catch (Exception e)
+        {
+            viewModel.LastException = e.ToString();
+            log.LogError("Exception:");
+            log.LogInformation(e, "---");
+            log.LogError(Md.H1.Id(), "FAILED: {operation}", viewModel.CurrentOperation);
+            log.LogError("Things to try now:");
+            log.LogError(Md.Bullet.Id(), "Carefully read logs and error messages");
+            log.LogError(Md.Bullet.Id(), "Verify your game with Steam or GOG Galaxy and try again");
+            log.LogError(Md.Bullet.Id(), "Generate diagnostics report and ask for help (FF Discord or Github)");
+        }
+        finally
+        {
+            if (lockUi)
+            {
+                viewModel.Interactive = true;
+            }
+
+            viewModel.CurrentOperation = success
+                ? string.Empty
+                : $"FAILED: {viewModel.CurrentOperation}";
+            viewModel.GeneralFailure |= !success; // stays forever until restart
+        }
+    }
+
+    internal string GetHumanReadableVersion()
+    {
         lock (collectionLock)
         {
             var terraform = string.Join(", ", Model.TerraformUpdates);
             var rsl = string.Join(", ", Model.RslUpdates);
-            value = $"terraform: {terraform}, rsl: {rsl}";
-        }
+            if (string.IsNullOrEmpty(terraform))
+            {
+                terraform = "none";
+            }
 
-        sb.Append(value);
-        return sb.ToString();
+            if (string.IsNullOrEmpty(rsl))
+            {
+                rsl = "none";
+            }
+
+            return $"Terraform: {terraform}, RSL: {rsl}";
+        }
     }
 
-    public void UpdateUpdates(List<long> terraform, List<long> rsl)
+    internal void UpdateUpdates(IEnumerable<long> terraform, IEnumerable<long> rsl)
     {
         lock (collectionLock)
         {
@@ -43,33 +100,28 @@ public partial class ViewModel
             var currentUpdates = Model.TerraformUpdates.Concat(Model.RslUpdates).ToList();
             if (!currentUpdates.SequenceEqual(newUpdates))
             {
-                log.LogWarning(@"You don't have latest patches installed!
-
-# What is this?
-
-Multiplayer mods depend on Terraform Patch and Script Loader. Even some singleplayer mods too! **It is highly recommended to have latest versions installed.**
-This app is designed to keep players updated to avoid issues in multiplayer.
-If you don't need this: install mods manually, suggest an improvement at Github or FF Discord, or enable dev mode.
-
-# Press button below to update your game
-
-Mod management will be available after updating.
-
-Changelogs and info:
-");
+                log.LogInformation("Changelogs and info:");
                 var i = 1;
                 foreach (var x in Model.RemoteTerraformUpdates)
                 {
-                    //log.LogInformation($"+ [Terraform patch part {i} (id {x})]({FormatUrl(x)})");
+                    log.LogInformation(Md.Bullet.Id(), "[Terraform patch part {i} (id {id})]({url})", i, x, FormatUrl(x));
                     i++;
                 }
 
                 i = 1;
                 foreach (var x in Model.RemoteRslUpdates)
                 {
-                    //log.LogInformation($"+ [Script Loader part {i} (id {x})]({FormatUrl(x)})");
+                    log.LogInformation(Md.Bullet.Id(), "[RSL part {i} (id {id})]({url})", i, x, FormatUrl(x));
                     i++;
                 }
+
+                log.LogError("You don't have latest patches installed!");
+                log.LogInformation(Md.H1.Id(), "What is this?");
+                log.LogInformation(@"Multiplayer mods depend on Terraform Patch and Script Loader. Even some singleplayer mods too! **It is highly recommended to have latest versions installed.**
+This app is designed to keep players updated to avoid issues in multiplayer.
+If you don't need this: install mods manually, suggest an improvement on Github or FF Discord, or enable DevMode and restart app.");
+                log.LogError(Md.H1.Id(), "Press button below to update your game");
+                log.LogInformation("Mod management will be available after updating.");
 
                 UpdateRequired = true;
             }
@@ -79,10 +131,10 @@ Changelogs and info:
             }
         }
 
-        string FormatUrl(long x) => string.Format(CultureInfo.InvariantCulture, Constants.BrowserUrlTemplate, x);
+        static string FormatUrl(long x) => string.Format(CultureInfo.InvariantCulture, Constants.BrowserUrlTemplate, x);
     }
 
-    public void AddOnlineMods(IReadOnlyList<IMod> mods) =>
+    internal void AddOnlineMods(IReadOnlyList<IMod> mods) =>
         ViewAccessor.OnlineModListView.Dispatcher.Invoke(() =>
         {
             // lock whole batch for less noisy UI updates, inserting category by category
@@ -99,7 +151,7 @@ Changelogs and info:
             }
         });
 
-    public void UpdateLocalMods(List<IMod> mods) =>
+    internal void UpdateLocalMods(List<IMod> mods) =>
         ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
         {
             lock (collectionLock)
@@ -138,7 +190,7 @@ Changelogs and info:
             }
         });
 
-    public void LockedCollectionOperation(Action action)
+    internal void LockCollections(Action action)
     {
         lock (collectionLock)
         {
@@ -146,7 +198,7 @@ Changelogs and info:
         }
     }
 
-    public T LockedCollectionOperation<T>(Func<T> action)
+    internal T LockCollections<T>(Func<T> action)
     {
         lock (collectionLock)
         {

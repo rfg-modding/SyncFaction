@@ -19,7 +19,7 @@ public class FileManagerTests
 {
     private static readonly Mock<IVppArchiver> archiverMock = new();
 
-    private readonly ModTools modTools = new(new NullLogger<ModTools>());
+    private readonly ModInfoTools modInfoTools = new(new NullLogger<ModInfoTools>());
     private readonly ModInstaller modInstaller = new(archiverMock.Object, null, null, new NullLogger<ModInstaller>());
     private readonly ParallelHelper parallelHelper;
     private readonly ILogger<FileManager> log = new NullLogger<FileManager>();
@@ -35,8 +35,8 @@ public class FileManagerTests
     {
         var fs = Init();
         var hashes = Hashes.Empty;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var subdir = storage.PatchBak.CreateSubdirectory("test");
         var dummy = fs.FileInfo.New("/game/.keep");
         dummy.Create();
@@ -63,8 +63,8 @@ public class FileManagerTests
     {
         var fs = Init();
         var hashes = Hashes.Empty;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         storage.PatchBak.Exists.Should().BeTrue();
         storage.PatchBak.Delete();
         storage.PatchBak.Refresh();
@@ -81,8 +81,8 @@ public class FileManagerTests
         var expected = fs.Clone();
         var hashes = Hashes.ExeDll;
         fs.DirectoryInfo.New(Mod1.Root).Create();
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod = new Mod { Id = ModId1 };
 
         var result = await manager.InstallMod(storage, mod, true, false, token);
@@ -103,8 +103,8 @@ public class FileManagerTests
             x.MkFile(Mngd.Root, File.Etc, Data.None);
         });
         var hashes = Hashes.ExeDll;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod = new Mod { Id = ModId1 };
 
         var result = await manager.InstallMod(storage, mod, true, false, token);
@@ -130,8 +130,8 @@ public class FileManagerTests
         {
         });
         var hashes = Hashes.ExeDll;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod = new Mod { Id = ModId1 };
 
         var result = await manager.InstallMod(storage, mod, true, false, token);
@@ -162,8 +162,8 @@ public class FileManagerTests
             Hashes.Data.Vpp
         });
 
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod = new Mod { Id = ModId1 };
 
         var result = await manager.InstallMod(storage, mod, true, false, token);
@@ -194,8 +194,8 @@ public class FileManagerTests
             Hashes.Data.Vpp
         });
 
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod = new Mod { Id = ModId1 };
 
         var result = await manager.InstallMod(storage, mod, true, false, token);
@@ -226,8 +226,8 @@ public class FileManagerTests
             Hashes.Data.Vpp
         });
 
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod = new Mod { Id = ModId1 };
 
         var result = await manager.InstallMod(storage, mod, true, false, token);
@@ -258,8 +258,8 @@ public class FileManagerTests
             Hashes.ExeDll,
             Hashes.Data.Vpp
         });
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
@@ -313,8 +313,8 @@ public class FileManagerTests
             Hashes.ExeDll,
             Hashes.Data.Vpp
         });
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
 
         var result1 = await manager.InstallMod(storage, mod1, true, false, token);
@@ -365,8 +365,8 @@ public class FileManagerTests
             Hashes.ExeDll,
             Hashes.Data.Vpp
         });
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
 
         var result1 = await manager.InstallMod(storage, mod1, true, true, token);
@@ -423,8 +423,8 @@ public class FileManagerTests
             Hashes.ExeDll,
             Hashes.Data.Vpp
         });
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
@@ -455,7 +455,7 @@ public class FileManagerTests
         });
 
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
         CheckDefaultFileKinds(fs, storage);
     }
 
@@ -497,8 +497,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
 
         var result1 = await manager.InstallMod(storage, pch1, true, true, token);
@@ -566,8 +566,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
@@ -644,8 +644,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Exe, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -719,8 +719,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -780,8 +780,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -842,8 +842,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -918,8 +918,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -1011,8 +1011,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Dll, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -1089,8 +1089,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -1153,8 +1153,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -1218,8 +1218,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -1297,8 +1297,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
@@ -1351,8 +1351,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Exe, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
 
         var result1 = await manager.InstallMod(storage, mod1, true, false, token);
@@ -1382,8 +1382,8 @@ public class FileManagerTests
             x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
 
         var result1 = await manager.InstallMod(storage, mod1, true, false, token);
@@ -1414,8 +1414,8 @@ public class FileManagerTests
             x.MkFile(Game.DEtc, File.Exe, Data.Orig).Delete();
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
 
         var result1 = await manager.InstallMod(storage, mod1, true, false, token);
@@ -1478,8 +1478,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Dll, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
@@ -1513,8 +1513,8 @@ public class FileManagerTests
             x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
@@ -1549,8 +1549,8 @@ public class FileManagerTests
             x.MkFile(BakV.DEtc, File.Etc, Data.Orig);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
@@ -1607,8 +1607,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Exe, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
 
@@ -1658,8 +1658,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
 
@@ -1710,8 +1710,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Exe, Data.Pch1);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
 
@@ -1788,8 +1788,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Dll, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };
@@ -1888,8 +1888,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Dll, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };
@@ -1982,8 +1982,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Exe, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
@@ -2073,8 +2073,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Dll, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };
@@ -2167,8 +2167,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Dll, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };
@@ -2234,8 +2234,8 @@ public class FileManagerTests
             x.MkFile(BakP.DEtc, File.Dll, Data.Pch2);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };
@@ -2303,8 +2303,8 @@ public class FileManagerTests
             x.MkFile(Mngd.DEtc, File.Exe, Data.None);
         });
         var hashes = Hashes.StockInAllDirs;
-        var storage = new GameStorage(Game.Root, fs, parallelHelper, hashes, log);
-        var manager = new FileManager(modTools, modInstaller, parallelHelper, log);
+        var storage = new GameStorage(Game.Root, fs, hashes, log);
+        var manager = new FileManager(modInfoTools, modInstaller, parallelHelper, log);
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };

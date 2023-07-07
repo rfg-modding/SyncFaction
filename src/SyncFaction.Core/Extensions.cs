@@ -22,7 +22,7 @@ public static class Extensions
     public static bool IsModContent(this IFileInfo f)
     {
         var name = f.Name.ToLowerInvariant();
-        var ext = Path.GetExtension(name);
+        var ext = f.FileSystem.Path.GetExtension(name);
         return !name.StartsWith(".mod", StringComparison.OrdinalIgnoreCase) && !Constants.IgnoredExtensions.Contains(ext);
     }
 
@@ -31,7 +31,7 @@ public static class Extensions
     /// <summary>
     /// Returns update list to install, excluding installed ones if they are in matching order
     /// </summary>
-    public static IEnumerable<T?> FilterUpdateList<T>(this IEnumerable<T?> installedUpdates, IEnumerable<T?> newUpdates) => newUpdates.Zip(installedUpdates.Concat(Repeat(default(T)))).SkipWhile(x => x.First?.Equals(x.Second) is true).Select(x => x.First);
+    public static IEnumerable<T?> FilterUpdateList<T>(this IEnumerable<T?> installedUpdates, IEnumerable<T?> newUpdates) => newUpdates.Zip(installedUpdates.Concat(Repeat(default(T)))).SkipWhile(static x => x.First?.Equals(x.Second) is true).Select(static x => x.First);
 
     /// <summary>
     /// Writes xmldoc without declaration to a memory stream. Stream is kept open and rewound to begin

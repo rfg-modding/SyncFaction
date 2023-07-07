@@ -1,7 +1,11 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.FactionFiles;
 using SyncFaction.Core.Models.Files;
 using SyncFaction.ModManager;
@@ -10,17 +14,19 @@ namespace SyncFaction.Core.Services.Files;
 
 public class FileManager
 {
-    private readonly ModTools modTools;
+    private readonly ModInfoTools modInfoTools;
     private readonly IModInstaller modInstaller;
     private readonly ParallelHelper parallelHelper;
+    private readonly FileChecker fileChecker;
 
     private readonly ILogger log;
 
-    public FileManager(ModTools modTools, IModInstaller modInstaller, ParallelHelper parallelHelper, ILogger<FileManager> log)
+    public FileManager(ModInfoTools modInfoTools, IModInstaller modInstaller, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<FileManager> log)
     {
-        this.modTools = modTools;
+        this.modInfoTools = modInfoTools;
         this.modInstaller = modInstaller;
         this.parallelHelper = parallelHelper;
+        this.fileChecker = fileChecker;
         this.log = log;
     }
 
@@ -39,11 +45,13 @@ public class FileManager
             isGog
                 ? Constants.SteamModDir
                 : Constants.GogModDir);
+        log.LogTrace("Excluded other version specific dir [{dir}]", otherVersionSpecificDir);
         excludeDirs.Add(otherVersionSpecificDir);
 
+        // TODO stopped here: refactoring, creating logs, and marking visited methods with bookmarks
         if (mod.ModInfo is not null)
         {
-            var operations = modTools.BuildOperations(mod.ModInfo);
+            var operations = modInfoTools.BuildOperations(mod.ModInfo);
 
             excludeFiles.Add(modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).First().FullName.ToLowerInvariant());
             foreach (var op in operations.FileSwaps)
@@ -117,7 +125,7 @@ public class FileManager
         var hashFile = modDir.EnumerateFiles("*").FirstOrDefault(x => x.Name.Equals(Constants.HashFile, StringComparison.OrdinalIgnoreCase));
         if (hashFile != null)
         {
-            if (!await Verify(storage, modDir, hashFile, token))
+            if (!await Verify(modDir, hashFile, token))
             {
                 log.LogError("Hash check failed");
                 return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
@@ -137,7 +145,7 @@ public class FileManager
         return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), true);
     }
 
-    private async Task<bool> Verify(IAppStorage appStorage, IDirectoryInfo modDir, IFileInfo hashFile, CancellationToken token)
+    private async Task<bool> Verify(IDirectoryInfo modDir, IFileInfo hashFile, CancellationToken token)
     {
         // TODO report what's going on
         var fs = modDir.FileSystem;
@@ -153,7 +161,7 @@ public class FileManager
                 return false;
             }
 
-            var hash = await appStorage.ComputeHash(file, token);
+            var hash = await fileChecker.ComputeHash(file, token);
             if (hash != expectedHash)
             {
                 return false;
@@ -205,10 +213,14 @@ public class FileManager
     }
 
     /// <summary>
-    /// Restores original files, from vanilla or community backup
+    /// Restores original files, from vanilla or terraform backup
     /// </summary>
     public void Rollback(IGameStorage storage, bool toVanilla, CancellationToken token)
     {
+        log.LogInformation("Restoring files to {state}",
+            toVanilla
+                ? "vanilla"
+                : "latest patch");
         var files = storage.EnumerateStockFiles().Concat(storage.EnumeratePatchFiles()).Concat(storage.EnumerateManagedFiles());
         foreach (var gameFile in files)
         {
@@ -221,7 +233,7 @@ public class FileManager
             throw new InvalidOperationException("Managed files directory should be empty by now");
         }
 
-        // don't automatically nuke patch_bak if restored to vanilla. this allows fast switch between vanilla and updated version
+        // NOTE: don't automatically nuke patch_bak if restored to vanilla. this allows fast switch between vanilla and updated version
     }
 
     public async Task<IReadOnlyList<FileReport>> GenerateFileReport(IAppStorage storage, int threadCount, CancellationToken token)
@@ -246,7 +258,7 @@ public class FileManager
                     break;
                 case IFileInfo file:
                     var size = file.Length;
-                    var hash = await storage.ComputeHash(file, t);
+                    var hash = await fileChecker.ComputeHash(file, t);
                     results.Add(new FileReport(relativePath, size, hash, created, modified, accessed));
 
                     break;
@@ -261,6 +273,7 @@ public class FileManager
     /// </summary>
     internal void ForgetUpdates(IGameStorage storage)
     {
+        log.LogInformation("Removing unneeded updates");
         storage.PatchBak.Delete(true);
         storage.PatchBak.Create();
     }

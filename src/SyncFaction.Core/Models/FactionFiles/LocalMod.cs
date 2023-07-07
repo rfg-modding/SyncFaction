@@ -20,7 +20,7 @@ Local mod folder in `data/.syncfaction`
     public long Size { get; set; }
     public string DescriptionMd { get; set; }
     public string? ImageUrl { get; set; }
-    public string DownloadUrl { get; set; }
+    public string? DownloadUrl { get; set; }
 
     public Category Category { get; set; } = Category.Local;
     public OnlineModStatus Status { get; set; }

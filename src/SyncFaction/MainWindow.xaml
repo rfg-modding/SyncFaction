@@ -90,7 +90,6 @@
                             <Expander.Header>
                                 <TextBlock Text="Show actual value" />
                             </Expander.Header>
-                            <!--TODO foreground color in textbox-->
                             <TextBox BorderThickness="0" Margin="5" IsReadOnly="True" Height="80" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsVisibleChanged="UIElement_OnIsVisibleChanged" Foreground="{DynamicResource ResourceKey={x:Static SystemColors.GrayTextBrushKey}}" Text="{Binding SelectedValue, Mode=OneWay, Converter={StaticResource XmlNodeConverter}}" />
                         </Expander>
 

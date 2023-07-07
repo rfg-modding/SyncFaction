@@ -49,6 +49,4 @@ public interface IGameStorage : IAppStorage
     IDirectoryInfo GetModDir(IMod mod);
 
     void InitBakDirectories();
-
-    Task<bool> CheckGameFiles(int threadCount, ILogger log, CancellationToken token);
 }

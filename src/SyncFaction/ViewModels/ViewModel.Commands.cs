@@ -32,7 +32,7 @@ public partial class ViewModel
     }
 
     [RelayCommand(IncludeCancelCommand = true)]
-    private async Task Init(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Initializing", uiCommands.Init, token);
+    private async Task Init(object x, CancellationToken token) => await ExecuteSafe(this, "Initializing", uiCommands.Init, token);
 
     [RelayCommand(CanExecute = nameof(NotInteractive))]
     private void Cancel(object x)
@@ -51,16 +51,16 @@ public partial class ViewModel
     }
 
     [RelayCommand(CanExecute = nameof(Interactive))]
-    private async Task Run(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Fetching FactionFiles data", uiCommands.Run, token);
+    private async Task Run(object x, CancellationToken token) => await ExecuteSafe(this, "Fetching FactionFiles data", uiCommands.Run, token);
 
     [RelayCommand(CanExecute = nameof(Interactive))]
-    private async Task Update(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Updating", uiCommands.Update, token);
+    private async Task Update(object x, CancellationToken token) => await ExecuteSafe(this, "Updating", uiCommands.Update, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task Download(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, $"Downloading {OnlineSelectedCount} mods", uiCommands.Download, token);
+    private async Task Download(object x, CancellationToken token) => await ExecuteSafe(this, $"Downloading {OnlineSelectedCount} mods", uiCommands.Download, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task Apply(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, $"Applying {LocalSelectedCount} mods", uiCommands.Apply, token);
+    private async Task Apply(object x, CancellationToken token) => await ExecuteSafe(this, $"Applying {LocalSelectedCount} mods", uiCommands.Apply, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task Refresh(object x, CancellationToken token)
@@ -68,10 +68,10 @@ public partial class ViewModel
         switch (SelectedTab)
         {
             case Tab.Download:
-                await uiCommands.ExecuteSafe(this, "Fetching FactionFiles data", uiCommands.RefreshOnline, token);
+                await ExecuteSafe(this, "Fetching FactionFiles data", uiCommands.RefreshOnline, token);
                 break;
             case Tab.Apply:
-                await uiCommands.ExecuteSafe(this, "Looking for mods", uiCommands.RefreshLocal, token);
+                await ExecuteSafe(this, "Looking for mods", uiCommands.RefreshLocal, token);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -85,7 +85,7 @@ public partial class ViewModel
         if (mvm.Selected)
         {
             SelectedMod = mvm;
-            await uiCommands.ExecuteSafe(this, "Displaying mod", uiCommands.Display, token);
+            await ExecuteSafe(this, "Displaying mod", uiCommands.Display, token);
         }
         else
         {
@@ -109,13 +109,13 @@ public partial class ViewModel
     private async Task Test(object x, CancellationToken token) => LocalModCalculateOrder();
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task RestorePatch(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to latest patch", uiCommands.RestorePatch, token);
+    private async Task RestorePatch(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to latest patch", uiCommands.RestorePatch, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task RestoreMods(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to previous mods", uiCommands.RestoreMods, token);
+    private async Task RestoreMods(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to previous mods", uiCommands.RestoreMods, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task RestoreVanilla(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Restoring to vanilla files", uiCommands.RestoreVanilla, token);
+    private async Task RestoreVanilla(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to vanilla files", uiCommands.RestoreVanilla, token);
 
     [RelayCommand]
     private void ModResetInputs(object x)
@@ -126,5 +126,5 @@ public partial class ViewModel
     }
 
     [RelayCommand(IncludeCancelCommand = true)]
-    private async Task GenerateReport(object x, CancellationToken token) => await uiCommands.ExecuteSafe(this, "Collecting diagnostic info", uiCommands.GenerateReport, token);
+    private async Task GenerateReport(object x, CancellationToken token) => await ExecuteSafe(this, "Collecting diagnostic info", uiCommands.GenerateReport, token);
 }

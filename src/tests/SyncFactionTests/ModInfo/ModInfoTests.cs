@@ -14,7 +14,7 @@ public class ModInfoTests
         using var fileStream = fileInfo.OpenRead();
         var fs = new FileSystem();
         var dir = new DirectoryInfoWrapper(fs, fileInfo.Directory);
-        var modInfo = new ModTools(Mock.Of<ILogger<ModTools>>()).LoadFromXml(fileStream, dir);
+        var modInfo = new ModInfoTools(Mock.Of<ILogger<ModInfoTools>>()).LoadFromXml(fileStream, dir);
         if (modInfo is null)
         {
             Assert.Fail("should not be null!");
@@ -34,7 +34,7 @@ public class ModInfoTests
     public void ApplyEditsAll(FileInfo fileInfo)
     {
         using var fileStream = fileInfo.OpenRead();
-        var modTools = new ModTools(Mock.Of<ILogger<ModTools>>());
+        var modTools = new ModInfoTools(Mock.Of<ILogger<ModInfoTools>>());
         var fs = new FileSystem();
         var dir = new DirectoryInfoWrapper(fs, fileInfo.Directory);
         var modInfo = modTools.LoadFromXml(fileStream, dir);

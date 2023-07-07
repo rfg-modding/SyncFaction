@@ -8,11 +8,11 @@ using SyncFaction.ModManager.XmlModels;
 
 namespace SyncFaction.ModManager;
 
-public class ModTools
+public class ModInfoTools
 {
-    private readonly ILogger<ModTools> log;
+    private readonly ILogger<ModInfoTools> log;
 
-    public ModTools(ILogger<ModTools> log) => this.log = log;
+    public ModInfoTools(ILogger<ModInfoTools> log) => this.log = log;
 
     public ModInfo LoadFromXml(Stream stream, IDirectoryInfo xmlFileDirectory)
     {
@@ -41,23 +41,20 @@ public class ModTools
         var selectedValues = modInfo.UserInput.ToDictionary(x => x.Name.ToLowerInvariant(), x => x.SelectedValue.Clone());
         InsertUserEditValuesRecursive(typedChanges, selectedValues);
         RemoveUserEditNodesRecursive(typedChanges);
-
         var holder = typedChanges.Wrap();
         var serializer = new XmlSerializer(typeof(TypedChangesHolder));
         using var reader = new XmlNodeReader(holder);
         var typedChangesHolder = (TypedChangesHolder) serializer.Deserialize(reader);
-
         foreach (var replace in typedChangesHolder.TypedChanges.OfType<Replace>())
         {
             ApplyReplaceUserInput(replace, selectedValues);
         }
 
         var mirroredChanges = MirrorMiscTableChanges(modInfo.WorkDir.FileSystem, typedChangesHolder.TypedChanges);
-
         modInfo.TypedChanges = typedChangesHolder.TypedChanges.Concat(mirroredChanges).ToList();
     }
 
-    public void ApplyReplaceUserInput(Replace replace, Dictionary<string, XmlNode> selectedValues)
+    private void ApplyReplaceUserInput(Replace replace, Dictionary<string, XmlNode> selectedValues)
     {
         if (!string.IsNullOrEmpty(replace.FileUserInput))
         {
@@ -218,7 +215,7 @@ public class ModTools
     /// <summary>
     /// Check, sanitize and split path from Change to "data/vpp" + "relative/file/path"
     /// </summary>
-    private VppPath GetPaths(IFileSystem fs, string rawPath)
+    public VppPath GetPaths(IFileSystem fs, string rawPath)
     {
         var path = SanitizePath(rawPath.ToLowerInvariant());
         var parts = path.Split('\\', '/');

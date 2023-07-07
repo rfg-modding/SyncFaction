@@ -57,7 +57,7 @@ public class Mod : IMod
     public string? ImageUrl { get; set; }
 
     [JsonPropertyName("image_thumb_4by3_url")]
-    public string ImageThumb4By3Url { get; set; }
+    public string? ImageThumb4By3Url { get; set; }
 
     public string DownloadUrl { get; set; }
     public string? ImagePath { get; set; }

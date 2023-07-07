@@ -88,9 +88,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 
 ([join Discord!](https://discord.gg/factionfiles))
 
-## Short-term plan
-
-Or how to get this branch closer to release and not burn out:
+## TODO
 
 0. XML merging features
   * ~~stream read-write vpp to avoid high memory usage~~
@@ -151,22 +149,21 @@ Or how to get this branch closer to release and not burn out:
 21. "restore to modded" - load list of mods back (should be stored separately)
 22. state is saved even if initial check isnt finished - is this OK?
 23. remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
+24. remove usings of FileInfo, DirectoryInfo, Path (use abstractions lib)
+25. log every file/folder manipulation: create, write, delete, move, copy
+26. log.trace every IF
 
-## Dark Mode
+## Release
 
-* ~~move styles from main window to custom xaml~~
-* ~~fix tab control; scroll is broken in dark theme; without scroll there's a white rectangle in bottom right~~
-* ~~make theme manager work on a window level~~
-* ~~ListViewItem is broken: dark style breaks modinfo view completely, removing it works but style is bad~~
-* ~~fix hyperlink~~
-* ~~fix warranty void~~
-* ~~font color should not be white~~
-* ~~fix vertical splitter~~
-* ~~fix custom btns with indicator~~
-* ~~fix selected item~~
-* ~~fix listview header (GridViewColumnHeader?)~~
-* ~~fix lego mason outline~~
-* fix markdown view (do proper logging first)
+* remove hack for old update IDs (rfgcommunityupdate)
+* see if logs look nice without dev mode and with it
+* test on both steam and gog versions
+* test with terraform rebuild
+* simulate terraform rebuild and RSL uploaded to FF
+* rename/move/create FF categories
+* document modinfo.xml
+* document mod structure and all the magic
+* make examples
 
 ## Backlog
 
