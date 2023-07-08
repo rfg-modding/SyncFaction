@@ -88,7 +88,7 @@ public partial class Model
     /// Do not load system at 100% but do not get lower than 1;<br/>
     /// Also limit to some sane value for network calls
     /// </summary>
-    internal int CalculateThreadCount()
+    private int CalculateThreadCount()
     {
         if (Multithreading == false)
         {

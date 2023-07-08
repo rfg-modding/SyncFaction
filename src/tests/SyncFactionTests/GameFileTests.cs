@@ -104,7 +104,7 @@ public class GameFileTests
         var modDir = fileSystem.DirectoryInfo.New("x:\\mod");
         var file = fileSystem.FileInfo.New(fileSystem.Path.Join(modDir.FullName, modFile));
 
-        var gf = GameFile.GuessTarget(Storage, file, modDir);
+        var gf = GameFile.GuessTarget(Storage, file, modDir, new NullLogger<GameFile>());
 
         gf.AbsolutePath.Should().Be(expected);
     }
@@ -137,7 +137,7 @@ public class GameFileTests
             Create(fileSystem.Path.Combine(managed.FullName, modFile));
         }
 
-        var gf = GameFile.GuessTarget(Storage, file, modDir);
+        var gf = GameFile.GuessTarget(Storage, file, modDir, new NullLogger<GameFile>());
 
         gf.Kind.Should().Be(expected);
     }

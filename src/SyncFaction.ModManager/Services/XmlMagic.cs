@@ -4,14 +4,18 @@ using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.XmlModels;
 using SyncFaction.Packer.Models;
 
-namespace SyncFaction.Core.Services.Xml;
+namespace SyncFaction.ModManager.Services;
 
-// TODO move this to ModTools?
 public class XmlMagic
 {
+    private readonly XmlHelper xmlHelper;
     private readonly ILogger<XmlMagic> log;
 
-    public XmlMagic(ILogger<XmlMagic> log) => this.log = log;
+    public XmlMagic(XmlHelper xmlHelper, ILogger<XmlMagic> log)
+    {
+        this.xmlHelper = xmlHelper;
+        this.log = log;
+    }
 
     public LogicalFile ApplyPatches(LogicalFile file, VppOperations vppOperations, List<IDisposable> disposables, CancellationToken token)
     {
@@ -19,7 +23,7 @@ public class XmlMagic
         var swaps = vppOperations.FileSwaps[file.Name];
         foreach (var swap in swaps)
         {
-            log.LogDebug("swap [{key}] [{value}]", file.Name, swap.Target);
+            token.ThrowIfCancellationRequested();
             var stream = swap.Target.OpenRead();
             disposables.Add(stream);
             file = file with
@@ -27,19 +31,21 @@ public class XmlMagic
                 Content = stream,
                 CompressedContent = null
             };
+            log.LogTrace("File swap: [{key}] [{value}]", file.Name, swap.Target);
         }
 
         var edits = vppOperations.XmlEdits[file.Name];
         foreach (var edit in edits)
         {
+            token.ThrowIfCancellationRequested();
             var ext = file.Name.Split(".").Last().ToLowerInvariant();
-            if (!XmlHelper.KnownXmlExtensions.Contains(ext))
+            if (!xmlHelper.KnownXmlExtensions.Contains(ext))
             {
-                var extList = string.Join(", ", XmlHelper.KnownXmlExtensions);
+                var extList = string.Join(", ", xmlHelper.KnownXmlExtensions);
                 throw new InvalidOperationException($"Can not edit file [{file.Name}]. Supported file extensions: [{extList}]");
             }
 
-            log.LogDebug("edit [{key}] [{value}]", file.Name, edit.Action);
+            log.LogDebug("XML Edit: [{key}] [{value}]", file.Name, edit.Action);
             var gameXml = ReadXmlDocument(file);
             var xtblRoot = gameXml["root"]?["Table"];
             if (xtblRoot is null)
@@ -66,68 +72,29 @@ public class XmlMagic
     {
         // NOTE: StreamReader is important, it handles unicode properly
         using var reader = new StreamReader(file.Content);
-        var gameXml = new XmlDocument();
-        gameXml.PreserveWhitespace = true;
+        var gameXml = new XmlDocument { PreserveWhitespace = true };
         gameXml.Load(reader);
         return gameXml;
     }
 
-    /// <summary>
-    /// Add node to target or reuse existing (by name), then descend
-    /// </summary>
-    public static void AddNew(XmlNode node, XmlNode target)
+    private void MergeRecursive(XmlNode source, XmlNode target, string? action, bool copyAttrs)
     {
-        switch (node.NodeType)
-        {
-            case XmlNodeType.Element:
-                // use existing or create new
-                var newTarget = target[node.LocalName] ?? XmlHelper.AppendNewChild(node.LocalName, target);
-                MergeRecursive(node, newTarget, null, true);
-
-                break;
-            case XmlNodeType.Text:
-                XmlHelper.SetNodeXmlTextValue(target, node.InnerText);
-                break;
-        }
-    }
-
-    public static void CopyRecursive(XmlNode node, XmlNode target, bool copyAttrs)
-    {
+        log.LogTrace("Merging [{src}] into [{dst}], action [{action}], copyAttrs [{copyAttrs}]", source.Name, target.Name, action, copyAttrs);
         if (copyAttrs)
         {
-            XmlHelper.CopyAttrs(node, target);
-        }
-
-        if (!node.HasChildNodes)
-        {
-            // TODO does this really work? any text is a TextNode too
-            target.InnerText = node.InnerText;
-        }
-        else
-        {
-            foreach (XmlNode childNode in node.ChildNodes)
-            {
-                Add(childNode, target);
-            }
-        }
-    }
-
-    private static void MergeRecursive(XmlNode source, XmlNode target, string? action, bool copyAttrs)
-    {
-        //todo walk xml
-
-        if (copyAttrs)
-        {
-            XmlHelper.CopyAttrs(source, target);
+            xmlHelper.CopyAttrs(source, target);
+            log.LogTrace("Copied attributes from [{src}] to [{dst}]", source.Name, target.Name);
         }
 
         if (!source.HasChildNodes)
         {
+            log.LogTrace("Source [{src}] has no children, nothing to do", source.Name);
             return;
         }
 
-        action ??= XmlHelper.GetListAction(source) ?? "add_new";
-        var listAction = XmlHelper.ParseListAction(action);
+        action ??= xmlHelper.GetListAction(source) ?? "add_new";
+        var listAction = xmlHelper.ParseListAction(action);
+        log.LogTrace("ListAction [{value}]", listAction);
         switch (listAction)
         {
             case ListAction.AddNew:
@@ -153,10 +120,11 @@ public class XmlMagic
 
                 break;
             case ListAction.CombineByField:
-                var criteria = action.Substring("combine_by_field:".Length);
+                var criteria = action["combine_by_field:".Length..];
+                log.LogTrace("Combine criteria [{value}]", criteria);
                 foreach (XmlNode node in source.ChildNodes)
                 {
-                    var matcher = XmlHelper.BuildSubnodeValueMatcher(criteria, node);
+                    var matcher = xmlHelper.BuildSubnodeValueMatcher(criteria, node);
                     CopyFirstMatch(node, target, matcher);
                 }
 
@@ -166,33 +134,81 @@ public class XmlMagic
         }
     }
 
-    private static void Add(XmlNode node, XmlNode target)
+    /// <summary>
+    /// Add node to target or reuse existing (by name), then descend
+    /// </summary>
+    private void AddNew(XmlNode node, XmlNode target)
+    {
+        switch (node.NodeType)
+        {
+            case XmlNodeType.Element:
+                // use existing or create new
+                var newTarget = target[node.LocalName] ?? XmlHelper.AppendNewChild(node.LocalName, target);
+                log.LogTrace("MergeRecursive");
+                MergeRecursive(node, newTarget, null, true);
+
+                break;
+            case XmlNodeType.Text:
+                log.LogTrace("Set target text");
+                xmlHelper.SetNodeXmlTextValue(target, node.InnerText);
+                break;
+        }
+    }
+
+    private void Add(XmlNode node, XmlNode target)
     {
         switch (node.NodeType)
         {
             case XmlNodeType.Element:
                 var newChild = XmlHelper.AppendNewChild(node.LocalName, target);
+                log.LogTrace("CopyRecursive");
                 CopyRecursive(node, newChild, true);
                 break;
             case XmlNodeType.Text:
-                XmlHelper.SetNodeXmlTextValue(target, node.InnerText);
+                log.LogTrace("Set target text");
+                xmlHelper.SetNodeXmlTextValue(target, node.InnerText);
                 break;
         }
     }
 
-    private static void CopyFirstMatch(XmlNode source, XmlNode target, IXmlNodeMatcher matcher)
+    private void CopyRecursive(XmlNode node, XmlNode target, bool copyAttrs)
+    {
+        if (copyAttrs)
+        {
+            xmlHelper.CopyAttrs(node, target);
+            log.LogTrace("Copied attributes from [{src}] to [{dst}]", node.Name, target.Name);
+        }
+
+        if (!node.HasChildNodes)
+        {
+            // TODO does this really work? any text is a TextNode too
+            target.InnerText = node.InnerText;
+            log.LogTrace("Node has no children, applied InnerText");
+        }
+        else
+        {
+            foreach (XmlNode childNode in node.ChildNodes)
+            {
+                log.LogTrace("Add");
+                Add(childNode, target);
+            }
+        }
+    }
+
+    private void CopyFirstMatch(XmlNode source, XmlNode target, IXmlNodeMatcher matcher)
     {
         // look for first match
         foreach (XmlNode x in target.ChildNodes)
         {
             if (source.LocalName == x.LocalName && matcher.DoesNodeMatch(x))
             {
+                log.LogTrace("Found match, MergeRecursive");
                 MergeRecursive(source, x, null, true);
                 return;
             }
         }
 
-        // if nothing matched, fallback to add
+        log.LogTrace("Nothing matched, fall back to Add");
         Add(source, target);
     }
 }

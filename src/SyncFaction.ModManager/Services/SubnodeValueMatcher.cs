@@ -1,6 +1,6 @@
 using System.Xml;
 
-namespace SyncFaction.Core.Services.Xml;
+namespace SyncFaction.ModManager.Services;
 
 internal class SubnodeValueMatcher : IXmlNodeMatcher
 {

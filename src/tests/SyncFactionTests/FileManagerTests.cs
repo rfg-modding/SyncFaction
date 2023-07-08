@@ -84,7 +84,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod = new Mod { Id = ModId1 };
 
-        var result = await manager.InstallMod(storage, mod, true, false, token);
+        var result = await manager.InstallMod(storage, mod, true, false, 1, token);
         result.Success.Should().BeFalse();
         fs.ShouldHaveSameFilesAs(expected);
     }
@@ -106,7 +106,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod = new Mod { Id = ModId1 };
 
-        var result = await manager.InstallMod(storage, mod, true, false, token);
+        var result = await manager.InstallMod(storage, mod, true, false, 1, token);
         result.Success.Should().BeTrue();
         fs.ShouldHaveSameFilesAs(expected);
     }
@@ -133,7 +133,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod = new Mod { Id = ModId1 };
 
-        var result = await manager.InstallMod(storage, mod, true, false, token);
+        var result = await manager.InstallMod(storage, mod, true, false, 1, token);
         result.Success.Should().BeFalse();
         fs.ShouldHaveSameFilesAs(expected);
     }
@@ -165,7 +165,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod = new Mod { Id = ModId1 };
 
-        var result = await manager.InstallMod(storage, mod, true, false, token);
+        var result = await manager.InstallMod(storage, mod, true, false, 1, token);
         fs.ShouldHaveSameFilesAs(expected);
         result.Success.Should().BeTrue();
     }
@@ -197,7 +197,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod = new Mod { Id = ModId1 };
 
-        var result = await manager.InstallMod(storage, mod, true, false, token);
+        var result = await manager.InstallMod(storage, mod, true, false, 1, token);
         fs.ShouldHaveSameFilesAs(expected);
         result.Success.Should().BeTrue();
     }
@@ -229,7 +229,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod = new Mod { Id = ModId1 };
 
-        var result = await manager.InstallMod(storage, mod, true, false, token);
+        var result = await manager.InstallMod(storage, mod, true, false, 1, token);
         fs.ShouldHaveSameFilesAs(expected);
         result.Success.Should().BeTrue();
     }
@@ -262,8 +262,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -316,7 +316,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -368,7 +368,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, true, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -427,8 +427,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, true, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, true, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -500,7 +500,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var pch1 = new Mod { Id = PchId1 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -570,8 +570,8 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -649,9 +649,9 @@ public class FileManagerTests
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -724,9 +724,9 @@ public class FileManagerTests
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
         manager.Rollback(storage, false, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -785,9 +785,9 @@ public class FileManagerTests
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
         manager.Rollback(storage, false, token);
         manager.Rollback(storage, true, token);
 
@@ -847,9 +847,9 @@ public class FileManagerTests
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
         manager.Rollback(storage, true, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -923,9 +923,9 @@ public class FileManagerTests
         var pch2 = new Mod { Id = PchId2 };
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
         manager.Rollback(storage, true, token);
         manager.Rollback(storage, false, token);
 
@@ -1017,10 +1017,10 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -1095,10 +1095,10 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         manager.Rollback(storage, false, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1159,10 +1159,10 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         manager.Rollback(storage, false, token);
         manager.Rollback(storage, true, token);
 
@@ -1224,10 +1224,10 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         manager.Rollback(storage, true, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1303,10 +1303,10 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, pch1, true, true, token);
-        var result2 = await manager.InstallMod(storage, pch2, true, true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, pch1, true, true, 1, token);
+        var result2 = await manager.InstallMod(storage, pch2, true, true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         manager.Rollback(storage, true, token);
         manager.Rollback(storage, false, token);
 
@@ -1354,7 +1354,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -1385,7 +1385,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
         manager.Rollback(storage, false, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1417,7 +1417,7 @@ public class FileManagerTests
         var manager = new FileManager(modInstaller, parallelHelper, fileChecker, log);
         var mod1 = new Mod { Id = ModId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
         manager.Rollback(storage, true, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1482,8 +1482,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -1517,8 +1517,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         manager.Rollback(storage, false, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1553,8 +1553,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var mod2 = new Mod { Id = ModId2 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         manager.Rollback(storage, true, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1611,8 +1611,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod> { mod1 }, true, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod> { mod1 }, true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -1662,8 +1662,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod> { mod1 },true, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod> { mod1 },true, 1, token);
         manager.Rollback(storage, false, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1714,8 +1714,8 @@ public class FileManagerTests
         var mod1 = new Mod { Id = ModId1 };
         var pch1 = new Mod { Id = PchId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod> { mod1 },true, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod> { mod1 },true, 1, token);
         manager.Rollback(storage, true, token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1793,8 +1793,8 @@ public class FileManagerTests
         var mod2 = new Mod { Id = ModId2 };
         var pch1 = new Mod { Id = PchId1 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         var result3 = await manager.InstallUpdate(storage,
             new List<IMod> { pch1 },
             false,
@@ -1804,6 +1804,7 @@ public class FileManagerTests
                 mod2
             },
             true,
+            1,
             token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1894,8 +1895,8 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result2 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result2 = await manager.InstallMod(storage, mod2, true, false, 1, token);
         var result3 = await manager.InstallUpdate(storage,
             new List<IMod>
             {
@@ -1908,6 +1909,7 @@ public class FileManagerTests
                 mod1,
                 mod2
             },true,
+            1,
             token);
 
         fs.ShouldHaveSameFilesAs(expected);
@@ -1987,9 +1989,9 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, token);
-        var result2 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result3 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, false, new List<IMod> { mod1 },true, token);
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, 1, token);
+        var result2 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, false, new List<IMod> { mod1 },true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -2079,10 +2081,10 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, token);
-        var result2 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result3 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, false, new List<IMod> { mod1 },true, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, 1, token);
+        var result2 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, false, new List<IMod> { mod1 },true, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -2173,10 +2175,10 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, token);
-        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, false, new List<IMod>(),true, token);
-        var result3 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result4 = await manager.InstallMod(storage, mod2, true, false, token);
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, 1, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, false, new List<IMod>(),true, 1, token);
+        var result3 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result4 = await manager.InstallMod(storage, mod2, true, false, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -2240,8 +2242,8 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, token);
-        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, true, new List<IMod>(),true, token);
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, 1, token);
+        var result2 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, true, new List<IMod>(),true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();
@@ -2309,9 +2311,9 @@ public class FileManagerTests
         var pch1 = new Mod { Id = PchId1 };
         var pch2 = new Mod { Id = PchId2 };
 
-        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, token);
-        var result2 = await manager.InstallMod(storage, mod1, true, false, token);
-        var result3 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, true, new List<IMod> { mod1 },true, token);
+        var result1 = await manager.InstallUpdate(storage, new List<IMod> { pch1 }, false, new List<IMod>(),true, 1, token);
+        var result2 = await manager.InstallMod(storage, mod1, true, false, 1, token);
+        var result3 = await manager.InstallUpdate(storage, new List<IMod> { pch2 }, true, new List<IMod> { mod1 },true, 1, token);
 
         fs.ShouldHaveSameFilesAs(expected);
         result1.Success.Should().BeTrue();

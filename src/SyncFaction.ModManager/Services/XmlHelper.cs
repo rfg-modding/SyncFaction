@@ -1,36 +1,24 @@
 using System.Collections.Immutable;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using SyncFaction.ModManager.Models;
 
-namespace SyncFaction.Core.Services.Xml;
+namespace SyncFaction.ModManager.Services;
 
-public static class XmlHelper
+public class XmlHelper
 {
-    public static XmlNode? GetSubnodeByXPath(XmlNode? node, string xPath)
+    private readonly ILogger<XmlHelper> log;
+
+    public XmlHelper(ILogger<XmlHelper> log)
     {
-        if (string.IsNullOrWhiteSpace(xPath))
-        {
-            return null;
-        }
-
-        if (node is null)
-        {
-            return null;
-        }
-
-        return node.SelectSingleNode(xPath);
+        this.log = log;
     }
 
-    public static void ImportNodes(List<XmlNode> nodes, XmlElement targetParent)
-    {
-        foreach (var node in nodes)
-        {
-            var imported = targetParent.OwnerDocument.ImportNode(node, true);
-            targetParent.AppendChild(imported);
-        }
-    }
+    internal static XmlNode? GetSubnodeByXPath(XmlNode? node, string xPath) => string.IsNullOrWhiteSpace(xPath)
+        ? null
+        : node?.SelectSingleNode(xPath);
 
-    public static string FormatXPath(string value)
+    private string FormatXPath(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -42,10 +30,12 @@ public static class XmlHelper
                 '\\'
             },
             StringSplitOptions.RemoveEmptyEntries);
-        return string.Join("/", tags);
+        var result = string.Join("/", tags);
+        log.LogTrace("Formatted [{value}] to xpath [{xpath}]", value, result);
+        return result;
     }
 
-    public static ListAction ParseListAction(string action) =>
+    internal ListAction ParseListAction(string action) =>
         action.ToLowerInvariant() switch
         {
             "add_new" => ListAction.AddNew,
@@ -63,10 +53,11 @@ public static class XmlHelper
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action")
         };
 
-    public static XmlText GetNodeOrSubnodeText(XmlNode node)
+    private XmlText? GetNodeOrSubnodeText(XmlNode node)
     {
         if (node.NodeType == XmlNodeType.Text)
         {
+            log.LogTrace("Node is Text");
             return (XmlText) node;
         }
 
@@ -74,6 +65,7 @@ public static class XmlHelper
         {
             if (childNode.NodeType == XmlNodeType.Text)
             {
+                log.LogTrace("Found child node of type Text");
                 return (XmlText) childNode;
             }
         }
@@ -81,69 +73,70 @@ public static class XmlHelper
         return null;
     }
 
-    public static void SetNodeXmlTextValue(XmlNode node, string textString)
+    internal void SetNodeXmlTextValue(XmlNode node, string value)
     {
         var xmlText = GetNodeOrSubnodeText(node);
-
-        if (string.IsNullOrEmpty(textString))
+        if (string.IsNullOrEmpty(value))
         {
             if (xmlText is not null)
             {
                 //If string empty and xmlText isn't null, delete xmlText node
                 node.RemoveChild(xmlText);
+                log.LogTrace("Removed existing Text node");
             }
+
             // else, do nothing and return
+            log.LogTrace("Xml text and value are empty, nothing to do");
         }
         else
         {
             if (xmlText is not null)
             {
                 //If string not empty and xmlText != null, set it's value to textString
-                xmlText.InnerText = textString;
+                xmlText.InnerText = value;
+                log.LogTrace("Applied text value to InnerText");
             }
             else
             {
                 //If xmlText is null then add XmlText subnode with the value of textString
-                var textNode = node.OwnerDocument.CreateTextNode(textString);
+                var textNode = node.OwnerDocument!.CreateTextNode(value);
                 node.AppendChild(textNode);
+                log.LogTrace("Added Text node");
             }
         }
     }
 
-    public static void CopyAttrs(XmlNode source, XmlNode target)
+    internal void CopyAttrs(XmlNode source, XmlNode target)
     {
-        if (source.Attributes is null)
-        {
-            var breakMe = 0;
-        }
-
-        foreach (XmlAttribute attribute in source.Attributes)
+        foreach (XmlAttribute attribute in source.Attributes!)
         {
             if (!attribute.LocalName.Equals(ListActionAttribute, StringComparison.OrdinalIgnoreCase))
             {
-                var newAttr = target.OwnerDocument.CreateAttribute(attribute.LocalName);
+                var newAttr = target.OwnerDocument!.CreateAttribute(attribute.LocalName);
                 newAttr.Value = attribute.InnerText;
-                target.Attributes.SetNamedItem(newAttr);
+                target.Attributes!.SetNamedItem(newAttr);
             }
         }
     }
 
-    public static string? GetListAction(XmlNode node)
+    internal string? GetListAction(XmlNode node)
     {
-        foreach (XmlAttribute attribute in node.Attributes)
+        foreach (XmlAttribute attribute in node.Attributes!)
         {
             if (attribute.LocalName.Equals(ListActionAttribute, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(attribute.InnerText))
             {
-                return attribute.InnerText;
+                var value = attribute.InnerText;
+                log.LogTrace("Found ListAction attribute with value [{value}]", value);
+                return value;
             }
         }
 
         return null;
     }
 
-    public static XmlNode AppendNewChild(string name, XmlNode target) => target.AppendChild(target.OwnerDocument!.CreateElement(name))!;
+    internal static XmlNode AppendNewChild(string name, XmlNode target) => target.AppendChild(target.OwnerDocument!.CreateElement(name))!;
 
-    internal static IXmlNodeMatcher BuildSubnodeValueMatcher(string criteria, XmlNode editChild)
+    internal IXmlNodeMatcher BuildSubnodeValueMatcher(string criteria, XmlNode editChild)
     {
         if (string.IsNullOrWhiteSpace(criteria))
         {
@@ -157,6 +150,7 @@ public static class XmlHelper
         if (string.IsNullOrWhiteSpace(value))
         {
             // NOTE: if first is always false, ignore others because they are chained with AND
+            log.LogTrace("Always false matcher");
             return new AlwaysFalseMatcher();
         }
 
@@ -170,12 +164,12 @@ public static class XmlHelper
         return matcher;
     }
 
-    public static readonly ImmutableHashSet<string> KnownXmlExtensions = new HashSet<string>
+    public ImmutableHashSet<string> KnownXmlExtensions { get; } = new HashSet<string>
     {
         "xtbl",
         "dtdox",
         "gtodx"
     }.ToImmutableHashSet();
 
-    public const string ListActionAttribute = "list_action";
+    private const string ListActionAttribute = "list_action";
 }

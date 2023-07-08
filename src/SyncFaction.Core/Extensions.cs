@@ -33,27 +33,6 @@ public static class Extensions
     /// </summary>
     public static IEnumerable<T?> FilterUpdateList<T>(this IEnumerable<T?> installedUpdates, IEnumerable<T?> newUpdates) => newUpdates.Zip(installedUpdates.Concat(Repeat(default(T)))).SkipWhile(static x => x.First?.Equals(x.Second) is true).Select(static x => x.First);
 
-    /// <summary>
-    /// Writes xmldoc without declaration to a memory stream. Stream is kept open and rewound to begin
-    /// </summary>
-    public static void SerializeToMemoryStream(this XmlDocument document, MemoryStream ms)
-    {
-        using (var tw = XmlWriter.Create(ms,
-                   new XmlWriterSettings
-                   {
-                       CloseOutput = false,
-                       //Indent = true, // NOTE: some files cant be reformatted or even minimized, game crashes if you do that
-                       Encoding = Utf8NoBom,
-                       OmitXmlDeclaration = true
-                   }))
-        {
-            document.WriteTo(tw);
-        }
-        //document.Save(ms);
-
-        ms.Seek(0, SeekOrigin.Begin);
-    }
-
     [SuppressMessage("ReSharper", "IteratorNeverReturns", Justification = "Infinite collection intended as a padding for Zip()")]
     private static IEnumerable<T?> Repeat<T>(T? item)
     {
@@ -62,6 +41,4 @@ public static class Extensions
             yield return item;
         }
     }
-
-    private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
 }

@@ -13,7 +13,7 @@ public class FileManager
     private readonly ParallelHelper parallelHelper;
     private readonly FileChecker fileChecker;
 
-    private readonly ILogger log;
+    private readonly ILogger<FileManager> log;
 
     public FileManager(IModInstaller modInstaller, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<FileManager> log)
     {
@@ -27,8 +27,9 @@ public class FileManager
     /// Applies mod over current game state. <br />
     /// WARNING: If this is an update, all mods must be reverted and then re-applied
     /// </summary>
-    public async Task<ApplyModResult> InstallMod(IGameStorage storage, IMod mod, bool isGog, bool isUpdate, CancellationToken token)
+    public async Task<ApplyModResult> InstallMod(IGameStorage storage, IMod mod, bool isGog, bool isUpdate, int threadCount, CancellationToken token)
     {
+        log.LogInformation("Installing `{id}` {name}", mod.Id, mod.Name);
         var modDir = storage.GetModDir(mod);
         var excludeFiles = new HashSet<string>();
         var excludeDirs = new HashSet<string>();
@@ -38,52 +39,55 @@ public class FileManager
             isGog
                 ? Constants.SteamModDir
                 : Constants.GogModDir);
-        log.LogTrace("Excluded other version specific dir [{dir}]", otherVersionSpecificDir);
         excludeDirs.Add(otherVersionSpecificDir);
+        log.LogTrace("Excluded other-version-specific dir from mod content [{dir}]", otherVersionSpecificDir);
 
         //TODO stopped here: refactoring, creating logs, and marking visited methods with bookmarks
         if (mod.ModInfo is not null)
         {
+            log.LogTrace("Mod [{id}] has modinfo.xml", mod.Id);
             var operations = mod.ModInfo.BuildOperations();
-            excludeFiles.Add(modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).First().FullName.ToLowerInvariant());
+            var modinfoPath = modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).First().FullName.ToLowerInvariant();
+            excludeFiles.Add(modinfoPath);
+            log.LogTrace("Excluded modinfo file from mod content [{file}]", modinfoPath);
             foreach (var op in operations.FileSwaps)
             {
                 // NOTE: this won't exclude files mentioned in selectbox inputs!
-                // to avoid clutter, instruct users to place modinfo.xml and all relative stuff into a subfolder
-                excludeFiles.Add(op.Target.FullName.ToLowerInvariant());
+                // TODO: to avoid clutter, instruct users to place modinfo.xml and all relative stuff into a subfolder
+                var file = op.Target.FullName.ToLowerInvariant();
+                excludeFiles.Add(file);
+                log.LogTrace("Excluded modinfo referenced file from mod content [{file}]", file);
             }
 
             // exclude dir with modinfo.xml, recursively
             // if it's mod root, ignore it anyway, to avoid clutter when using old mods
             var modInfoDir = mod.ModInfo.WorkDir.FullName.ToLowerInvariant();
             excludeDirs.Add(modInfoDir);
+            log.LogTrace("Excluded modinfo directory from mod content [{dir}]", modInfoDir);
 
-            //var json = JsonConvert.SerializeObject(mod, Formatting.Indented);
-            //log.LogDebug("Applying mod: {mod}", json);
-
-            foreach (var vppOps in operations.VppOperations)
+            foreach (var (dataVpp, ops) in operations.VppOperations)
             {
-                var dataVpp = vppOps.Key;
                 var fakeVppFile = modDir.FileSystem.FileInfo.New(modDir.FileSystem.Path.Combine(modDir.FullName, dataVpp));
-                var gameFile = GameFile.GuessTarget(storage, fakeVppFile, modDir);
+                var gameFile = GameFile.GuessTarget(storage, fakeVppFile, modDir, log);
+                log.LogTrace("Mod [{id}]: editing [{vpp}], guessed as [{file}]", mod.Id, dataVpp, gameFile.AbsolutePath);
                 gameFile.CopyToBackup(false, isUpdate);
                 if (!gameFile.Exists)
                 {
                     throw new ArgumentException($"ModInfo references nonexistent vpp: [{dataVpp}]");
                 }
 
-                var applyResult = await modInstaller.ApplyModInfo(gameFile, vppOps.Value, token);
+                var applyResult = await modInstaller.ApplyModInfo(gameFile, ops, token);
                 var result = new ApplyFileResult(gameFile, applyResult);
                 modified.Add(result);
             }
         }
 
-        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Directory.IsVppDirectory()).Where(x => !excludeDirs.Any(ex => x.Directory.FullName.ToLowerInvariant().StartsWith(ex, StringComparison.OrdinalIgnoreCase))).Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant())).Where(x => x.IsModContent());
-
+        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(static x => !x.Directory!.IsVppDirectory()).Where(x => !excludeDirs.Any(ex => x.Directory!.FullName.ToLowerInvariant().StartsWith(ex, StringComparison.OrdinalIgnoreCase))).Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant())).Where(static x => x.IsModContent());
         foreach (var modFile in individualModFiles)
         {
             token.ThrowIfCancellationRequested();
-            var gameFile = GameFile.GuessTarget(storage, modFile, modDir);
+            var gameFile = GameFile.GuessTarget(storage, modFile, modDir, log);
+            log.LogTrace("Mod [{id}] has file [{file}], guessed as [{gameFile}]", mod.Id, modFile.FullName, gameFile.RelativePath);
             gameFile.CopyToBackup(false, isUpdate);
             var applyResult = await modInstaller.ApplyFileMod(gameFile, modFile, token);
             var result = new ApplyFileResult(gameFile, applyResult);
@@ -94,10 +98,10 @@ public class FileManager
         foreach (var vppDir in repackVppDirectories)
         {
             token.ThrowIfCancellationRequested();
-            var gameFile = GameFile.GuessTarget(storage, vppDir, modDir);
+            var gameFile = GameFile.GuessTarget(storage, vppDir, modDir, log);
+            log.LogTrace("Mod [{id}] has dir [{dir}], guessed as loose vpp [{gameFile}]", mod.Id, vppDir.FullName, gameFile.RelativePath);
             gameFile.CopyToBackup(false, isUpdate);
             var applyResult = await modInstaller.ApplyVppDirectoryMod(gameFile, vppDir, token);
-
             var result = new ApplyFileResult(gameFile, applyResult);
             modified.Add(result);
         }
@@ -108,24 +112,27 @@ public class FileManager
             return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
         }
 
-        if (modified.Any(x => !x.Success))
+        if (modified.Any(static x => !x.Success))
         {
             log.LogError("Some mod files failed to apply");
             return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
         }
 
-        var hashFile = modDir.EnumerateFiles("*").FirstOrDefault(x => x.Name.Equals(Constants.HashFile, StringComparison.OrdinalIgnoreCase));
+        var hashFile = modDir.EnumerateFiles("*").FirstOrDefault(static x => x.Name.Equals(Constants.HashFile, StringComparison.OrdinalIgnoreCase));
         if (hashFile != null)
         {
-            if (!await Verify(modDir, hashFile, token))
+            log.LogTrace("Mod [{id}] has hash file [{file}]", mod.Id, hashFile.FullName);
+            if (!await Verify(modDir, hashFile, threadCount, token))
             {
                 log.LogError("Hash check failed");
-                return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), false);
+                return new ApplyModResult(modified.Select(static x => x.GameFile).ToList(), false);
             }
         }
 
         if (isUpdate)
         {
+            log.LogTrace("Mod [{id}] is update, creating patch backup", mod.Id);
+
             foreach (var result in modified)
             {
                 // store patched files as community bak, overwrite existing with new version
@@ -134,39 +141,43 @@ public class FileManager
             }
         }
 
-        return new ApplyModResult(modified.Select(x => x.GameFile).ToList(), true);
+        return new ApplyModResult(modified.Select(static x => x.GameFile).ToList(), true);
     }
 
-    private async Task<bool> Verify(IDirectoryInfo modDir, IFileInfo hashFile, CancellationToken token)
+    private async Task<bool> Verify(IDirectoryInfo modDir, IFileInfo hashFile, int threadCount, CancellationToken token)
     {
-        // TODO report what's going on
         var fs = modDir.FileSystem;
-        using var stream = hashFile.OpenRead();
-        var hashes = JsonSerializer.Deserialize<HashChecks>(stream);
-        foreach (var (relativePath, expectedHash) in hashes)
+        await using var stream = hashFile.OpenRead();
+        var hashes = JsonSerializer.Deserialize<HashChecks>(stream)!;
+        await parallelHelper.Execute(hashes.ToList(), Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
+        return true;
+
+        async Task Body(KeyValuePair<string, string> hashChecks, CancellationTokenSource breaker, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+            var relativePath = hashChecks.Key;
+            var expectedHash = hashChecks.Value;
             var filePath = fs.Path.Combine(modDir.FullName, relativePath);
             var file = fs.FileInfo.New(filePath);
             if (!file.Exists)
             {
-                return false;
+                breaker.Cancel();
             }
 
             var hash = await fileChecker.ComputeHash(file, token);
             if (hash != expectedHash)
             {
-                return false;
+                breaker.Cancel();
             }
         }
-
-        return true;
     }
+
+
 
     /// <summary>
     /// Applies community update on top of patch. Files are reset to community (if present) or vanilla state before installing. Updates community backup.
     /// </summary>
-    public async Task<ApplyModResult> InstallUpdate(IGameStorage storage, List<IMod> pendingUpdates, bool fromScratch, IEnumerable<IMod> installedMods, bool isGog, CancellationToken token)
+    public async Task<ApplyModResult> InstallUpdate(IGameStorage storage, List<IMod> pendingUpdates, bool fromScratch, List<IMod> installedMods, bool isGog, int threadCount, CancellationToken token)
     {
         Rollback(storage, fromScratch, token);
         if (fromScratch)
@@ -174,11 +185,12 @@ public class FileManager
             ForgetUpdates(storage);
         }
 
+        log.LogInformation("Installing updates: `{updates}`", string.Join(", ", pendingUpdates.Select(static x => x.Id)));
         var modifiedFiles = new List<GameFile>();
         foreach (var update in pendingUpdates)
         {
             token.ThrowIfCancellationRequested();
-            var result = await InstallMod(storage, update, isGog, true, token);
+            var result = await InstallMod(storage, update, isGog, true, threadCount, token);
             modifiedFiles.AddRange(result.ModifiedFiles);
             if (!result.Success)
             {
@@ -187,11 +199,11 @@ public class FileManager
             }
         }
 
-        // re-install mods over new updates
+        log.LogInformation("Re-installing mods: `{mods}`", string.Join(", ", installedMods.Select(static x => x.Id)));
         foreach (var mod in installedMods)
         {
             token.ThrowIfCancellationRequested();
-            var result = await InstallMod(storage, mod, isGog, false, token);
+            var result = await InstallMod(storage, mod, isGog, false, threadCount, token);
             modifiedFiles.AddRange(result.ModifiedFiles);
             if (!result.Success)
             {

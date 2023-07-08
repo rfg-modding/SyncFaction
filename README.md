@@ -99,7 +99,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
   * ~~test all existing mods~~
   * ~~file add/replace logic should be the same for folder and modinfo mods~~
   * ~~forget/reset inputs in UI?~~
-  * proper error handling and cleanup
+  * ~~proper error handling and cleanup~~
 1. ~~introduce VPP repacking support for mods/updates~~
 2. ~~rewrite updater~~
 3. ~~track new separate set of search strings from FF - for RSL2~~
@@ -152,6 +152,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 24. remove usings of FileInfo, DirectoryInfo, Path (use abstractions lib)
 25. log every file/folder manipulation: create, write, delete, move, copy
 26. log.trace every IF
+27. fix TODOs
 
 ## Release
 

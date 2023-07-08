@@ -1,8 +1,8 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models.Files;
-using SyncFaction.Core.Services.Xml;
 using SyncFaction.ModManager.Models;
+using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Models;
 using SyncFaction.Packer.Services;
 
@@ -42,80 +42,90 @@ public class ModInstaller : IModInstaller
 
     public async Task<bool> ApplyVppDirectoryMod(GameFile gameFile, IDirectoryInfo vppDir, CancellationToken token)
     {
-        var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
-
         var tmpFile = gameFile.GetTmpFile();
-
-        await using (var src = gameFile.FileInfo.OpenRead())
+        try
         {
-            var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
-            var disposables = new List<IDisposable>();
-            try
+            await ApplyVppDirectoryModInternal(gameFile, vppDir, tmpFile, token);
+        }
+        catch (Exception)
+        {
+            tmpFile.Refresh();
+            if (tmpFile.Exists)
             {
-                var usedKeys = new HashSet<string>();
-                var order = 0;
-
-                IEnumerable<LogicalFile> WalkArchive()
-                {
-                    // modifying stuff in ram while reading. do we have 2 copies now?
-                    foreach (var logicalFile in archive.LogicalFiles)
-                    {
-                        token.ThrowIfCancellationRequested();
-                        var key = logicalFile.Name;
-                        order = logicalFile.Order;
-                        if (modFiles.TryGetValue(key, out var modFile))
-                        {
-                            log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
-                            usedKeys.Add(key);
-                            var modSrc = modFile.OpenRead();
-                            disposables.Add(modSrc);
-                            yield return logicalFile with
-                            {
-                                Content = modSrc,
-                                CompressedContent = null
-                            };
-                        }
-                        else
-                        {
-                            yield return logicalFile;
-                        }
-                    }
-                }
-
-                var logicalFiles = WalkArchive().ToList();
-
-                // append new files
-                var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(x => x);
-                foreach (var key in newFileKeys)
-                {
-                    log.LogInformation("Adding file {file} in {vpp}", key, archive.Name);
-                    order++;
-                    var modFile = modFiles[key];
-                    var modSrc = modFile.OpenRead();
-                    disposables.Add(modSrc);
-                    logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
-                }
-
-                await using (var dst = tmpFile.OpenWrite())
-                {
-                    await vppArchiver.PackVpp(archive with { LogicalFiles = logicalFiles }, dst, token);
-                }
+                tmpFile.Delete();
+                log.LogTrace("Cleaned up tmp file [{file}] after error", tmpFile.FullName);
             }
 
-            finally
-            {
-                foreach (var disposable in disposables)
-                {
-                    disposable.Dispose();
-                }
-            }
+            throw;
         }
 
         tmpFile.Refresh();
         tmpFile.MoveTo(gameFile.AbsolutePath, true);
         log.LogInformation("Patched files inside [{file}]", gameFile.RelativePath);
-
         return true;
+    }
+
+    private async Task ApplyVppDirectoryModInternal(GameFile gameFile, IDirectoryInfo vppDir, IFileInfo tmpFile, CancellationToken token)
+    {
+        var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
+        await using var src = gameFile.FileInfo.OpenRead();
+        var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
+        var disposables = new List<IDisposable>();
+        try
+        {
+            var usedKeys = new HashSet<string>();
+            var order = 0;
+            var logicalFiles = WalkArchive().ToList();
+
+            // append new files
+            var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(static x => x);
+            foreach (var key in newFileKeys)
+            {
+                log.LogInformation("Adding file {file} to {vpp}", key, archive.Name);
+                order++;
+                var modFile = modFiles[key];
+                var modSrc = modFile.OpenRead();
+                disposables.Add(modSrc);
+                logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
+            }
+
+            await using var dst = tmpFile.OpenWrite();
+            await vppArchiver.PackVpp(archive with { LogicalFiles = logicalFiles }, dst, token);
+
+            IEnumerable<LogicalFile> WalkArchive()
+            {
+                // modifying stuff in ram while reading. do we have 2 copies now?
+                foreach (var logicalFile in archive.LogicalFiles)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var key = logicalFile.Name;
+                    order = logicalFile.Order;
+                    if (modFiles.TryGetValue(key, out var modFile))
+                    {
+                        log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
+                        usedKeys.Add(key);
+                        var modSrc = modFile.OpenRead();
+                        disposables.Add(modSrc);
+                        yield return logicalFile with
+                        {
+                            Content = modSrc,
+                            CompressedContent = null
+                        };
+                    }
+                    else
+                    {
+                        yield return logicalFile;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            foreach (var disposable in disposables)
+            {
+                disposable.Dispose();
+            }
+        }
     }
 
     public async Task<bool> ApplyModInfo(GameFile gameFile, VppOperations vppOperations, CancellationToken token)
@@ -128,13 +138,23 @@ public class ModInstaller : IModInstaller
             try
             {
                 var logicalFiles = archive.LogicalFiles.Select(x => xmlMagic.ApplyPatches(x, vppOperations, disposables, token));
-
                 await using (var dst = tmpFile.OpenWrite())
                 {
                     await vppArchiver.PackVpp(archive with { LogicalFiles = logicalFiles }, dst, token);
                 }
             }
 
+            catch (Exception)
+            {
+                tmpFile.Refresh();
+                if (tmpFile.Exists)
+                {
+                    tmpFile.Delete();
+                    log.LogTrace("Cleaned up tmp file [{file}] after error", tmpFile.FullName);
+                }
+
+                throw;
+            }
             finally
             {
                 foreach (var disposable in disposables)
@@ -146,32 +166,47 @@ public class ModInstaller : IModInstaller
 
         tmpFile.Refresh();
         tmpFile.MoveTo(gameFile.AbsolutePath, true);
-        log.LogInformation("Patched xmls inside [{file}]", gameFile.RelativePath);
+        log.LogInformation("Patched contents of [{file}]", gameFile.RelativePath);
 
         return true;
     }
 
     internal virtual bool Skip(GameFile gameFile, IFileInfo modFile)
     {
-        log.LogInformation("+ Skipped unsupported mod file `{file}`", modFile.Name);
+        log.LogInformation("Skipped unsupported mod file `{file}`", modFile.Name);
         return true;
     }
 
     internal virtual async Task<bool> ApplyXdelta(GameFile gameFile, IFileInfo modFile, CancellationToken token)
     {
         var tmpFile = gameFile.GetTmpFile();
-        var srcFile = gameFile.FileInfo;
-        var result = await ApplyXdeltaInternal(srcFile, modFile, tmpFile, token);
-        tmpFile.Refresh();
-        tmpFile.MoveTo(gameFile.AbsolutePath, true);
-        return result;
+        try
+        {
+            var srcFile = gameFile.FileInfo;
+            var result = await ApplyXdeltaInternal(srcFile, modFile, tmpFile, token);
+            tmpFile.Refresh();
+            tmpFile.MoveTo(gameFile.AbsolutePath, true);
+            log.LogTrace("Applied xdelta from [{file}] to [{gameFile}]", modFile.FullName, gameFile.RelativePath);
+            return result;
+        }
+        catch (Exception)
+        {
+            tmpFile.Refresh();
+            if (tmpFile.Exists)
+            {
+                tmpFile.Delete();
+                log.LogTrace("Cleaned up tmp file [{file}] after error", tmpFile.FullName);
+            }
+
+            throw;
+        }
     }
 
     internal virtual bool ApplyNewFile(GameFile gameFile, IFileInfo modFile)
     {
         EnsureDirectoriesCreated(gameFile.FileInfo);
         modFile.CopyTo(gameFile.FileInfo.FullName, true);
-        log.LogInformation("+ Copied `{file}`", modFile.Name);
+        log.LogInformation("Copied `{file}` to `{gameFile}`", modFile.Name, gameFile.RelativePath);
         return true;
     }
 
@@ -188,8 +223,6 @@ public class ModInstaller : IModInstaller
             // TODO log progress
             decoder.ProgressChanged += _ => { token.ThrowIfCancellationRequested(); };
             decoder.Run();
-
-            log.LogInformation("+ **Patched** `{file}`", modFile.Name);
             return true;
         }
         catch (Exception e)
@@ -199,5 +232,5 @@ public class ModInstaller : IModInstaller
         }
     }
 
-    private void EnsureDirectoriesCreated(IFileInfo file) => file.FileSystem.Directory.CreateDirectory(file.Directory.FullName);
+    private static void EnsureDirectoriesCreated(IFileInfo file) => file.FileSystem.Directory.CreateDirectory(file.Directory!.FullName);
 }

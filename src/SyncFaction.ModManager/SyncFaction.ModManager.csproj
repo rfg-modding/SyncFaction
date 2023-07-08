@@ -11,4 +11,8 @@
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.2.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SyncFaction.Packer\SyncFaction.Packer.csproj" />
+  </ItemGroup>
+
 </Project>

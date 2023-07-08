@@ -49,7 +49,7 @@ public class UiCommands
         this.fileChecker = fileChecker;
     }
 
-    public async Task<bool> Download(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> Download(ViewModel viewModel, CancellationToken token)
     {
         var mods = viewModel.LockCollections(() => viewModel.OnlineMods.Where(x => x.Selected).ToList());
 
@@ -59,8 +59,7 @@ public class UiCommands
             throw new InvalidOperationException($"Collection length {mods.Count} != SelectedCount {viewModel.OnlineSelectedCount}");
         }
 
-        var threadCount = viewModel.Model.CalculateThreadCount();
-        await parallelHelper.Execute(mods, Body, threadCount, TimeSpan.FromSeconds(10), $"Downloading {mods.Count} mods", "mods", token);
+        await parallelHelper.Execute(mods, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Downloading {mods.Count} mods", "mods", token);
         return await RefreshLocal(viewModel, token);
 
         async Task Body(OnlineModViewModel mvm, CancellationTokenSource breaker, CancellationToken t)
@@ -84,7 +83,7 @@ public class UiCommands
         }
     }
 
-    public async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, false, token);
         var modsToApply = viewModel.LockCollections(() => viewModel.LocalMods.Where(x => x.Status == LocalModStatus.Enabled).ToList());
@@ -98,9 +97,10 @@ public class UiCommands
         }
 
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var threadCount = viewModel.Model.ThreadCount;
         foreach (var vm in modsToApply)
         {
-            var result = await fileManager.InstallMod(storage, vm.Mod, viewModel.Model.IsGog!.Value, false, token);
+            var result = await fileManager.InstallMod(storage, vm.Mod, viewModel.Model.IsGog!.Value, false, threadCount, token);
 
             if (!result.Success)
             {
@@ -118,7 +118,7 @@ public class UiCommands
         return true;
     }
 
-    public async Task<bool> Display(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> Display(ViewModel viewModel, CancellationToken token)
     {
         var isLocal = viewModel.SelectedTab == Tab.Apply;
         var mvm = viewModel.SelectedMod;
@@ -150,25 +150,25 @@ public class UiCommands
         return true;
     }
 
-    public async Task<bool> RestoreMods(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> RestoreMods(ViewModel viewModel, CancellationToken token)
     {
         // TODO
         throw new NotImplementedException();
     }
 
-    public async Task<bool> RestorePatch(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> RestorePatch(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, false, token);
         return true;
     }
 
-    public async Task<bool> RestoreVanilla(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> RestoreVanilla(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, true, token);
         return true;
     }
 
-    public async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
+    private async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         fileManager.Rollback(storage, toVanilla, token);
@@ -199,8 +199,7 @@ public class UiCommands
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         // create dirs and validate files if required
         gameStorage.InitBakDirectories();
-        var threadCount = viewModel.Model.CalculateThreadCount();
-        if (viewModel.Model.IsVerified != true && !await fileChecker.CheckGameFiles(gameStorage, threadCount, token))
+        if (viewModel.Model.IsVerified != true && !await fileChecker.CheckGameFiles(gameStorage, viewModel.Model.ThreadCount, token))
         {
             log.LogError("Looks like you've installed some mods before. SyncFaction can't work until you restore all files to their default state.");
             log.LogError("Verify/reinstall your game, then run SyncFaction again.");
@@ -228,7 +227,7 @@ public class UiCommands
         return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, true, token);
     }
 
-    public Task<bool> Run(ViewModel viewModel, CancellationToken token)
+    internal Task<bool> Run(ViewModel viewModel, CancellationToken token)
     {
         switch (viewModel.Model.IsGog)
         {
@@ -259,9 +258,9 @@ public class UiCommands
         return Task.FromResult(true);
     }
 
-    public async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token) => await RefreshOnline(viewModel, false, token);
+    internal async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token) => await RefreshOnline(viewModel, false, token);
 
-    public async Task<bool> RefreshOnline(ViewModel viewModel, bool isInit, CancellationToken token)
+    private async Task<bool> RefreshOnline(ViewModel viewModel, bool isInit, CancellationToken token)
     {
         // always show mods from local directory
         var categories = new List<Category> { Category.Local };
@@ -300,8 +299,7 @@ public class UiCommands
             viewModel.OnlineSelectedCount = 0;
         });
 
-        var threadCount = viewModel.Model.CalculateThreadCount();
-        return await parallelHelper.Execute(categories, Body, threadCount, TimeSpan.FromSeconds(10), $"Fetching online mods", "categories", token);
+        return await parallelHelper.Execute(categories, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Fetching online mods", "categories", token);
 
         async Task Body(Category category, CancellationTokenSource breaker, CancellationToken t)
         {
@@ -349,7 +347,7 @@ public class UiCommands
         return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, token);
     }
 
-    public async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
+    private async Task CheckPatchUpdates(ViewModel viewModel, CancellationToken token)
     {
         log.LogInformation("Installed patches: `{version}`", viewModel.GetHumanReadableVersion());
         log.LogInformation("Checking for updates...");
@@ -358,7 +356,7 @@ public class UiCommands
         viewModel.UpdateUpdates(terraform, rsl);
     }
 
-    public void WriteState(ViewModel viewModel)
+    internal void WriteState(ViewModel viewModel)
     {
         if (string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
         {
@@ -370,7 +368,7 @@ public class UiCommands
         stateProvider.WriteStateFile(appStorage, viewModel.Model.ToState(), log);
     }
 
-    public void ModResetInputs(ModInfo modInfo, ViewModel viewModel)
+    internal void ModResetInputs(ModInfo modInfo, ViewModel viewModel)
     {
         foreach (var listBox in modInfo.UserInput.OfType<ListBox>())
         {
@@ -390,15 +388,15 @@ public class UiCommands
         viewModel.Model.Settings.Mods.Remove(mod.Id);
     }
 
-    public async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
-        var files = fileReports.ToDictionary(x => x.Path.Replace('\\', '/').PadRight(100), x => x.ToString());
+        var files = fileReports.ToDictionary(static x => x.Path.Replace('\\', '/').PadRight(100), static x => x.ToString());
         var state = viewModel.Model.ToState();
         var report = new Report(files, state, Title.Value, viewModel.LastException);
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-        var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(x => x.Name == "memory");
+        var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
         var memoryLogs = logger.Logs;
         viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
         return true;
@@ -413,8 +411,7 @@ public class UiCommands
         var pendingUpdates = updates.Where(x => filteredUpdateIds.Contains(x.Id)).ToList();
         log.LogDebug("Updates to install: [{updates}]", string.Join(", ", pendingUpdates.Select(static x => x.Id)));
 
-        var threadCount = viewModel.Model.CalculateThreadCount();
-        var success = await parallelHelper.Execute(pendingUpdates, Body, threadCount, TimeSpan.FromSeconds(10), $"Downloading updates", "update", token);
+        var success = await parallelHelper.Execute(pendingUpdates, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Downloading updates", "update", token);
         if (!success)
         {
             return new ApplyModResult(new List<GameFile>(), false);
@@ -433,7 +430,7 @@ public class UiCommands
         }
 
         var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
-        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, viewModel.Model.IsGog!.Value, token);
+        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, viewModel.Model.IsGog!.Value, viewModel.Model.ThreadCount, token);
         return result;
     }
 }

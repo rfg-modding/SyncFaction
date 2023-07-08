@@ -7,7 +7,8 @@ using System.Xml;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
-using SyncFaction.Core.Services.Xml;
+using SyncFaction.ModManager;
+using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Models;
 using SyncFaction.Packer.Services;
 using SyncFaction.Toolbox.Models;
@@ -17,11 +18,13 @@ namespace SyncFaction.Toolbox;
 public class Archiver
 {
     private readonly IVppArchiver vppArchiver;
+    private readonly XmlHelper xmlHelper;
     private readonly ILogger<Archiver> log;
 
-    public Archiver(IVppArchiver vppArchiver, ILogger<Archiver> log)
+    public Archiver(IVppArchiver vppArchiver, XmlHelper xmlHelper, ILogger<Archiver> log)
     {
         this.vppArchiver = vppArchiver;
+        this.xmlHelper = xmlHelper;
         this.log = log;
     }
 
@@ -129,7 +132,7 @@ public class Archiver
             }
 
             var extension = logicalFile.Name.ToLowerInvariant().Split('.').Last();
-            var isXml = XmlHelper.KnownXmlExtensions.Contains(extension);
+            var isXml = xmlHelper.KnownXmlExtensions.Contains(extension);
             var isArchive = KnownArchiveExtensions.Contains(extension);
 
             await ExtractFile(logicalFile, isXml, outputFile, settings, token);

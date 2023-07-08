@@ -9,6 +9,7 @@ using NLog.Extensions.Logging;
 using NLog.Filters;
 using NLog.Layouts;
 using NLog.Targets;
+using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Services;
 using SyncFaction.Toolbox;
 using SyncFaction.Toolbox.Args;
@@ -19,6 +20,7 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
             {
                 services.AddTransient<IVppArchiver, VppArchiver>();
                 services.AddTransient<Archiver>();
+                services.AddTransient<XmlHelper>();
                 services.AddLogging(x =>
                 {
                     x.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);

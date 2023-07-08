@@ -15,7 +15,7 @@ public partial class ViewModel
     [RelayCommand]
     private void SwitchDarkMode(object x)
     {
-        log.LogInformation("switching mode");
+        var themeBefore = Theme;
         Theme = Theme switch
         {
             Theme.Auto => DarkNet.Instance.EffectiveCurrentProcessThemeIsDark
@@ -25,6 +25,7 @@ public partial class ViewModel
             Theme.Dark => Theme.Light,
             _ => throw new ArgumentOutOfRangeException()
         };
+        log.LogInformation("Switching theme `{from}` to `{to}`", themeBefore, Theme);
         DarkNet.Instance.SetWindowThemeWpf(ViewAccessor.WindowView, Theme);
         ViewAccessor.WindowView.SkinManager.UpdateTheme(Theme);
         ViewAccessor.WindowView.UpdateDefaultStyle();
@@ -41,6 +42,8 @@ public partial class ViewModel
         {
             command.Execute(x);
         }
+
+        log.LogWarning("Canceled all running operations");
     }
 
     [RelayCommand]

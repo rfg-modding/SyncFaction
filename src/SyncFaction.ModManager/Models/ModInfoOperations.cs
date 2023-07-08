@@ -4,18 +4,18 @@ public record ModInfoOperations(IReadOnlyList<FileSwapOperation> FileSwaps, IRea
 {
     public IReadOnlyDictionary<string, VppOperations> VppOperations { get; init; } = GroupByVpp(FileSwaps, XmlEdits);
 
-    public static IReadOnlyDictionary<string, VppOperations> GroupByVpp(IReadOnlyList<FileSwapOperation> fileSwaps, IReadOnlyList<XmlEditOperation> xmlEdits)
+    private static IReadOnlyDictionary<string, VppOperations> GroupByVpp(IReadOnlyList<FileSwapOperation> fileSwaps, IReadOnlyList<XmlEditOperation> xmlEdits)
     {
-        var allArchives = fileSwaps.Select(x => x.VppPath.Archive).Concat(xmlEdits.Select(x => x.VppPath.Archive)).Distinct();
+        var allArchives = fileSwaps.Select(static x => x.VppPath.Archive).Concat(xmlEdits.Select(x => x.VppPath.Archive)).Distinct();
 
-        var swaps = fileSwaps.ToLookup(x => x.VppPath.Archive);
-        var edits = xmlEdits.ToLookup(x => x.VppPath.Archive);
+        var swaps = fileSwaps.ToLookup(static x => x.VppPath.Archive);
+        var edits = xmlEdits.ToLookup(static x => x.VppPath.Archive);
 
-        return allArchives.ToDictionary(v => v,
+        return allArchives.ToDictionary(static v => v,
             v =>
             {
-                var sw = swaps[v].ToLookup(x => x.VppPath.File);
-                var ed = edits[v].ToLookup(x => x.VppPath.File);
+                var sw = swaps[v].ToLookup(static x => x.VppPath.File);
+                var ed = edits[v].ToLookup(static x => x.VppPath.File);
                 return new VppOperations(sw, ed);
             });
     }

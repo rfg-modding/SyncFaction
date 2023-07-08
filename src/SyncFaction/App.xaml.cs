@@ -13,7 +13,7 @@ using NLog.Targets;
 using SyncFaction.Core.Services;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
-using SyncFaction.Core.Services.Xml;
+using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Services;
 using SyncFaction.Services;
 using SyncFaction.ViewModels;
@@ -51,6 +51,7 @@ public partial class App
         services.AddSingleton<AppInitializer>();
         services.AddSingleton<UiCommands>();
         services.AddSingleton<XmlMagic>();
+        services.AddSingleton<XmlHelper>();
         services.AddSingleton<ModLoader>();
         services.AddSingleton<FileChecker>();
         services.AddSingleton<ParallelHelper>();

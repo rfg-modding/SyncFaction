@@ -192,8 +192,8 @@ public class ModInfo
                 vppPath = GetPaths(fs, x.File),
                 target = SanitizePath(x.NewFile)
             })
-            .Where(x => !string.IsNullOrWhiteSpace(x.target))
-            .ToImmutableDictionary(x => x.vppPath, x => x.target);
+            .Where(static x => !string.IsNullOrWhiteSpace(x.target))
+            .ToImmutableDictionary(static x => x.vppPath, static x => x.target);
 
         var referencedFiles = references.Select(x => new
             {
@@ -202,14 +202,15 @@ public class ModInfo
                 fileInfo = relativeModFiles!.GetValueOrDefault(x.Value, null)
             })
             .ToList();
-        var missing = referencedFiles.Where(x => x.fileInfo is null).ToList();
+        log.LogTrace("Modinfo.xml file references: [{files}]", string.Join(", ", referencedFiles.Select(static x =>$"({x.vppPath} => {x.fileInfo?.FullName})")));
+        var missing = referencedFiles.Where(static x => x.fileInfo is null).ToList();
         if (missing.Any())
         {
-            var files = string.Join(", ", missing.Select(x => x.target));
+            var files = string.Join(", ", missing.Select(static x => x.target));
             throw new ArgumentException($"ModInfo references {missing.Count} nonexistent files: [{files}]");
         }
 
-        var referencedFilesDict = referencedFiles.ToImmutableDictionary(x => x.vppPath, x => x.fileInfo!);
+        var referencedFilesDict = referencedFiles.ToImmutableDictionary(static x => x.vppPath, static x => x.fileInfo!);
         var replaceOperations = TypedChanges.OfType<Replace>().Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict)).ToList();
         var editOperations = TypedChanges.OfType<Edit>().Select((x, i) => ConvertToOperation(x, i, fs)).ToList();
         return new ModInfoOperations(replaceOperations, editOperations);
