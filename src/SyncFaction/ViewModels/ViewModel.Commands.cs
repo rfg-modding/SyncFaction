@@ -33,7 +33,7 @@ public partial class ViewModel
     }
 
     [RelayCommand(IncludeCancelCommand = true)]
-    private async Task Init(object x, CancellationToken token) => await ExecuteSafe(this, "Initializing", uiCommands.Init, token);
+    private async Task Init(object x, CancellationToken token) => await ExecuteSafe(this, "Initializing", uiCommands.Init, token, silent: true);
 
     [RelayCommand(CanExecute = nameof(NotInteractive))]
     private void Cancel(object x)
@@ -56,7 +56,7 @@ public partial class ViewModel
     }
 
     [RelayCommand(CanExecute = nameof(Interactive))]
-    private async Task Run(object x, CancellationToken token) => await ExecuteSafe(this, "Launching game", uiCommands.Run, token);
+    private async Task Run(object x, CancellationToken token) => await ExecuteSafe(this, "Launching game", uiCommands.Run, token, silent: true);
 
     [RelayCommand(CanExecute = nameof(Interactive))]
     private async Task Update(object x, CancellationToken token) => await ExecuteSafe(this, "Updating", uiCommands.Update, token);
@@ -97,7 +97,7 @@ public partial class ViewModel
         if (mvm.Selected)
         {
             SelectedMod = mvm;
-            await ExecuteSafe(this, "Displaying mod", uiCommands.Display, token);
+            await ExecuteSafe(this, "Displaying mod", uiCommands.Display, token, silent: true);
         }
         else
         {
@@ -148,4 +148,7 @@ public partial class ViewModel
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task GenerateReport(object x, CancellationToken token) => await ExecuteSafe(this, "Collecting diagnostic info", uiCommands.GenerateReport, token);
+
+    [RelayCommand]
+    private async Task GetLogs(object x, CancellationToken token) => await ExecuteSafe(this, "Collecting logs", uiCommands.GetLogs, token);
 }

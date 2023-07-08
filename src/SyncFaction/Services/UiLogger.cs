@@ -4,37 +4,29 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core;
 using SyncFaction.Core.Models;
-using SyncFaction.Core.Services.FactionFiles;
 
 namespace SyncFaction.Services;
 
 public class UiLogger : ILogger
 {
     private readonly MarkdownRender render;
-    private readonly IStateProvider stateProvider;
     private readonly string category;
 
-    public UiLogger(MarkdownRender render, IStateProvider stateProvider, string category)
+    public UiLogger(MarkdownRender render, string category)
     {
         this.render = render;
-        this.stateProvider = stateProvider;
         this.category = category;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         // NOTE: default formatter func ignores exception
-        // TODO get rid of this ugly hack somehow
-        var appState = stateProvider.Initialized
-            ? stateProvider.State
-            : new State();
-
-        if (appState.DevMode is not true && logLevel is LogLevel.Debug or LogLevel.Trace)
+        if (logLevel is LogLevel.Debug or LogLevel.Trace)
         {
             return;
         }
 
-        if (!category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase) && appState.DevMode is not true)
+        if (!category.StartsWith("SyncFaction", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -54,15 +46,7 @@ public class UiLogger : ILogger
 
         if (logFlags.HasFlag(Md.Clear))
         {
-            if (appState.DevMode is true)
-            {
-                render.Append("---", true);
-            }
-            else
-            {
-                render.Clear();
-            }
-
+            render.Clear();
             return;
         }
 

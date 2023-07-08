@@ -135,7 +135,7 @@ public class FileManager
 
             foreach (var result in modified)
             {
-                // store patched files as community bak, overwrite existing with new version
+                // store patched files as patch bak, overwrite existing with new version
                 token.ThrowIfCancellationRequested();
                 result.GameFile.CopyToBackup(true, true);
             }
@@ -173,7 +173,7 @@ public class FileManager
     }
 
     /// <summary>
-    /// Applies community update on top of patch. Files are reset to community (if present) or vanilla state before installing. Updates community backup.
+    /// Applies updates on top of patch. Files are reset to patch (if present) or vanilla state before installing. Updates patch backup.
     /// </summary>
     public async Task<ApplyModResult> InstallUpdate(IGameStorage storage, List<IMod> pendingUpdates, bool fromScratch, List<IMod> installedMods, bool isGog, int threadCount, CancellationToken token)
     {

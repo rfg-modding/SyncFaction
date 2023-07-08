@@ -70,14 +70,22 @@ public class FfClient
                 continue;
             }
 
+            var imageFile = Path.Combine(storage.Img.FullName, $"ff_{item.Id}.png");
+            if (fileSystem.File.Exists(imageFile))
+            {
+                log.LogTrace("Image exists [{file}]", imageFile);
+                item.ImagePath = imageFile;
+                continue;
+            }
+
             log.LogTrace("Request: GET {url}", url);
             var image = await client.GetAsync(item.ImageThumb4By3Url, token);
             log.LogTrace("Response: {code}, length {contentLength}", response.StatusCode, response.Content.Headers.ContentLength);
             await using var stream = await image.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
-            item.ImagePath = Path.Combine(storage.Img.FullName, $"ff_{item.Id}.png");
-            log.LogTrace("Writing file {file}", item.ImagePath);
-            await using var f = File.Open(item.ImagePath, FileMode.Create);
+            log.LogTrace("Writing image {file}", imageFile);
+            await using var f = File.Open(imageFile, FileMode.Create);
             await stream.CopyToAsync(f, token);
+            item.ImagePath = imageFile;
         }
 
         return data.Results.Values.OrderByDescending(x => x.CreatedAt).ToList();

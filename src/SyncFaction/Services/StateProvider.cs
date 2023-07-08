@@ -12,7 +12,7 @@ namespace SyncFaction.Services;
 
 public class StateProvider : IStateProvider
 {
-    // NOTE: can;t inject ILog here: logger depends on StateProvider
+    // NOTE: logger depended on StateProvider, that's why not injecting ILog here
     public State State => getter();
     public bool Initialized { get; private set; }
     private Func<State> getter = DefaultGetter;

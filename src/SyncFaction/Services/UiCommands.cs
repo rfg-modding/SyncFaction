@@ -82,8 +82,8 @@ public class UiCommands
 
     internal async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
     {
-        await RestoreInternal(viewModel, false, token);
         var modsToApply = viewModel.LockCollections(() => viewModel.LocalMods.Where(static x => x.Status == LocalModStatus.Enabled).ToList());
+        await RestoreInternal(viewModel, false, token);
         foreach (var mvm in modsToApply.Where(static mvm => mvm.Mod.ModInfo is not null))
         {
             log.LogTrace("Saving modinfo.xml settings for [{mod}]", mvm.Mod.Id);
@@ -239,7 +239,7 @@ public class UiCommands
         }
         else
         {
-            // populate community patch info
+            // populate patch info
             await CheckPatchUpdates(viewModel, token);
             if (viewModel.UpdateRequired)
             {
@@ -362,7 +362,7 @@ public class UiCommands
         var result = await InstallUpdates(installed, updates, gameStorage, viewModel, token);
         if (!result.Success)
         {
-            log.LogError("Failed to update game to latest community patch. SyncFaction can't work until you restore all files to their default state.");
+            log.LogError("Failed to update game to latest patch. SyncFaction can't work until you restore all files to their default state.");
             log.LogError("Verify/reinstall your game, then run SyncFaction again.");
             log.LogInformation(Md.I.Id(), "See you later miner!");
             return false;
@@ -425,27 +425,31 @@ public class UiCommands
         log.LogTrace("Removed settings for mod [{id}]", mod.Id);
     }
 
+    internal async Task<bool> GetLogs(ViewModel viewModel, CancellationToken token)
+    {
+        log.Clear();
+        log.LogTrace("Getting all logs, erasing memory list and UI...");
+        var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
+        logger.Flush(static e => throw e);
+        var memoryLogs = logger.Logs.ToList();
+        viewModel.DiagView = string.Join("\n", memoryLogs);
+        logger.Logs.Clear();
+        return true;
+    }
+
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
     internal async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
         try
         {
-            var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
-            var memoryLogs = logger.Logs;
-
-            // TODO remove me. skipping hashes for quick log collection during development
-            {
-                viewModel.DiagView = string.Join("\n", memoryLogs);
-                return true;
-            }
-
             var storage = viewModel.Model.GetGameStorage(fileSystem, log);
             var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
             var files = fileReports.ToDictionary(static x => x.Path.Replace('\\', '/').PadRight(100), static x => x.ToString());
             var state = viewModel.Model.ToState();
             var report = new Report(files, state, Title.Value, viewModel.LastException);
             var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-
+            var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
+            var memoryLogs = logger.Logs;
             viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
             return true;
         }

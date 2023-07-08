@@ -5,12 +5,10 @@ namespace SyncFaction.Services;
 
 public sealed class UiLogBridgeProvider : ILoggerProvider
 {
-    private readonly IStateProvider stateProvider;
     private readonly MarkdownRender render;
 
-    public UiLogBridgeProvider(IStateProvider stateProvider, MarkdownRender render)
+    public UiLogBridgeProvider(MarkdownRender render)
     {
-        this.stateProvider = stateProvider;
         this.render = render;
     }
 
@@ -18,5 +16,5 @@ public sealed class UiLogBridgeProvider : ILoggerProvider
     {
     }
 
-    public ILogger CreateLogger(string categoryName) => new UiLogger(render, stateProvider, categoryName);
+    public ILogger CreateLogger(string categoryName) => new UiLogger(render, categoryName);
 }

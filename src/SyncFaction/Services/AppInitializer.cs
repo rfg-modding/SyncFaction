@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using SyncFaction.Core;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Services.FactionFiles;
 using SyncFaction.Core.Services.Files;
 using SyncFaction.ViewModels;
@@ -63,6 +64,7 @@ public class AppInitializer
         }
 
         log.LogWarning("Please locate game manually");
+        log.LogInformation(Md.B.Id(), "To avoid doing this every time, put app .exe inside game dir");
         var dialogSucceeded = false;
         viewModel.ViewAccessor.WindowView.Dispatcher.Invoke(() =>
         {
@@ -131,7 +133,6 @@ public class AppInitializer
     }
 
     [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "I know registry is windows-only")]
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "I dont care")]
     private async Task<string> DetectGameLocation(CancellationToken token)
     {
         var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -160,26 +161,35 @@ public class AppInitializer
             return currentDir.FullName;
         }
 
-        try
+        var gog = DetectGogLocation();
+        var steam = await DetectSteamLocation(token);
+
+        if (!string.IsNullOrEmpty(gog) && string.IsNullOrEmpty(steam))
         {
-            log.LogTrace("Looking for GOG install path");
-            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games\2029222893", false);
-            var location = key?.GetValue(@"path") as string;
-            if (string.IsNullOrEmpty(location))
-            {
-                log.LogTrace("GOG location not found in registry");
-            }
-            else
-            {
-                log.LogTrace("Found GOG install path [{path}]", location);
-                return location;
-            }
-        }
-        catch (Exception ex)
-        {
-            log.LogTrace(ex, "Could not autodetect GOG location");
+            return gog;
         }
 
+        if (!string.IsNullOrEmpty(steam) && string.IsNullOrEmpty(gog))
+        {
+            return steam;
+        }
+
+        if (!string.IsNullOrEmpty(steam) && !string.IsNullOrEmpty(gog))
+        {
+            // TODO remove me, used for debugging
+            return gog;
+
+            log.LogWarning("Found both GOG and Steam versions, can't decide automatically");
+            return string.Empty;
+        }
+
+        log.LogWarning("Game is not found nearby, in GOG via registry, or in any of Steam libraries!");
+        return string.Empty;
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "I dont care")]
+    private async Task<string> DetectSteamLocation(CancellationToken token)
+    {
         try
         {
             log.LogTrace("Looking for Steam install path");
@@ -202,7 +212,9 @@ public class AppInitializer
                     if (Directory.Exists(gameDir))
                     {
                         log.LogTrace("Found Steam install path [{path}]", gameDir);
-                        return gameDir;
+                        {
+                            return gameDir;
+                        }
                     }
                 }
             }
@@ -212,7 +224,34 @@ public class AppInitializer
             log.LogTrace(ex, "Could not autodetect Steam location");
         }
 
-        log.LogWarning("Game is not found nearby, in Gog via registry, or in any of Steam libraries!");
+        return string.Empty;
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "I dont care")]
+    private string DetectGogLocation()
+    {
+        try
+        {
+            log.LogTrace("Looking for GOG install path");
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games\2029222893", false);
+            var location = key?.GetValue(@"path") as string;
+            if (string.IsNullOrEmpty(location))
+            {
+                log.LogTrace("GOG location not found in registry");
+            }
+            else
+            {
+                log.LogTrace("Found GOG install path [{path}]", location);
+                {
+                    return location;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            log.LogTrace(ex, "Could not autodetect GOG location");
+        }
+
         return string.Empty;
     }
 }

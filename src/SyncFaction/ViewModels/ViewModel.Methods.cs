@@ -22,9 +22,14 @@ public partial class ViewModel
     /// Lock UI, filter duplicate button clicks, display exceptions. Return true if action succeeded
     /// </summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
-    private async Task ExecuteSafe(ViewModel viewModel, string description, Func<ViewModel, CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi = true)
+    private async Task ExecuteSafe(ViewModel viewModel, string description, Func<ViewModel, CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi = true, bool silent=false)
     {
         log.LogTrace("ExecuteSafe [{operation}]", description);
+        if (!silent)
+        {
+            log.LogInformation(Md.H1.Id(), "{operation}", description);
+        }
+
         var success = false;
         try
         {
@@ -63,7 +68,16 @@ public partial class ViewModel
             ? string.Empty
             : $"FAILED: {description}";
         viewModel.GeneralFailure |= !success; // stays forever until restart
-        log.LogTrace("ExecuteSafe [{operation}] success: {success}", description, success);
+        log.LogTrace("ExecuteSafe [{operation}] success: {success} canceled: {canceled}", description, success, token.IsCancellationRequested);
+        var endStatus = token.IsCancellationRequested
+            ? "Canceled"
+            : success is false
+                ? "FAILED"
+                : "Done";
+        if (!silent)
+        {
+            log.LogInformation(Md.H1.Id(), "{operation}: {endStatus}", description, endStatus);
+        }
     }
 
     internal string GetHumanReadableVersion()

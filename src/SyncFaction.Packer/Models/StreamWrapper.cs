@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace SyncFaction.Packer.Models;
 
 public sealed class StreamWrapper : Stream
@@ -16,16 +18,12 @@ public sealed class StreamWrapper : Stream
         set => stream.Position = value;
     }
 
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Wrapper is not owner of the stream")]
     private readonly Stream stream;
 
     public StreamWrapper(Stream stream) => this.stream = stream;
 
-    public override async ValueTask DisposeAsync()
-    {
-        await stream.DisposeAsync();
-        await base.DisposeAsync();
-
-    }
+    public override async ValueTask DisposeAsync() => await base.DisposeAsync();
 
     public override void Flush() => stream.Flush();
 
@@ -36,10 +34,4 @@ public sealed class StreamWrapper : Stream
     public override void SetLength(long value) => stream.SetLength(value);
 
     public override void Write(byte[] buffer, int offset, int count) => stream.Write(buffer, offset, count);
-
-    protected override void Dispose(bool disposing)
-    {
-        stream.Dispose();
-        base.Dispose(disposing);
-    }
 }

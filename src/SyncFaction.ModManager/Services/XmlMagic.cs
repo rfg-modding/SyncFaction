@@ -31,7 +31,7 @@ public class XmlMagic
                 Content = stream,
                 CompressedContent = null
             };
-            log.LogTrace("File swap: [{key}] [{value}]", file.Name, swap.Target);
+            log.LogTrace("File swap: [{key}] [{value}]", file.Name, swap.Target.FullName);
         }
 
         var edits = vppOperations.XmlEdits[file.Name];

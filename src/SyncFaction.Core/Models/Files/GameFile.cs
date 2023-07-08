@@ -206,7 +206,7 @@ public class GameFile
                     log.LogTrace("Stock: it's not update, using vanilla backup");
                     return vanillaBak;
                 case FileKind.FromPatch:
-                    // new files from update go to community bak only
+                    // new files from update go to patch bak only
                     log.LogTrace("FromPatch: using patch backup");
                     return GetPatchBackupLocation();
                 case FileKind.FromMod:

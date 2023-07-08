@@ -26,7 +26,7 @@ Red Faction Guerrilla mod manager with focus on user experience
 
 ## Non-features
 
-* Saving storage space is not a priority. Backups are created only when files are modified for the first time, but after extensive modding game folder can be 2x heavier (or more!) because every game file is stored twice
+* Saving storage space is not a priority. Backups are created only when files are modified for the first time, but after extensive modding game folder can be 2x heavier (or more!) because every game file is stored twice for quick restore
 * Unpacking game archives and internal file formats for modding is done by Nanoforge and other tools
 
 ## Getting help
@@ -37,42 +37,11 @@ If app does not start and leads you to Microsoft downloads page, you need the [x
 
 Game and app related issues:
 
-* Use Steam to check integrity of game files
+* Use Steam or GOG Galaxy to check integrity of game files
 * Check if game location is valid
 * See if new versions of SyncFaction are available on Github
-* Please report errors here in issues. **Copy all the stuff from application window** to help fixing it! Also describe what you were trying to do.
+* Please report errors here in issues. **Create and copy diagnostics report** to help fixing it! Also describe what you were trying to do.
 * Probably ping **rast1234** on FactionFiles Discord (link below)
-
-## TODO
-
-A lot of functionality is not implemented yet!
-
-* button to report current state, collect log and probably list files/hashes
-* sanity checks for state management, eg when resetting to vanilla (now app needs restart)
-* Check discord for feature requests
-* Better logging: now it's a mess of important stuff, trash and bad-formatted information
-* rickroll
-* COMMUNITY PATCHES MUST SUPPORT MODINFO XML
-* Support mods that modify files inside vpp_pc archives as ModManager did
-  * display inputs from MM
-  * account for situations when modinfo.xml is inside subfolder
-  * show resulting XML tree after user input
-  * apply operations
-    * unpack
-    * edit XML contents
-    * move files
-    * pack
-    * save/load state of selected values and custom inputs
-    * SameOptionsAs must be copied before displaying
-    * display list of files changed by mod (even for non-xml mods)
-* compare hashes for steam and gog versions
-* test what happens if cdn is unavailable
-* show warnings if mod edits MP files. also show files to be modified as list
-* rename community patch to terraform patch where possible
-* if both .reg versions are detected, fail auto search and ask to place app in game dir
-* redo fixes from hotfix branch
-  * remove .exe .dll .pdb from hash checks, but not entirely or gog/steam detection will break
-  * ??? check hotfix branch carefully for other stuff
 
 ## Tech info
 
@@ -90,7 +59,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 
 ## TODO
 
-0. XML merging features
+0. ~~XML merging features~~
   * ~~stream read-write vpp to avoid high memory usage~~
   * ~~write to tmp, then delete src and rename tmp to src~~
   * ~~implement LIST_ACTIONs from MM decompiled logic~~
@@ -108,41 +77,27 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
   * ~~apply xdelta on steam files to match gog: `terr01_precache vehicles effects effects_mp chunks`~~
   * ~~`terr01_l1.vpp_pc` must be repackaged in both game versions with files from gog~~
 7. ~~backport stuff from other branches: user agent? something else?~~
-8. hash checks
+8. ~~hash checks~~
   * ~~button to generate json of all files~~
     * ~~record last modified time (probably others too)~~
     * ~~byte size~~
     * ~~hash~~
     * ~~order dictionary by file names and attributes so it's always easy to compare~~
     * ~~make a list of all files in game dir?~~
-    * instruct users to copy-paste to help troubleshoot
+    * ~~instruct users to copy-paste to help troubleshoot~~
   * ~~use hashlist file from mod/patch to verify after install~~
   * ~~rollback if hashlist check failed? need to do something here~~
   * ~~remember if last hashlist check completed or not, this will tell if user abruptly closed SF while installing~~
-  * test hash check
-10. optional compatibility toggle
-  * separate button or a checkbox to run game with recommended settings
-  * edit %APPDATA%\kaiko\rfg\config.ini and set windows_mode=2 (exclusive fullscreen)
-  * find a way to set up windows compatibility settings for game exe
-    * registry?
-    * bat file?
-    * create .lnk and edit it programmatically?
-10. steam compatibility
-    * create backup of .exe so people can run game with steam
-    * add steam shortcut for it automatically if possible?
-10. rename FF categories as MM/legacy/something, add new for SF mods
-11. test if preserve whitespace works for files like anim_files.xtbl - they should not be formatted/minimized
-12. Fix patch not installing lol
-13. run with Launcher.exe if found (RSL2)
-15. make xdelta work for managed files
+  * ~~test hash check~~
+12. ~~Fix patch not installing lol~~
 16. ~~placeholder text when modinfo has no options?~~
-17. better messages <-------------------------------------------------------------- stopped here
-    * fix logging
+17. better messages
+    * ~~fix logging~~
     * ~~fix formatting~~
-    * user-friendly messages
-    * proper operations log
-    * fix progress display
-    * sane error formatting/handling
+    * ~~user-friendly messages~~
+    * ~~proper operations log~~
+    * ~~fix progress display~~
+    * ~~sane error formatting/handling~~
     * restore buttons should update mod list / ui
     * modinfo description should be wrapped and have some offset
 20. ~~support mods working differently for steam/gog, eg with subfolders~~
@@ -153,9 +108,25 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 25. log every file/folder manipulation: create, write, delete, move, copy
 26. log.trace every IF
 27. fix TODOs
+28. rickroll
+29. test what happens if cdn host is unavailable
+30. make xdelta work for managed files
+10. optional compatibility toggle
+    * separate button or a checkbox to run game with recommended settings
+    * edit %APPDATA%\kaiko\rfg\config.ini and set windows_mode=2 (exclusive fullscreen)
+    * find a way to set up windows compatibility settings for game exe
+      * registry?
+      * bat file?
+      * create .lnk and edit it programmatically?
+10. steam compatibility
+  * create backup of .exe so people can run game with steam
+  * add steam shortcut for it automatically if possible?
+13. run with Launcher.exe if found (RSL2)
+
 
 ## Release
 
+* rename FF categories as MM/legacy/something, add new for SF mods
 * remove hack for old update IDs (rfgcommunityupdate)
 * see if logs look nice without dev mode and with it
 * test on both steam and gog versions
@@ -165,6 +136,14 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 * document modinfo.xml
 * document mod structure and all the magic
 * make examples
+* testing
+  * loose vpp files
+  * new vpps
+  * modinfo in subdir
+  * combinations of stuff
+  * hash file
+  * test if preserve whitespace works for files like anim_files.xtbl - they should not be formatted/minimized
+
 
 ## Backlog
 

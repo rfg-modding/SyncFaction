@@ -50,19 +50,4 @@ public static class Constants
         ".rar",
         ".7z"
     }.ToImmutableHashSet();
-
-    public static readonly string ErrorFormat = @"# Error!
-**Operation failed**: {0}
-
-## What now
-+ **Steam** : check files integrity or reinstall game
-+ **GOG** : reinstall game
-+ Check if game location is valid
-+ See if new versions of SyncFaction are available on Github
-+ Please report this error to developer. **Copy all the stuff below** to help fixing it!
-+ Take care of your sledgehammer and remain a good Martian
-
-{1}
-
-";
 }
