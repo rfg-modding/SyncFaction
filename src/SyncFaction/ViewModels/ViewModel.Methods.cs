@@ -163,6 +163,20 @@ If you don't need this: install mods manually, suggest an improvement on Github 
             }
         });
 
+    internal void UpdateModSelection() =>
+        ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
+        {
+            lock (collectionLock)
+            {
+                foreach (var vm in LocalMods)
+                {
+                    vm.Status = Model.AppliedMods.Contains(vm.Mod.Id)
+                        ? LocalModStatus.Enabled
+                        : LocalModStatus.Disabled;
+                }
+            }
+        });
+
     internal void UpdateLocalMods(List<IMod> mods) =>
         ViewAccessor.LocalModListView.Dispatcher.Invoke(() =>
         {
@@ -197,7 +211,7 @@ If you don't need this: install mods manually, suggest an improvement on Github 
                     LocalMods.Add(x);
                 }
 
-                ResizeColumns(ViewAccessor.OnlineModListView);
+                ResizeColumns(ViewAccessor.LocalModListView);
             }
         });
 
@@ -287,7 +301,7 @@ If you don't need this: install mods manually, suggest an improvement on Github 
         LocalModCalculateOrder();
         lock (collectionLock)
         {
-            LocalSelectedCount = LocalMods.Count(x => x.Status == LocalModStatus.Enabled);
+            LocalSelectedCount = LocalMods.Count(static x => x.Status == LocalModStatus.Enabled);
         }
     }
 

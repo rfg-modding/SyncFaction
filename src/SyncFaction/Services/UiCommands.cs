@@ -106,9 +106,13 @@ public class UiCommands
 
         viewModel.LockCollections(() =>
         {
+            viewModel.Model.AppliedMods.Clear();
+            viewModel.Model.LastMods.Clear();
             foreach (var vm in modsToApply)
             {
                 viewModel.Model.AppliedMods.Add(vm.Mod.Id);
+                // also save backup of current mods
+                viewModel.Model.LastMods.Add(vm.Mod.Id);
             }
         });
         return true;
@@ -173,19 +177,30 @@ public class UiCommands
 
     internal async Task<bool> RestoreMods(ViewModel viewModel, CancellationToken token)
     {
-        // TODO
-        throw new NotImplementedException();
+        log.LogTrace("Loading mods from backup list");
+        viewModel.LockCollections(() =>
+        {
+            // load from backup list
+            viewModel.Model.AppliedMods.Clear();
+            viewModel.Model.AppliedMods.AddRange(viewModel.Model.LastMods);
+        });
+        viewModel.UpdateModSelection();
+        log.LogTrace("Applying selected mods");
+        await Apply(viewModel, token);
+        return true;
     }
 
     internal async Task<bool> RestorePatch(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, false, token);
+        viewModel.UpdateModSelection();
         return true;
     }
 
     internal async Task<bool> RestoreVanilla(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, true, token);
+        viewModel.UpdateModSelection();
         return true;
     }
 
@@ -197,16 +212,17 @@ public class UiCommands
                 : "patch");
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         fileManager.Rollback(storage, toVanilla, token);
-        viewModel.Model.AppliedMods.Clear();
-        if (toVanilla)
+
+        viewModel.LockCollections(() =>
         {
-            viewModel.LockCollections(() =>
+            viewModel.Model.AppliedMods.Clear();
+            if (toVanilla)
             {
                 // forget we had updates entirely
                 viewModel.Model.TerraformUpdates.Clear();
                 viewModel.Model.RslUpdates.Clear();
-            });
-        }
+            }
+        });
     }
 
     internal async Task<bool> Init(ViewModel viewModel, CancellationToken token)
@@ -432,7 +448,9 @@ public class UiCommands
         var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
         logger.Flush(static e => throw e);
         var memoryLogs = logger.Logs.ToList();
-        viewModel.DiagView = string.Join("\n", memoryLogs);
+        var state = viewModel.Model.ToState();
+        var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+        viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
         logger.Logs.Clear();
         return true;
     }

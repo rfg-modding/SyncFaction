@@ -12,6 +12,7 @@ public class State
     public List<long>? TerraformUpdates { get; set; }
     public List<long>? RslUpdates { get; set; }
     public List<long>? AppliedMods { get; set; }
+    public List<long>? LastMods { get; set; }
     public bool? DevMode { get; set; }
     public bool? IsGog { get; set; }
     public bool? IsVerified { get; set; }

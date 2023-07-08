@@ -27,17 +27,17 @@
             <DataTemplate DataType="{x:Type modXml:ModInfo}">
                 <StackPanel Orientation="Vertical">
                     <GroupBox Margin="10 5 10 5" Header="Mod Info">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
                             <StackPanel Margin="10" Orientation="Vertical">
-                                <TextBlock Text="{Binding Name}" />
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold" TextWrapping="Wrap" />
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="by " />
-                                    <TextBlock Text="{Binding Author}" />
+                                    <TextBlock Text="{Binding Author}" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <TextBlock Text="{Binding Description}" />
+                                <TextBlock Text="{Binding Description}" Padding="0 10" TextWrapping="Wrap" />
                                 <StackPanel Orientation="Horizontal" Visibility="{Binding WebLink.XmlText, Converter={StaticResource EmptyStringCollapseConverter}, FallbackValue=Collapsed}">
-                                    <TextBlock Text="see on " />
-                                    <TextBlock>
+                                    <TextBlock Text="link: " />
+                                    <TextBlock TextWrapping="Wrap">
                                         <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="{Binding WebLink.XmlText}">
                                             <TextBlock Text="{Binding WebLink.Name}" />
                                         </Hyperlink>

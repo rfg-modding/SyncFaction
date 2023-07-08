@@ -31,6 +31,8 @@ public partial class Model
 
     public ObservableCollection<long> AppliedMods { get; } = new();
 
+    public ObservableCollection<long> LastMods { get; } = new();
+
     /// <summary>
     /// NOTE: not observable, no UI interaction, only save/load on certain actions
     /// </summary>
@@ -68,6 +70,7 @@ public partial class Model
         PopulateList(state.TerraformUpdates, TerraformUpdates, true);
         PopulateList(state.RslUpdates, RslUpdates, true);
         PopulateList(state.AppliedMods, AppliedMods, false);
+        PopulateList(state.LastMods, LastMods, false);
     }
 
     internal State ToState() =>
@@ -81,6 +84,7 @@ public partial class Model
             TerraformUpdates = TerraformUpdates.ToList(),
             RslUpdates = RslUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),
+            LastMods = LastMods.ToList(),
             Settings = Settings
         };
 
@@ -103,14 +107,14 @@ public partial class Model
 
     internal GameStorage GetGameStorage(IFileSystem fileSystem, ILogger log) => new(GameDirectory, fileSystem, Hashes.Get(IsGog.Value), log);
 
-    private void PopulateList<T>(IEnumerable<T>? src, ObservableCollection<T> dst, bool order)
+    private void PopulateList<T>(IEnumerable<T>? src, ObservableCollection<T> dst, bool autoOrder)
     {
         dst.Clear();
         src ??= new List<T>();
         src = src.Distinct();
-        if (order)
+        if (autoOrder)
         {
-            src = src.OrderBy(x => x);
+            src = src.OrderBy(static x => x);
         }
 
         foreach (var modId in src)

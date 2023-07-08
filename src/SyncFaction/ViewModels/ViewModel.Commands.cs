@@ -122,7 +122,7 @@ public partial class ViewModel
     private async Task RestorePatch(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to latest patch", uiCommands.RestorePatch, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task RestoreMods(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to previous mods", uiCommands.RestoreMods, token);
+    private async Task RestoreMods(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring last applied mods", uiCommands.RestoreMods, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task RestoreVanilla(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to vanilla files", uiCommands.RestoreVanilla, token);

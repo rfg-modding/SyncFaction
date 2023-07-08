@@ -148,7 +148,7 @@ public partial class ViewModel
         model = new Model();
         LocalMods.CollectionChanged += LocalModsOnCollectionChanged;
 
-        // this allows other threads to work with UI-bound collection
+        // this allows other threads to work with UI-bound collections
         BindingOperations.EnableCollectionSynchronization(OnlineMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(LocalMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.TerraformUpdates, collectionLock);
@@ -156,6 +156,7 @@ public partial class ViewModel
         BindingOperations.EnableCollectionSynchronization(Model.RslUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.RemoteRslUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.AppliedMods, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.LastMods, collectionLock);
 
         SetDesignTimeDefaults(true);
     }

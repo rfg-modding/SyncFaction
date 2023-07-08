@@ -91,19 +91,18 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
   * ~~test hash check~~
 12. ~~Fix patch not installing lol~~
 16. ~~placeholder text when modinfo has no options?~~
-17. better messages
+17. ~~better messages~~
     * ~~fix logging~~
     * ~~fix formatting~~
     * ~~user-friendly messages~~
     * ~~proper operations log~~
     * ~~fix progress display~~
     * ~~sane error formatting/handling~~
-    * restore buttons should update mod list / ui
-    * modinfo description should be wrapped and have some offset
+    * ~~restore buttons should update mod list / ui~~
+    * ~~modinfo description should be wrapped and have some offset~~
 20. ~~support mods working differently for steam/gog, eg with subfolders~~
-21. "restore to modded" - load list of mods back (should be stored separately)
-22. state is saved even if initial check isnt finished - is this OK?
-23. remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
+21. ~~"restore to modded" - load list of mods back (should be stored separately)~~
+22. ~~state is saved even if initial check isnt finished - is this OK?~~
 24. remove usings of FileInfo, DirectoryInfo, Path (use abstractions lib)
 25. log every file/folder manipulation: create, write, delete, move, copy
 26. log.trace every IF
@@ -127,6 +126,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 ## Release
 
 * rename FF categories as MM/legacy/something, add new for SF mods
+* remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
 * remove hack for old update IDs (rfgcommunityupdate)
 * see if logs look nice without dev mode and with it
 * test on both steam and gog versions
