@@ -31,11 +31,11 @@ public class StateProvider : IStateProvider
         var file = appStorage.FileSystem.FileInfo.New(Path.Combine(appStorage.App.FullName, Constants.StateFile));
         if (!file.Exists)
         {
-            log.LogDebug("State file does not exist");
+            log.LogTrace("State file does not exist");
             return null;
         }
 
-        log.LogDebug("Reading state file (size: {size})", file.Length);
+        log.LogTrace("Reading state file (size: {size})", file.Length);
         var content = File.ReadAllText(file.FullName).Trim();
         return JsonSerializer.Deserialize<State>(content);
     }
@@ -45,12 +45,12 @@ public class StateProvider : IStateProvider
         var file = appStorage.FileSystem.FileInfo.New(Path.Combine(appStorage.App.FullName, Constants.StateFile));
         if (file.Exists)
         {
-            log.LogDebug("Deleted file [{file}]", file.FullName);
+            log.LogTrace("Deleted file [{file}]", file.FullName);
             file.Delete();
         }
 
         var data = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(file.FullName, data);
-        log.LogDebug("Saved state to [{file}]", file.FullName);
+        log.LogTrace("Saved state to [{file}]", file.FullName);
     }
 }

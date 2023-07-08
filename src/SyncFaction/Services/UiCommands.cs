@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
@@ -51,7 +52,7 @@ public class UiCommands
 
     internal async Task<bool> Download(ViewModel viewModel, CancellationToken token)
     {
-        var mods = viewModel.LockCollections(() => viewModel.OnlineMods.Where(x => x.Selected).ToList());
+        var mods = viewModel.LockCollections(() => viewModel.OnlineMods.Where(static x => x.Selected).ToList());
 
         // sanity check
         if (mods.Count != viewModel.OnlineSelectedCount)
@@ -59,7 +60,7 @@ public class UiCommands
             throw new InvalidOperationException($"Collection length {mods.Count} != SelectedCount {viewModel.OnlineSelectedCount}");
         }
 
-        await parallelHelper.Execute(mods, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Downloading {mods.Count} mods", "mods", token);
+        await parallelHelper.Execute(mods, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Downloading", "mods", token);
         return await RefreshLocal(viewModel, token);
 
         async Task Body(OnlineModViewModel mvm, CancellationTokenSource breaker, CancellationToken t)
@@ -73,37 +74,32 @@ public class UiCommands
             mvm.Status = mod.Status; // status is changed by ffClient
             if (!clientSuccess)
             {
-                log.LogError("Downloading mod failed");
+                log.LogError("Downloading mod failed: [{id}] {name}", mod.Id, mod.Name);
                 breaker.Cancel();
-                return;
             }
-
-            var files = string.Join(", ", modDir.GetFiles().Select<IFileInfo, string>(x => $"`{x.Name}`"));
-            //log.LogDebug($"Mod contents: {files}");
         }
     }
 
     internal async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
     {
         await RestoreInternal(viewModel, false, token);
-        var modsToApply = viewModel.LockCollections(() => viewModel.LocalMods.Where(x => x.Status == LocalModStatus.Enabled).ToList());
-        foreach (var mvm in modsToApply)
+        var modsToApply = viewModel.LockCollections(() => viewModel.LocalMods.Where(static x => x.Status == LocalModStatus.Enabled).ToList());
+        foreach (var mvm in modsToApply.Where(static mvm => mvm.Mod.ModInfo is not null))
         {
-            if (mvm.Mod.ModInfo is not null)
-            {
-                viewModel.Model.Settings.Mods[mvm.Mod.Id] = mvm.Mod.ModInfo.SaveCurrentSettings();
-                mvm.Mod.ModInfo.ApplyUserInput();
-            }
+            log.LogTrace("Saving modinfo.xml settings for [{mod}]", mvm.Mod.Id);
+            viewModel.Model.Settings.Mods[mvm.Mod.Id] = mvm.Mod.ModInfo!.SaveCurrentSettings();
+            mvm.Mod.ModInfo.ApplyUserInput();
         }
 
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         var threadCount = viewModel.Model.ThreadCount;
         foreach (var vm in modsToApply)
         {
+            token.ThrowIfCancellationRequested();
             var result = await fileManager.InstallMod(storage, vm.Mod, viewModel.Model.IsGog!.Value, false, threadCount, token);
-
             if (!result.Success)
             {
+                log.LogTrace("Installation failed for [{id}]", vm.Mod.Id);
                 return false;
             }
         }
@@ -131,23 +127,48 @@ public class UiCommands
 
         if (mvm.Selected is not true)
         {
-            //log.LogWarning($"Attempt to display wrong mod: {mvm.Name}");
+            log.LogWarning("Attempt to display wrong mod: [{id}]", mvm.Mod.Id);
             return false;
         }
 
         log.Clear();
-        //log.LogInformation(new EventId(0, "log_false"), mvm.Mod.Markdown);
+        log.LogInformation(Md.NoScroll.Id(), "{markdown}", mvm.Mod.Markdown);
         if (isLocal)
         {
-            //log.LogInformation(new EventId(0, "log_false"), "\n---\n\n" + mvm.Mod.InfoMd());
-        }
-
-        if (mvm is LocalModViewModel lvm)
-        {
-            //viewModel.XmlView2 = JsonConvert.SerializeObject(lvm.Mod.ModInfo, Formatting.Indented);
+            LogFlags(mvm.Mod);
         }
 
         return true;
+    }
+
+    private void LogFlags(IMod mod)
+    {
+        log.LogInformation("---");
+        if (mod.Flags == ModFlags.None)
+        {
+            log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod has no known files and probably will do nothing");
+            return;
+        }
+
+        if (mod.Flags.HasFlag(ModFlags.AffectsMultiplayerFiles))
+        {
+            log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod will edit **multiplayer files**. If you experience issues playing with others, disable it");
+        }
+
+        if (mod.Flags.HasFlag(ModFlags.HasXDelta))
+        {
+            log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod has binary patches. It will only work on files in certain state, eg. when they are unmodified. If you experience issues, try to change mod order, placing this one before others");
+        }
+
+        if (mod.Flags.HasFlag(ModFlags.HasModInfo))
+        {
+            log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod is in ModManger format. If it has user-defined settings, they are on the right. Some ModManager-style mods can be incompatible with one another or overwrite each other's edits");
+        }
+
+        if (mod.Flags.HasFlag(ModFlags.HasReplacementFiles))
+        {
+            log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod replaces certain files entirely. If they were edited by other mod before, changes will be lost. If you experience issues, try to change mod order, placing this one before others");
+        }
     }
 
     internal async Task<bool> RestoreMods(ViewModel viewModel, CancellationToken token)
@@ -170,6 +191,10 @@ public class UiCommands
 
     private async Task RestoreInternal(ViewModel viewModel, bool toVanilla, CancellationToken token)
     {
+        log.LogTrace("Restoring files to {state}",
+            toVanilla
+                ? "vanilla"
+                : "patch");
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         fileManager.Rollback(storage, toVanilla, token);
         viewModel.Model.AppliedMods.Clear();
@@ -266,10 +291,11 @@ public class UiCommands
         var categories = new List<Category> { Category.Local };
         if (viewModel.Model.DevMode && viewModel.Model.UseCdn)
         {
-            log.LogDebug("Listing dev mods from CDN because DevMode and UseCDN are enabled");
+            log.LogTrace("Listing dev mods from CDN because DevMode and UseCDN are enabled");
             categories.Add(Category.Dev);
         }
 
+        Action displayLast = null;
         if (viewModel.Model.DevMode && isInit)
         {
             log.LogWarning("Skipped reading mods and news from FactionFiles because DevMode is enabled");
@@ -287,9 +313,12 @@ public class UiCommands
             var header = document.GetElementById("firstHeading")?.TextContent;
             var content = document.GetElementById("mw-content-text")?.InnerHtml;
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
-            log.Clear();
-            log.LogInformation((Md.NoScroll | Md.H1).Id(), "{header}\n\n", header);
-            log.LogInformation((Md.NoScroll | Md.Xaml).Id(), "{xaml}", xaml);
+            displayLast = () =>
+            {
+                log.Clear();
+                log.LogInformation((Md.NoScroll | Md.H1).Id(), "{header}\n\n", header);
+                log.LogInformation((Md.NoScroll | Md.Xaml).Id(), "{xaml}", xaml);
+            };
         }
 
         // upd list
@@ -299,7 +328,14 @@ public class UiCommands
             viewModel.OnlineSelectedCount = 0;
         });
 
-        return await parallelHelper.Execute(categories, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Fetching online mods", "categories", token);
+        var result = await parallelHelper.Execute(categories, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Fetching online mods", "categories", token);
+        Task.Yield();
+        if (!token.IsCancellationRequested)
+        {
+            displayLast?.Invoke();
+        }
+
+        return result;
 
         async Task Body(Category category, CancellationTokenSource breaker, CancellationToken t)
         {
@@ -360,7 +396,7 @@ public class UiCommands
     {
         if (string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
         {
-            // nowhere to save state
+            log.LogTrace("Game directory is empty, nowhere to save state");
             return;
         }
 
@@ -384,22 +420,41 @@ public class UiCommands
             }
         }
 
-        var mod = viewModel.SelectedMod.Mod;
+        var mod = viewModel.SelectedMod!.Mod;
         viewModel.Model.Settings.Mods.Remove(mod.Id);
+        log.LogTrace("Removed settings for mod [{id}]", mod.Id);
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
     internal async Task<bool> GenerateReport(ViewModel viewModel, CancellationToken token)
     {
-        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
-        var files = fileReports.ToDictionary(static x => x.Path.Replace('\\', '/').PadRight(100), static x => x.ToString());
-        var state = viewModel.Model.ToState();
-        var report = new Report(files, state, Title.Value, viewModel.LastException);
-        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-        var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
-        var memoryLogs = logger.Logs;
-        viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
-        return true;
+        try
+        {
+            var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
+            var memoryLogs = logger.Logs;
+
+            // TODO remove me. skipping hashes for quick log collection during development
+            {
+                viewModel.DiagView = string.Join("\n", memoryLogs);
+                return true;
+            }
+
+            var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+            var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
+            var files = fileReports.ToDictionary(static x => x.Path.Replace('\\', '/').PadRight(100), static x => x.ToString());
+            var state = viewModel.Model.ToState();
+            var report = new Report(files, state, Title.Value, viewModel.LastException);
+            var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+
+            viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
+            return true;
+        }
+        catch (Exception e)
+        {
+            log.LogError(e, "Can not collect diagnostics, something is completely broken!");
+            viewModel.DiagView = e.ToString();
+            return false;
+        }
     }
 
     private async Task<ApplyModResult> InstallUpdates(IEnumerable<long> installed, IReadOnlyCollection<IMod> updates, IGameStorage storage, ViewModel viewModel, CancellationToken token)
@@ -409,7 +464,7 @@ public class UiCommands
         var fromScratch = filteredUpdateIds.Count == updateIds.Count;
 
         var pendingUpdates = updates.Where(x => filteredUpdateIds.Contains(x.Id)).ToList();
-        log.LogDebug("Updates to install: [{updates}]", string.Join(", ", pendingUpdates.Select(static x => x.Id)));
+        log.LogTrace("Updates to install: [{updates}]", string.Join(", ", pendingUpdates.Select(static x => x.Id)));
 
         var success = await parallelHelper.Execute(pendingUpdates, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Downloading updates", "update", token);
         if (!success)

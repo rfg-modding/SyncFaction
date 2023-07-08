@@ -24,21 +24,22 @@ public partial class ViewModel
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
     private async Task ExecuteSafe(ViewModel viewModel, string description, Func<ViewModel, CancellationToken, Task<bool>> action, CancellationToken token, bool lockUi = true)
     {
-        if (lockUi && !viewModel.Interactive)
-        {
-            log.LogWarning("Attempt to run UI-locking command while not interactive, this should not happen normally. Operation: [{operation}]", description);
-        }
-
-        if (lockUi)
-        {
-            // disables all clickable controls
-            viewModel.Interactive = false;
-        }
-
-        viewModel.CurrentOperation = description;
+        log.LogTrace("ExecuteSafe [{operation}]", description);
         var success = false;
         try
         {
+            if (lockUi && !viewModel.Interactive)
+            {
+                throw new InvalidOperationException($"Attempt to run UI-locking command while not interactive, this should not happen normally. Operation: [{description}]");
+            }
+
+            if (lockUi)
+            {
+                // disables all clickable controls
+                viewModel.Interactive = false;
+            }
+
+            viewModel.CurrentOperation = description;
             success = await Task.Run(async () => await action(viewModel, token), token);
         }
         catch (Exception e)
@@ -52,18 +53,17 @@ public partial class ViewModel
             log.LogError(Md.Bullet.Id(), "Verify your game with Steam or GOG Galaxy and try again");
             log.LogError(Md.Bullet.Id(), "Generate diagnostics report and ask for help (FF Discord or Github)");
         }
-        finally
-        {
-            if (lockUi)
-            {
-                viewModel.Interactive = true;
-            }
 
-            viewModel.CurrentOperation = success
-                ? string.Empty
-                : $"FAILED: {viewModel.CurrentOperation}";
-            viewModel.GeneralFailure |= !success; // stays forever until restart
+        if (lockUi)
+        {
+            viewModel.Interactive = true;
         }
+
+        viewModel.CurrentOperation = success
+            ? string.Empty
+            : $"FAILED: {description}";
+        viewModel.GeneralFailure |= !success; // stays forever until restart
+        log.LogTrace("ExecuteSafe [{operation}] success: {success}", description, success);
     }
 
     internal string GetHumanReadableVersion()
@@ -369,7 +369,7 @@ If you don't need this: install mods manually, suggest an improvement on Github 
         DisplayCommand.Execute(target);
         lock (collectionLock)
         {
-            OnlineSelectedCount = OnlineMods.Count(x => x.Selected);
+            OnlineSelectedCount = OnlineMods.Count(static x => x.Selected);
         }
     }
 }

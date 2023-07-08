@@ -55,7 +55,7 @@ public class AppInitializer
 
     private async Task<bool> DetectGame(ViewModel viewModel, CancellationToken token)
     {
-        log.LogDebug("Looking for game install path");
+        log.LogTrace("Looking for game install path");
         viewModel.Model.GameDirectory = await DetectGameLocation(token);
         if (!string.IsNullOrWhiteSpace(viewModel.Model.GameDirectory))
         {
@@ -103,7 +103,7 @@ public class AppInitializer
 
         // SF did not have this flag before so it might be initialized as null
         // or it's first launch and it's really null
-        log.LogDebug("Determining if it's Steam or GOG version");
+        log.LogTrace("Determining if it's Steam or GOG version");
         if (await fileChecker.CheckFileHashes(appStorage, false, threadCount, token))
         {
             log.LogInformation("Game version: **Steam**");
@@ -125,7 +125,7 @@ public class AppInitializer
     {
         if (firstLaunch)
         {
-            log.LogDebug("This is first launch");
+            log.LogTrace("This is first launch");
             // TODO nothing special to do here for now?
         }
     }
@@ -162,32 +162,32 @@ public class AppInitializer
 
         try
         {
-            log.LogDebug("Looking for GOG install path");
+            log.LogTrace("Looking for GOG install path");
             using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games\2029222893", false);
             var location = key?.GetValue(@"path") as string;
             if (string.IsNullOrEmpty(location))
             {
-                log.LogDebug("GOG location not found in registry");
+                log.LogTrace("GOG location not found in registry");
             }
             else
             {
-                log.LogDebug("Found GOG install path [{path}]", location);
+                log.LogTrace("Found GOG install path [{path}]", location);
                 return location;
             }
         }
         catch (Exception ex)
         {
-            log.LogDebug(ex, "Could not autodetect GOG location");
+            log.LogTrace(ex, "Could not autodetect GOG location");
         }
 
         try
         {
-            log.LogDebug("Looking for Steam install path");
+            log.LogTrace("Looking for Steam install path");
             using var key = Registry.LocalMachine.OpenSubKey(@"Software\Wow6432Node\Valve\Steam", false);
             var steamLocation = key?.GetValue(@"InstallPath") as string;
             if (string.IsNullOrEmpty(steamLocation))
             {
-                log.LogDebug("Steam location not found in registry");
+                log.LogTrace("Steam location not found in registry");
             }
             else
             {
@@ -197,11 +197,11 @@ public class AppInitializer
                 const string gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
                 foreach (var location in locations)
                 {
-                    log.LogDebug("Trying steam library at [{location}]", location);
+                    log.LogTrace("Trying steam library at [{location}]", location);
                     var gameDir = Path.Combine(location, gamePath);
                     if (Directory.Exists(gameDir))
                     {
-                        log.LogDebug("Found Steam install path [{path}]", gameDir);
+                        log.LogTrace("Found Steam install path [{path}]", gameDir);
                         return gameDir;
                     }
                 }
@@ -209,7 +209,7 @@ public class AppInitializer
         }
         catch (Exception ex)
         {
-            log.LogDebug(ex, "Could not autodetect Steam location");
+            log.LogTrace(ex, "Could not autodetect Steam location");
         }
 
         log.LogWarning("Game is not found nearby, in Gog via registry, or in any of Steam libraries!");

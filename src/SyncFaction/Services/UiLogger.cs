@@ -90,8 +90,8 @@ public class UiLogger : ILogger
 
         if (logLevel is not LogLevel.Information && value.Contains('`'))
         {
-            // sanity check to avoid broken output
-            throw new InvalidOperationException($"MdXaml does not support code blocks inside colored blocks. Remove backticks or change log level to Information. Bad message: [{value}]");
+            // avoid broken output because MdXaml does not support code blocks inside colored blocks
+            value = value.Replace('`', '!');
         }
 
         if (!md.HasFlag(Md.Block) && !md.HasFlag(Md.Code))

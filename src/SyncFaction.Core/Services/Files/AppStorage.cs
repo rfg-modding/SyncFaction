@@ -44,7 +44,7 @@ public class AppStorage : IAppStorage
         if (!dir.Exists)
         {
             dir.Create();
-            Log.LogDebug("Created directory [{dir}]", dir.FullName);
+            Log.LogTrace("Created directory [{dir}]", dir.FullName);
             return true;
         }
 

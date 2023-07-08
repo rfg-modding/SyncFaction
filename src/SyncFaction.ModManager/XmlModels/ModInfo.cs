@@ -148,7 +148,7 @@ public class ModInfo
     public Settings.Mod SaveCurrentSettings()
     {
         var result = new Settings.Mod();
-        var listBoxes = UserInput.OfType<ListBox>().ToDictionary(x => x.Name.ToLowerInvariant());
+        var listBoxes = UserInput.OfType<ListBox>().ToDictionary(static x => x.Name.ToLowerInvariant());
         foreach (var kv in listBoxes)
         {
             result.ListBoxes[kv.Key] = new Settings.ListBox
@@ -284,7 +284,7 @@ public class ModInfo
         if (vpp.EndsWith(".vpp", StringComparison.InvariantCultureIgnoreCase))
         {
             vpp += "_pc";
-            log.LogWarning("Patched .vpp archive extension: [{patched}]", vpp);
+            log.LogTrace("Patched .vpp archive extension: [{patched}]", vpp);
         }
 
         if (!vpp.EndsWith(".vpp_pc", StringComparison.InvariantCultureIgnoreCase))

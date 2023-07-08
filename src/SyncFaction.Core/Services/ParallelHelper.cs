@@ -23,6 +23,7 @@ public class ParallelHelper
         log.LogInformation(Md.H1.Id(), "{operation}: {total} {unit}", operation, total, unit);
         var info = new OperationInfo(new Count(), total, started, new LastTime { Value = started }, reportPeriod, operation, unit, new List<double>() { 0 }, new List<double>() { 0 });
         using var breaker = CancellationTokenSource.CreateLinkedTokenSource(token);
+        bool allCompleted = false;
         var task = Parallel.ForEachAsync(data,
             new ParallelOptions
             {
@@ -42,12 +43,15 @@ public class ParallelHelper
         }
         catch (OperationCanceledException) when (breaker.IsCancellationRequested)
         {
-            log.LogTrace("Canceled Parallel.ForEachAsync");
+            log.LogTrace("Parallel.ForEachAsync canceled itself");
+        }
+        finally
+        {
+            allCompleted = !breaker.IsCancellationRequested;
+            // NOTE: canceling anyway to stop timer
+            breaker.Cancel();
         }
 
-        var allCompleted = !breaker.IsCancellationRequested;
-        // NOTE: canceling anyway to stop timer
-        breaker.Cancel();
         await timerTask;
         var finished = DateTime.UtcNow;
         var elapsedSpan = finished - started;
@@ -111,6 +115,12 @@ public class ParallelHelper
             var fit = Fit.LineFunc(info.Measures.ToArray(), info.Times.ToArray());
             var estimateSecondsAll = fit(info.Total);
             var estimateSecondsLeft = Math.Max(estimateSecondsAll - elapsed.TotalSeconds, 0);
+            if (!double.IsNormal(estimateSecondsLeft))
+            {
+                log.LogTrace("Estimate time is invalid, replaced [{value}] with zero", estimateSecondsLeft);
+                estimateSecondsLeft = 0;
+            }
+
             var estimate = FormatTimespan(TimeSpan.FromSeconds(estimateSecondsLeft));
 
             log.LogInformation(Md.Bullet.Id(), "{operation}: {i}/{total}, {estimate} left", info.Operation, info.Count.Value, info.Total, estimate);

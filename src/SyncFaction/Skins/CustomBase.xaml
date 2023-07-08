@@ -127,7 +127,7 @@
                             <Setter Property="BorderBrush" TargetName="Bd" Value="{DynamicResource SF.Indicator.Selected}" />
                         </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="TextElement.Foreground" TargetName="Bd" Value="{DynamicResource SF.Indicator.Static}" />
+                            <Setter Property="TextElement.Foreground" TargetName="Bd" Value="{DynamicResource SF.DisabledText}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

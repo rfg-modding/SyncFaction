@@ -45,7 +45,7 @@ public class XmlMagic
                 throw new InvalidOperationException($"Can not edit file [{file.Name}]. Supported file extensions: [{extList}]");
             }
 
-            log.LogDebug("XML Edit: [{key}] [{value}]", file.Name, edit.Action);
+            log.LogTrace("XML Edit: [{key}] [{value}]", file.Name, edit.Action);
             var gameXml = ReadXmlDocument(file);
             var xtblRoot = gameXml["root"]?["Table"];
             if (xtblRoot is null)

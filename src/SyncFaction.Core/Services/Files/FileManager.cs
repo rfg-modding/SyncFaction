@@ -172,8 +172,6 @@ public class FileManager
         }
     }
 
-
-
     /// <summary>
     /// Applies community update on top of patch. Files are reset to community (if present) or vanilla state before installing. Updates community backup.
     /// </summary>

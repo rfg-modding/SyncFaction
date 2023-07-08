@@ -10,7 +10,7 @@ namespace SyncFaction.Core;
 
 public static class Extensions
 {
-    public static void Clear(this ILogger log) => log.LogCritical(new EventId(Constants.LogEventId, SerializeFlags(Md.Clear)), "");
+    public static void Clear(this ILogger log) => log.LogInformation(new EventId(Constants.LogEventId, SerializeFlags(Md.Clear)), "");
 
     public static EventId Id(this Md md) => new EventId(Constants.LogEventId, SerializeFlags(md));
 

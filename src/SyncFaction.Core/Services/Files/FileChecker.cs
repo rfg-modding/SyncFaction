@@ -28,7 +28,7 @@ public class FileChecker
 
         async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
         {
-            log.LogDebug("Checking [{file}]", kv.Key);
+            log.LogTrace("Checking [{file}]", kv.Key);
             var file = new GameFile(gameStorage, kv.Key, gameStorage.FileSystem);
             if (!await IsVanillaByHash(file, t))
             {
@@ -63,7 +63,7 @@ public class FileChecker
             var isVanilla = (hash ?? string.Empty).Equals(expected, StringComparison.OrdinalIgnoreCase);
             if (!isVanilla)
             {
-                log.LogDebug("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
+                log.LogTrace("Checking for [{}] version failed: file mismatch `{}`", versionName, fileInfo.Name);
                 breaker.Cancel();
             }
         }

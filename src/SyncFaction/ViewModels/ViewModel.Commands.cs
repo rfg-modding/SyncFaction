@@ -38,6 +38,7 @@ public partial class ViewModel
     [RelayCommand(CanExecute = nameof(NotInteractive))]
     private void Cancel(object x)
     {
+        log.LogTrace("Cancel");
         foreach (var command in cancelCommands)
         {
             command.Execute(x);
@@ -49,25 +50,27 @@ public partial class ViewModel
     [RelayCommand]
     private void Close(object x)
     {
+        log.LogTrace("Close");
         Cancel(x);
         uiCommands.WriteState(this);
     }
 
     [RelayCommand(CanExecute = nameof(Interactive))]
-    private async Task Run(object x, CancellationToken token) => await ExecuteSafe(this, "Fetching FactionFiles data", uiCommands.Run, token);
+    private async Task Run(object x, CancellationToken token) => await ExecuteSafe(this, "Launching game", uiCommands.Run, token);
 
     [RelayCommand(CanExecute = nameof(Interactive))]
     private async Task Update(object x, CancellationToken token) => await ExecuteSafe(this, "Updating", uiCommands.Update, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task Download(object x, CancellationToken token) => await ExecuteSafe(this, $"Downloading {OnlineSelectedCount} mods", uiCommands.Download, token);
+    private async Task Download(object x, CancellationToken token) => await ExecuteSafe(this, $"Downloading mods", uiCommands.Download, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
-    private async Task Apply(object x, CancellationToken token) => await ExecuteSafe(this, $"Applying {LocalSelectedCount} mods", uiCommands.Apply, token);
+    private async Task Apply(object x, CancellationToken token) => await ExecuteSafe(this, $"Applying mods", uiCommands.Apply, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task Refresh(object x, CancellationToken token)
     {
+        log.LogTrace("Refresh");
         switch (SelectedTab)
         {
             case Tab.Download:
@@ -84,6 +87,12 @@ public partial class ViewModel
     [RelayCommand]
     private async Task Display(object x, CancellationToken token)
     {
+        log.LogTrace("Display");
+        if (NotInteractive)
+        {
+            return;
+        }
+
         var mvm = (IModViewModel) x;
         if (mvm.Selected)
         {
@@ -101,15 +110,13 @@ public partial class ViewModel
     {
         var arg = x as string ?? string.Empty;
         var destination = Path.Combine(Model.GameDirectory, arg);
+        log.LogTrace("OpenDir [{dir}]", destination);
         Process.Start(new ProcessStartInfo
         {
             UseShellExecute = true,
             FileName = destination
         });
     }
-
-    [RelayCommand]
-    private async Task Test(object x, CancellationToken token) => LocalModCalculateOrder();
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task RestorePatch(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to latest patch", uiCommands.RestorePatch, token);
@@ -123,8 +130,19 @@ public partial class ViewModel
     [RelayCommand]
     private void ModResetInputs(object x)
     {
+        log.LogTrace("ModResetInputs");
+        if (ModInfo is null)
+        {
+            throw new ArgumentNullException(nameof(ModInfo), "This should not happen");
+        }
+
+        if (SelectedMod is null)
+        {
+            throw new ArgumentNullException(nameof(SelectedMod), "This should not happen");
+        }
+
         uiCommands.ModResetInputs(ModInfo, this);
-        // NOTE: didnt find a way to update modinfo panel, lets just close it
+        // NOTE: didnt find a good way to update modinfo panel, lets just close it
         SelectedMod.Selected = false;
     }
 

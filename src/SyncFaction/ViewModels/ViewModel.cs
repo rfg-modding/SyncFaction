@@ -121,8 +121,9 @@ public partial class ViewModel
     {
         interactiveCommands = new List<IRelayCommand>
         {
-            RefreshCommand,
             RunCommand,
+            UpdateCommand,
+            RefreshCommand,
             DownloadCommand,
             ApplyCommand,
             CancelCommand,

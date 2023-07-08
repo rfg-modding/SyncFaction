@@ -85,23 +85,25 @@ public class FfClient
 
     public async Task<bool> DownloadAndUnpackMod(IDirectoryInfo modDir, IMod mod, CancellationToken token)
     {
-        log.LogDebug("Downloading [{mod}] ({size:F2} MiB)", mod.Name, (double) mod.Size / 1024 / 1024);
+        log.LogTrace("Downloading [{mod}] ({size:F2} MiB)", mod.Name, (double) mod.Size / 1024 / 1024);
         var incompleteDataFile = fileSystem.FileInfo.New(fileSystem.Path.Join(modDir.FullName, Constants.IncompleteDataFile));
         if (modDir.Exists && !incompleteDataFile.Exists)
         {
             // if everything was successfully downloaded and extracted before, dont touch files: this allows user to fiddle with mod contents
-            log.LogInformation("Found existing data for `{id}`, skip downloading and extraction", mod.Id);
             mod.Status = OnlineModStatus.Ready;
+            log.LogInformation("Found existing data for `{id}`, skip downloading and extraction", mod.Id);
             return true;
         }
 
         modDir.Create();
         incompleteDataFile.Create().Close();
         incompleteDataFile.Refresh();
+        log.LogTrace("Created incomplete data file [{file}]", incompleteDataFile.FullName);
 
         var remoteFileInfo = await GetRemoteFileInfo(mod, token);
         if (remoteFileInfo is null)
         {
+            log.LogTrace("Failed to get remote file info");
             return false;
         }
 
@@ -110,6 +112,7 @@ public class FfClient
         if (downloadResult == false)
         {
             mod.Status = OnlineModStatus.Failed;
+            log.LogTrace("Download failed");
             return false;
         }
 
@@ -117,11 +120,13 @@ public class FfClient
         if (extractResult == false)
         {
             mod.Status = OnlineModStatus.Failed;
+            log.LogTrace("Extraction failed");
             return false;
         }
 
         await PersistDescription(modDir, mod);
         incompleteDataFile.Delete();
+        log.LogTrace("Success! Deleted incomplete data file [{file}]", incompleteDataFile.FullName);
         mod.Status = OnlineModStatus.Ready;
         return true;
     }
@@ -147,7 +152,7 @@ public class FfClient
             if (id != null)
             {
                 result.Add(id.Value);
-                log.LogTrace("Found {prefix} patch, part {i}, id {id}", prefix, i, id.Value);
+                log.LogTrace("Found [{prefix}] patch, part [{i}], id [{id}]", prefix, i, id.Value);
             }
 
             i++;
@@ -182,7 +187,7 @@ public class FfClient
         var buffer = ArrayPool<byte>.Shared.Rent(8192);
         try
         {
-            log.LogTrace("Copying stream for {id}: srcPos {srcPos}, dstPos {dstPos}, expectedSize {expectedSize}", mod.Id, source.Position, destination.Position, expectedSize);
+            log.LogTrace("Copying stream for {id}: src {src}, dstPos {dstPos}, expectedSize {expectedSize}", mod.Id, source, destination.Position, expectedSize);
             var totalBytesRead = destination.Position;
             int bytesRead;
             var totalMiB = (double) expectedSize / 1024 / 1024;
@@ -236,6 +241,7 @@ public class FfClient
                 }
                 catch (Exception e)
                 {
+                    log.LogTrace(e, "Download exception!");
                     if (token.IsCancellationRequested)
                     {
                         log.LogInformation("Download canceled: `{id}`", mod.Id);
@@ -351,7 +357,7 @@ public class FfClient
         catch (Exception e)
         {
             // it's ok, fall back to normal FF download
-            log.LogDebug(e, "CDN mirror not available");
+            log.LogTrace(e, "CDN mirror not available");
             return null;
         }
     }
@@ -413,7 +419,7 @@ public class FfClient
                     continue;
                 }
 
-                //log.LogDebug($"Extracting {entry.Key}...");
+                //log.LogTrace($"Extracting {entry.Key}...");
                 log.LogTrace("Extracting [{id}] archive entry: [{file}]", mod.Id, entry.Key);
                 entry.WriteToDirectory(modDir.FullName, options);
             }
@@ -424,16 +430,18 @@ public class FfClient
 
     private async Task<long?> GetIdBySearchString(string searchString, CancellationToken token)
     {
-        // TODO remove me. left for debugging with old patch/update naming scheme
-        if (searchString == "rfgterraform1")
+        // TODO remove this block. left for debugging with old patch/update naming scheme
         {
-            searchString = "rfgcommunitypatch";
-        }
+            if (searchString == "rfgterraform1")
+            {
+                searchString = "rfgcommunitypatch";
+            }
 
-        if (searchString.StartsWith("rfgterraform", StringComparison.Ordinal))
-        {
-            var number = int.Parse(searchString["rfgterraform".Length..], CultureInfo.InvariantCulture) - 1;
-            searchString = $"rfgcommunityupdate{number}";
+            if (searchString.StartsWith("rfgterraform", StringComparison.Ordinal))
+            {
+                var number = int.Parse(searchString["rfgterraform".Length..], CultureInfo.InvariantCulture) - 1;
+                searchString = $"rfgcommunityupdate{number}";
+            }
         }
 
         var builder = new UriBuilder(Constants.FindMapUrl) { Query = $"rflName={searchString}" };
