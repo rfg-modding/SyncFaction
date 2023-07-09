@@ -107,21 +107,16 @@ public partial class App
     {
         var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
-        /*
-
-        // open second window with flipped dark/light mode for debugging styles:
-        var mainWindow2 = new MainWindow(
-            new ViewModel(
-                serviceProvider.GetRequiredService<ILogger<ViewModel>>(),
-                serviceProvider.GetRequiredService<UiCommands>()
-                ),
-            new MarkdownRender(new Markdown()),
-            serviceProvider.GetRequiredService<ILogger<MainWindow>>(),
-            true
-        );
-        mainWindow2.Show();
-        */
+        //OpenSecondWindow();
     }
 
-    internal const Theme AppTheme = Theme.Light; // TODO set to auto for release
+    /// <summary>
+    /// Open second window with flipped dark/light mode for debugging styles
+    /// </summary>
+    /*private void OpenSecondWindow()
+    {
+        var mainWindow2 = new MainWindow(new ViewModel(serviceProvider.GetRequiredService<UiCommands>(), serviceProvider.GetRequiredService<IFileSystem>(), serviceProvider.GetRequiredService<ILogger<ViewModel>>()), new MarkdownRender(new Markdown()), serviceProvider.GetRequiredService<ILogger<MainWindow>>(), true);
+        mainWindow2.Show();
+    }*/
+    internal const Theme AppTheme = Theme.Auto;
 }

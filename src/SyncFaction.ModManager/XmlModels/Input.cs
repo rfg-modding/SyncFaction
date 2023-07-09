@@ -6,7 +6,7 @@ namespace SyncFaction.ModManager.XmlModels;
 public abstract class Input
 {
     [XmlIgnore]
-    public abstract XmlNode SelectedValue { get; }
+    public abstract XmlNode? SelectedValue { get; }
 
     [XmlAttribute]
     public string Name { get; set; }

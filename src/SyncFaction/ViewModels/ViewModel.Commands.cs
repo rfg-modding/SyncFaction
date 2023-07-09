@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using System.IO;
+
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -109,7 +109,7 @@ public partial class ViewModel
     private async Task OpenDir(object x, CancellationToken token)
     {
         var arg = x as string ?? string.Empty;
-        var destination = Path.Combine(Model.GameDirectory, arg);
+        var destination = fileSystem.Path.Combine(Model.GameDirectory, arg);
         log.LogTrace("OpenDir [{dir}]", destination);
         Process.Start(new ProcessStartInfo
         {

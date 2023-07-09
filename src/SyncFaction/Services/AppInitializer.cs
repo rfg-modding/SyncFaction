@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
+
 using System.IO.Abstractions;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -70,7 +70,7 @@ public class AppInitializer
         {
             using var dialog = new CommonOpenFileDialog
             {
-                InitialDirectory = Directory.GetCurrentDirectory(),
+                InitialDirectory = fileSystem.Directory.GetCurrentDirectory(),
                 IsFolderPicker = true,
                 EnsurePathExists = true,
                 Title = "Where is the game?"
@@ -135,7 +135,7 @@ public class AppInitializer
     [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "I know registry is windows-only")]
     private async Task<string> DetectGameLocation(CancellationToken token)
     {
-        var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+        var currentDir = fileSystem.DirectoryInfo.New(fileSystem.Directory.GetCurrentDirectory());
         var entries = currentDir.GetFileSystemInfos();
         if (entries.Any(static x => x.Name.Equals(Constants.StateFile, StringComparison.OrdinalIgnoreCase)))
         {
@@ -201,15 +201,15 @@ public class AppInitializer
             }
             else
             {
-                var config = await File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
+                var config = await fileSystem.File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
                 var regex = new Regex(@"""path""\s+""(.+?)""");
                 var locations = regex.Matches(config).Select(static x => x.Groups).Select(static x => x[1].Value).Select(static x => x.Replace(@"\\", @"\").TrimEnd('\\'));
                 const string gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
                 foreach (var location in locations)
                 {
                     log.LogTrace("Trying steam library at [{location}]", location);
-                    var gameDir = Path.Combine(location, gamePath);
-                    if (Directory.Exists(gameDir))
+                    var gameDir = fileSystem.Path.Combine(location, gamePath);
+                    if (fileSystem.Directory.Exists(gameDir))
                     {
                         log.LogTrace("Found Steam install path [{path}]", gameDir);
                         {

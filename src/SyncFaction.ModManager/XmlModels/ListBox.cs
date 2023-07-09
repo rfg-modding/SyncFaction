@@ -12,13 +12,7 @@ public class ListBox : Input
     public override XmlNode? SelectedValue => DisplayOptions[SelectedIndex].ValueHolder;
 
     /// <summary>
-    /// "default" option which does nothing. TODO experimental. maybe not a good idea because "input value" is separated from a "change operation"
-    /// </summary>
-    //[XmlAttribute]
-    //public bool HasDefault { get; set; } = false;
-
-    /// <summary>
-    /// editable option. TODO experimental
+    /// editable option, experimental
     /// </summary>
     [XmlAttribute]
     public bool AllowCustom { get; set; } = true;
@@ -46,11 +40,6 @@ public class ListBox : Input
 
     private IEnumerable<IOption> InitDisplayOptions()
     {
-        // if (HasDefault)
-        // {
-        //     yield return new DefaultOption();
-        // }
-
         foreach (var xmlOption in XmlOptions)
         {
             yield return xmlOption;

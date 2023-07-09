@@ -5,9 +5,6 @@ using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
 namespace SyncFaction.Packer.Models;
 
-/// <summary>
-/// TODO check for +-1 byte bugs
-/// </summary>
 public sealed class StreamView : Stream
 {
     public override bool CanRead => stream.CanRead;

@@ -28,8 +28,8 @@ public class AppStorage : IAppStorage
         }
 
         Data = Game.GetDirectories().Single(static x => x.Name == "data");
-        App = fileSystem.DirectoryInfo.New(Path.Combine(Data.FullName, Constants.AppDirName));
-        Img = fileSystem.DirectoryInfo.New(Path.Combine(App.FullName, Constants.ImgDirName));
+        App = fileSystem.DirectoryInfo.New(fileSystem.Path.Combine(Data.FullName, Constants.AppDirName));
+        Img = fileSystem.DirectoryInfo.New(fileSystem.Path.Combine(App.FullName, Constants.ImgDirName));
     }
 
     public bool Init()

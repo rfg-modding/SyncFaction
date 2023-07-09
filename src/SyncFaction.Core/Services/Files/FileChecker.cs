@@ -54,7 +54,7 @@ public class FileChecker
 
         async Task Body(KeyValuePair<string, string> kv, CancellationTokenSource breaker, CancellationToken t)
         {
-            var path = Path.Combine(appStorage.Game.FullName, kv.Key);
+            var path = appStorage.FileSystem.Path.Combine(appStorage.Game.FullName, kv.Key);
             var fileInfo = appStorage.FileSystem.FileInfo.New(path);
             var expected = kv.Value;
             var hash = fileInfo.Exists

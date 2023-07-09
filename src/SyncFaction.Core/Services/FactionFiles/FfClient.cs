@@ -70,7 +70,7 @@ public class FfClient
                 continue;
             }
 
-            var imageFile = Path.Combine(storage.Img.FullName, $"ff_{item.Id}.png");
+            var imageFile = storage.FileSystem.Path.Combine(storage.Img.FullName, $"ff_{item.Id}.png");
             if (fileSystem.File.Exists(imageFile))
             {
                 log.LogTrace("Image exists [{file}]", imageFile);
@@ -83,7 +83,7 @@ public class FfClient
             log.LogTrace("Response: {code}, length {contentLength}", response.StatusCode, response.Content.Headers.ContentLength);
             await using var stream = await image.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
             log.LogTrace("Writing image {file}", imageFile);
-            await using var f = File.Open(imageFile, FileMode.Create);
+            await using var f = fileSystem.File.Open(imageFile, FileMode.Create);
             await stream.CopyToAsync(f, token);
             item.ImagePath = imageFile;
         }
@@ -115,7 +115,7 @@ public class FfClient
             return false;
         }
 
-        var dstFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, remoteFileInfo.FileName));
+        var dstFile = fileSystem.FileInfo.New(modDir.FileSystem.Path.Combine(modDir.FullName, remoteFileInfo.FileName));
         var downloadResult = await DownloadWithResume(dstFile, remoteFileInfo.Size, mod, token);
         if (downloadResult == false)
         {
@@ -290,7 +290,7 @@ public class FfClient
         if (mod.DownloadUrl.Contains(Constants.CdnUrl))
         {
             // mod retrieved from CDN already has all metadata
-            var cdnFileName = Path.GetFileName(mod.DownloadUrl);
+            var cdnFileName = fileSystem.Path.GetFileName(mod.DownloadUrl);
             var result = new RemoteFileInfo(cdnFileName, mod.Size);
             log.LogTrace("Mod [{id}] info from CDN: {info}", mod.Id, result);
         }
@@ -302,7 +302,7 @@ public class FfClient
         var originalName = response.Content.Headers.ContentDisposition?.FileName ?? response.Content.Headers.ContentDisposition?.FileNameStar ?? string.Empty;
         log.LogTrace("Response: {code}, originalName [{originalName}]", response.StatusCode, originalName);
         var filteredName = originalName.Trim().Trim('"');
-        var extension = Path.GetExtension(filteredName);
+        var extension = fileSystem.Path.GetExtension(filteredName);
         var fileName = $".mod{extension}";
         var contentSize = response.Content.Headers.ContentLength;
         if (contentSize == null)
@@ -470,14 +470,14 @@ public class FfClient
 
     private static string BbCodeToMarkdown(string input)
     {
-        // BUG: markdown renderer breaks when there is a link inside bold/italic/..
+        // NOTE: markdown renderer breaks when there is a link inside bold/italic/..
         try
         {
             input = Regex.Unescape(input);
         }
         catch (RegexParseException)
         {
-            // BUG: some texts F up regex un-escaping, ignore it
+            // NOTE: some texts F up regex un-escaping, ignore it
         }
 
         input = input.Replace("\r", "\n");

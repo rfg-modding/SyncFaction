@@ -256,4 +256,23 @@ public class Tests
         Console.WriteLine(b);
         Assert.Pass();
     }
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestNonexistentDir()
+    {
+        var f = new FileInfo("c:\\foo\\bar.baz");
+        f.Exists.Should().BeFalse();
+        f.Directory.Should().NotBeNull();
+        f.Directory.Exists.Should().BeFalse();
+    }
+
+    [Test]
+    [Explicit("Just for testing")]
+    public void TestPathNoExt()
+    {
+        var f = "c:\\test\\a.b.c.d";
+        var x = Path.GetFileNameWithoutExtension(f);
+        x.Should().Be("a.b.c");
+    }
 }

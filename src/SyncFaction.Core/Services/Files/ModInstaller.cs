@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
+using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.Files;
 using SyncFaction.ModManager.Models;
 using SyncFaction.ModManager.Services;
@@ -61,7 +62,7 @@ public class ModInstaller : IModInstaller
 
         tmpFile.Refresh();
         tmpFile.MoveTo(gameFile.AbsolutePath, true);
-        log.LogInformation("Patched files inside [{file}]", gameFile.RelativePath);
+        log.LogInformation(Md.Bullet.Id(), "Patched files inside `{file}`", gameFile.RelativePath);
         return true;
     }
 
@@ -81,7 +82,7 @@ public class ModInstaller : IModInstaller
             var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(static x => x);
             foreach (var key in newFileKeys)
             {
-                log.LogInformation("Adding file {file} to {vpp}", key, archive.Name);
+                log.LogInformation(Md.Bullet.Id(), "Added `{file}` to `{vpp}`", key, archive.Name);
                 order++;
                 var modFile = modFiles[key];
                 var modSrc = modFile.OpenRead();
@@ -102,7 +103,7 @@ public class ModInstaller : IModInstaller
                     order = logicalFile.Order;
                     if (modFiles.TryGetValue(key, out var modFile))
                     {
-                        log.LogInformation("Replacing file {file} in {vpp}", key, archive.Name);
+                        log.LogInformation(Md.Bullet.Id(), "Replaced `{file}` in `{vpp}`", key, archive.Name);
                         usedKeys.Add(key);
                         var modSrc = modFile.OpenRead();
                         disposables.Add(modSrc);
@@ -166,14 +167,14 @@ public class ModInstaller : IModInstaller
 
         tmpFile.Refresh();
         tmpFile.MoveTo(gameFile.AbsolutePath, true);
-        log.LogInformation("Patched contents of [{file}]", gameFile.RelativePath);
+        log.LogInformation(Md.Bullet.Id(), "Patched contents of [{file}]", gameFile.RelativePath);
 
         return true;
     }
 
     internal virtual bool Skip(GameFile gameFile, IFileInfo modFile)
     {
-        log.LogInformation("Skipped unsupported mod file `{file}`", modFile.Name);
+        log.LogInformation(Md.Bullet.Id(), "Skipped unsupported mod file `{file}`", modFile.Name);
         return true;
     }
 
@@ -186,7 +187,7 @@ public class ModInstaller : IModInstaller
             var result = await ApplyXdeltaInternal(srcFile, modFile, tmpFile, token);
             tmpFile.Refresh();
             tmpFile.MoveTo(gameFile.AbsolutePath, true);
-            log.LogTrace("Applied xdelta from [{file}] to [{gameFile}]", modFile.FullName, gameFile.RelativePath);
+            log.LogInformation(Md.Bullet.Id(), "Patched `{file}` into `{gameFile}`", modFile.Name, gameFile.RelativePath);
             return result;
         }
         catch (Exception)
@@ -206,7 +207,7 @@ public class ModInstaller : IModInstaller
     {
         EnsureDirectoriesCreated(gameFile.FileInfo);
         modFile.CopyTo(gameFile.FileInfo.FullName, true);
-        log.LogInformation("Copied `{file}` to `{gameFile}`", modFile.Name, gameFile.RelativePath);
+        log.LogInformation(Md.Bullet.Id(), "Copied `{file}` to `{gameFile}`", modFile.Name, gameFile.RelativePath);
         return true;
     }
 

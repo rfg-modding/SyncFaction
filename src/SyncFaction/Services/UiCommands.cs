@@ -268,23 +268,35 @@ public class UiCommands
         return await RefreshLocal(viewModel, token) && await RefreshOnline(viewModel, true, token);
     }
 
-    internal Task<bool> Run(ViewModel viewModel, CancellationToken token)
+    internal async Task<bool> Run(ViewModel viewModel, CancellationToken token)
     {
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        var launcher = storage.Game.EnumerateFiles().SingleOrDefault(static x => x.Name.Equals("launcher.exe", StringComparison.OrdinalIgnoreCase));
+        if (launcher?.Exists == true)
+        {
+            log.LogInformation("Launching game RSL Launcher...");
+            Process.Start(new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                FileName = launcher.FullName
+            });
+            return true;
+        }
+
         switch (viewModel.Model.IsGog)
         {
             case null:
                 throw new InvalidOperationException("App is not properly initialized, still don't know game version");
             case true:
                 {
+                    var exe = storage.Game.EnumerateFiles().Single(static x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
                     log.LogInformation("Launching game via exe...");
-                    var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-                    var exe = storage.Game.EnumerateFiles().Single(x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
                     Process.Start(new ProcessStartInfo
                     {
                         UseShellExecute = true,
                         FileName = exe.FullName
                     });
-                    break;
+                    return true;
                 }
             default:
                 log.LogInformation("Launching game via Steam...");
@@ -293,10 +305,8 @@ public class UiCommands
                     UseShellExecute = true,
                     FileName = "steam://rungameid/667720"
                 });
-                break;
+                return true;
         }
-
-        return Task.FromResult(true);
     }
 
     internal async Task<bool> RefreshOnline(ViewModel viewModel, CancellationToken token) => await RefreshOnline(viewModel, false, token);

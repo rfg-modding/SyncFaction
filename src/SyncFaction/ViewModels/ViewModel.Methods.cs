@@ -55,6 +55,7 @@ public partial class ViewModel
             log.LogError(Md.H1.Id(), "FAILED: {operation}", viewModel.CurrentOperation);
             log.LogError("Things to try now:");
             log.LogError(Md.Bullet.Id(), "Carefully read logs and error messages");
+            log.LogError(Md.Bullet.Id(), "Restore game to patch or vanilla (see in dev mode)");
             log.LogError(Md.Bullet.Id(), "Verify your game with Steam or GOG Galaxy and try again");
             log.LogError(Md.Bullet.Id(), "Generate diagnostics report and ask for help (FF Discord or Github)");
         }

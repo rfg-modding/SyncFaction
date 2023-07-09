@@ -44,7 +44,7 @@ public class XmlHelper
             {
             } s when s.StartsWith("combine_by_field:", StringComparison.OrdinalIgnoreCase) => ListAction.CombineByField,
 
-            // TODO MM has logic for these actions but no mods use them:
+            // NOTE: MM has logic for these actions but no mods use them:
             "combine_by_text" => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action"),
             "combine_by_index" => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action"),
             {

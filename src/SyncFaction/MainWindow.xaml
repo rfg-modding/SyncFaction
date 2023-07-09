@@ -197,7 +197,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
-                <!--TODO make last column width Auto to enable auto-collapse on hide-->
+                <!--NOTE: last column width = Auto to enable auto-collapse on hide-->
             </Grid.ColumnDefinitions>
             <mdxam:MarkdownScrollViewer xml:space="preserve" x:Name="Markdown" Margin="5,0,0,0" Grid.Column="0" VerticalScrollBarVisibility="Visible">
 		        # Markdown example
@@ -302,7 +302,7 @@
         </StackPanel>
         <Label VerticalAlignment="Center" Content="Game directory" Grid.Row="2" Grid.Column="1" />
         <Grid Grid.Row="2" Grid.Column="2">
-            <TextBox BorderThickness="1 1 0 1" x:Name="Directory" TextWrapping="NoWrap" Text="{Binding Model.GameDirectory, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" />
+            <TextBox BorderThickness="1 1 0 1" x:Name="Directory" TextWrapping="NoWrap" Text="{Binding Model.GameDirectory, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" IsReadOnly="True" />
             <TextBlock IsHitTestVisible="False" Text="" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                 To avoid manually locating game every time, put app .exe inside game dir
                 <TextBlock.Style>

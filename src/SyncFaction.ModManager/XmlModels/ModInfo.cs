@@ -98,7 +98,6 @@ public class ModInfo
                 throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
             }
 
-            // TODO support null (no-op)
             var holder = selectedValues[replace.FileUserInput];
             if (holder.ChildNodes.Count != 1)
             {
@@ -116,7 +115,6 @@ public class ModInfo
                 throw new ArgumentException($"Both {nameof(replace.NewFile)} and {nameof(replace.NewFileUserInput)} attributes are not allowed together. Erase one of values to fix: [{replace.NewFile}], [{replace.NewFileUserInput}]");
             }
 
-            // TODO support null (no-op)
             var holder = selectedValues[replace.NewFileUserInput];
             if (holder.ChildNodes.Count != 1)
             {
@@ -393,67 +391,3 @@ public class ModInfo
 
     private const string UserInputName = "user_input";
 }
-
-/*
-
-    TODO support no-op at merge time
-
-
- ModInfo.xml
-        Mod
-            Changes
-                <Replace File="build/pc/cache/items.vpp/repair_tool.str2_pc" NewFile="repair_tool.str2_pc" />
-                  replaces a file, no magic
-
-             <Edit File="">XML</Edit>
-                   "Content of tags with the same name will be replaced with the new content"
-                 if a node has multiple children, LIST_ACTION is used
-                       ADD                         add to child nodes
-                     REPLACE                     replace al child nodes
-                     COMBINE_BY_TEXT             ?
-                      COMBINE_BY_INDEX            ?
-                      COMBINE_BY_FIELD:X,Y,A\B\C  replaces child nodes matching tags X or Y or looking inside nested tags A->B->C
-                        COMBINE_BY_ATTRIBUTE:X,Y    replaces child nodes matching attributes X or Y
-
-
-                      COMBINE_BY_FIELD:X
-                         iterates through all children of the list in search for a child that has equal values
-                          If such a child is found, the content of the tags will be merged
-                           If no child with equal values is found, the tag will be added as a new one
-         <USER_INPUT>Tank Camera Distance</USER_INPUT> - is replaced by contents
-
-           example from steam guide:
-          <Edit file="build/pc/cache/misc.vpp/weapons.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name,_Editor\Category">
-                <Weapon>
-                   <Name>edf_pistol</Name>
-                    <_Editor><Category>Entries:EDF</Category></_Editor>
-                    <Max_Rounds>9999</Max_Rounds>
-              </Weapon>
-          </Edit>
-
-   IMPROVEMENTS
-       * user inputs
-          checkbox
-           textbox (maybe optional eg when certain selectbox value is selected)
-       * support <replace file> tag from inputs (now only <edit> is supported)
-        * <add file> tag
-
-
-
-
-    in 139 mods from FF, Nexus and ModDb, i have found these LIST_ACTIONs in modinfo.xml:
-        ADD
-        COMBINE_BY_FIELD:Name
-        COMBINE_BY_FIELD:Name,Unique_ID
-        COMBINE_BY_FIELD:Name,_Editor\Category
-        REPLACE
-        nothing specified == CopyNodeToTargetIfNeeded
-
-    NOTES
-        * MM uses xtbl.root.Table as starting element
-        * default LIST_ACTION is ADD
-        * MM copies attributes, except for root level
-        *
-
-
-*/

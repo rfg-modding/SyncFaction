@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO.Abstractions;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -50,6 +51,7 @@ public partial class ViewModel
     internal string? LastException { get; set; }
 
     private readonly UiCommands uiCommands = null!;
+    private readonly IFileSystem fileSystem;
 
     private readonly ILogger<ViewModel> log = null!;
 
@@ -106,10 +108,11 @@ public partial class ViewModel
     [ObservableProperty]
     private string? diagView;
 
-    public ViewModel(ILogger<ViewModel> log, UiCommands uiCommands) : this()
+    public ViewModel(UiCommands uiCommands, IFileSystem fileSystem, ILogger<ViewModel> log) : this()
     {
         this.log = log;
         this.uiCommands = uiCommands;
+        this.fileSystem = fileSystem;
 
         SetDesignTimeDefaults(false);
     }

@@ -42,7 +42,6 @@ public class FileManager
         excludeDirs.Add(otherVersionSpecificDir);
         log.LogTrace("Excluded other-version-specific dir from mod content [{dir}]", otherVersionSpecificDir);
 
-        //TODO stopped here: refactoring, creating logs, and marking visited methods with bookmarks
         if (mod.ModInfo is not null)
         {
             log.LogTrace("Mod [{id}] has modinfo.xml", mod.Id);
@@ -53,7 +52,6 @@ public class FileManager
             foreach (var op in operations.FileSwaps)
             {
                 // NOTE: this won't exclude files mentioned in selectbox inputs!
-                // TODO: to avoid clutter, instruct users to place modinfo.xml and all relative stuff into a subfolder
                 var file = op.Target.FullName.ToLowerInvariant();
                 excludeFiles.Add(file);
                 log.LogTrace("Excluded modinfo referenced file from mod content [{file}]", file);
@@ -205,7 +203,6 @@ public class FileManager
             modifiedFiles.AddRange(result.ModifiedFiles);
             if (!result.Success)
             {
-                // TODO probably allow some workarounds to update successfully if mods are failing?
                 log.LogError("Re-install mod {id} failed", mod.Id);
                 return new ApplyModResult(modifiedFiles, false);
             }

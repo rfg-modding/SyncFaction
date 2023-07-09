@@ -103,28 +103,20 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 20. ~~support mods working differently for steam/gog, eg with subfolders~~
 21. ~~"restore to modded" - load list of mods back (should be stored separately)~~
 22. ~~state is saved even if initial check isnt finished - is this OK?~~
-24. remove usings of FileInfo, DirectoryInfo, Path (use abstractions lib)
-25. log every file/folder manipulation: create, write, delete, move, copy
-26. log.trace every IF
-27. fix TODOs
-28. rickroll
-29. test what happens if cdn host is unavailable
-30. make xdelta work for managed files
-10. optional compatibility toggle
-    * separate button or a checkbox to run game with recommended settings
-    * edit %APPDATA%\kaiko\rfg\config.ini and set windows_mode=2 (exclusive fullscreen)
-    * find a way to set up windows compatibility settings for game exe
-      * registry?
-      * bat file?
-      * create .lnk and edit it programmatically?
-10. steam compatibility
-  * create backup of .exe so people can run game with steam
-  * add steam shortcut for it automatically if possible?
-13. run with Launcher.exe if found (RSL2)
+24. ~~remove usings of FileInfo, DirectoryInfo, Path (use abstractions lib)~~
+25. ~~log every file/folder manipulation: create, write, delete, move, copy~~
+26. ~~log.trace every IF~~
+27. ~~fix TODOs~~
+28. ~~make xdelta work for managed files~~
+29. ~~test what happens if cdn host is unavailable~~
+30. rickroll
+33. ~~run with Launcher.exe if found (RSL2)~~
+34. dev mode should not ignore update check. make separate checkbox for it and save
 
 
 ## Release
 
+* fix TODOs left from debugging
 * rename FF categories as MM/legacy/something, add new for SF mods
 * remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
 * remove hack for old update IDs (rfgcommunityupdate)
@@ -136,6 +128,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 * document modinfo.xml
 * document mod structure and all the magic
 * make examples
+  * to avoid clutter, instruct users to place modinfo.xml and all relative stuff into a subfolder
 * testing
   * loose vpp files
   * new vpps

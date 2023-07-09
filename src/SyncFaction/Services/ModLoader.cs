@@ -100,7 +100,7 @@ public class ModLoader
         var result = new List<IMod>();
         foreach (var entry in data)
         {
-            if (string.IsNullOrEmpty(Path.GetExtension(entry.ObjectName)))
+            if (string.IsNullOrEmpty(fileSystem.Path.GetExtension(entry.ObjectName)))
             {
                 // skip files cached from FF
                 continue;
@@ -128,8 +128,8 @@ public class ModLoader
         }
 
         var modDir = storage.GetModDir(item);
-        var incompleteDataFile = fileSystem.FileInfo.New(Path.Join(modDir.FullName, Constants.IncompleteDataFile));
-        var descriptionFile = fileSystem.FileInfo.New(Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
+        var incompleteDataFile = fileSystem.FileInfo.New(fileSystem.Path.Join(modDir.FullName, Constants.IncompleteDataFile));
+        var descriptionFile = fileSystem.FileInfo.New(fileSystem.Path.Combine(modDir.FullName, Constants.ModDescriptionFile));
         if (modDir.Exists && !incompleteDataFile.Exists && descriptionFile.Exists)
         {
             return OnlineModStatus.Ready;
@@ -185,7 +185,7 @@ public class ModLoader
             if (dir.Name.StartsWith("Mod_", StringComparison.OrdinalIgnoreCase))
             {
                 // read mod description from json
-                var descriptionFile = fileSystem.FileInfo.New(Path.Combine(dir.FullName, Constants.ModDescriptionFile));
+                var descriptionFile = fileSystem.FileInfo.New(fileSystem.Path.Combine(dir.FullName, Constants.ModDescriptionFile));
                 if (!descriptionFile.Exists)
                 {
                     log.LogTrace("Mod in [{dir}] ignored: missing [{file}], probably was interrupted during download/unpack", dir.Name, descriptionFile.Name);
@@ -254,7 +254,7 @@ public class ModLoader
             }
 
             // detecting if there are mp_file.vpp or mp_file.xdelta
-            var nameNoExt = Path.GetFileNameWithoutExtension(name) + ".";
+            var nameNoExt = fileSystem.Path.GetFileNameWithoutExtension(name) + ".";
             if (!flags.HasFlag(ModFlags.AffectsMultiplayerFiles) && Hashes.MultiplayerFiles.Any(x => x.StartsWith(nameNoExt, StringComparison.OrdinalIgnoreCase)))
             {
                 log.LogTrace("Mod [{id}]: Affects multiplayer [{file}]", mod.Id, modFile.FullName);
@@ -269,7 +269,7 @@ public class ModLoader
             // NOTE: this may not work properly if user inputs mention different vpps depending on selected values
             mod.ModInfo.ApplyUserInput();
             var archive = mod.ModInfo.GetPaths(storage.FileSystem, mod.ModInfo.TypedChanges.First().File).Archive;
-            var nameNoExt = Path.GetFileNameWithoutExtension(archive) + ".";
+            var nameNoExt = fileSystem.Path.GetFileNameWithoutExtension(archive) + ".";
             if (Hashes.MultiplayerFiles.Any(x => x.StartsWith(nameNoExt, StringComparison.OrdinalIgnoreCase)))
             {
                 log.LogTrace("Mod [{id}]: modinfo.xml probably affects multiplayer [{file}]", mod.Id, archive);

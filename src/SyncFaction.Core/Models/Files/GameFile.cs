@@ -128,7 +128,7 @@ public class GameFile
                 return FileKind.FromPatch;
             }
 
-            log.LogTrace("FromPatch: not an update, file is not known");
+            log.LogTrace("FromMod: not an update, file is not known");
             return FileKind.FromMod;
         }
 
@@ -186,7 +186,6 @@ public class GameFile
             switch (fileKind)
             {
                 case FileKind.Stock:
-                    // TODO this is total mess:
                     // we are patching or modding vanilla file
                     // if it is not backed up, copy to vanilla bak
                     var vanillaBak = GetVanillaBackupLocation();
@@ -305,6 +304,15 @@ public class GameFile
     {
         var separator = modFile.FileSystem.Path.DirectorySeparatorChar;
         var relativeModPath = modFile.FileSystem.Path.GetRelativePath(modDir.FullName, modFile.FullName);
+        if (relativeModPath.StartsWith("steam", StringComparison.OrdinalIgnoreCase))
+        {
+            relativeModPath = relativeModPath[("steam".Length + 1)..];
+        }
+        else if (relativeModPath.StartsWith("gog", StringComparison.OrdinalIgnoreCase))
+        {
+            relativeModPath = relativeModPath[("gog".Length + 1)..];
+        }
+
         var modNameNoExt = modFile.FileSystem.Path.GetFileNameWithoutExtension(modFile.Name);
 
         if (!relativeModPath.Contains(separator))
@@ -334,16 +342,25 @@ public class GameFile
             }
         }
 
-        /*
-            it is not a known file, so it must be a new file to copy.
+        var managedFile = storage.FileSystem.FileInfo.New(storage.FileSystem.Path.Combine(storage.Managed.FullName, relativeModPath));
+        if (managedFile.Exists)
+        {
+            log.LogTrace("Managed file: [{file}]", relativeModPath);
+            return relativeModPath;
+        }
 
-            not an xdelta patch. so extension must be preserved! - TODO change this logic to look for managed files
+        // if we have "data/new_map.xdelta", try to find "data/new_map.vpp". crash if we have collisions like "data/new_map.vpp" and "data/new_map.etc"
+        var managedOtherFile = managedFile.Directory?.Exists == true
+            ? managedFile.Directory.EnumerateFiles().SingleOrDefault(x => storage.FileSystem.Path.GetFileNameWithoutExtension(x.Name).Equals(modNameNoExt, StringComparison.OrdinalIgnoreCase))
+            : null;
+        if (managedOtherFile?.Exists == true)
+        {
+            var relativeManagedPath = modFile.FileSystem.Path.GetRelativePath(storage.Managed.FullName, managedOtherFile.FullName);
+            log.LogTrace("Patch for managed file: [{file}]", relativeManagedPath);
+            return relativeManagedPath;
+        }
 
-            mod should mimic game structure: if modFile is inside /data directory in mod structure, it goes to /data
-            else it goes to root
-            all subdirs are preserved too
-        */
-
+        // not known file, not managed file, so it must be a new file to copy
         log.LogTrace("New file: [{file}]", relativeModPath);
         return relativeModPath;
     }
