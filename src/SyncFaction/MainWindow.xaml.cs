@@ -207,8 +207,6 @@ public partial class MainWindow : Window, IViewAccessor
         }
     }
 
-
-
     private int clicks;
 
     private readonly IReadOnlyList<MessageboxParams> Messages = new List<MessageboxParams>

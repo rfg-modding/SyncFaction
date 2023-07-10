@@ -39,6 +39,8 @@ public class GameFileTests
 
         storageMock = new Mock<IGameStorage>();
         storageMock.SetupGet(x => x.Game).Returns(gameDir);
+        storageMock.SetupGet(x => x.FileSystem).Returns(fileSystem);
+        storageMock.SetupGet(x => x.Log).Returns(new NullLogger<GameStorage>());
         storageMock.SetupGet(x => x.RootFiles)
         .Returns(new Dictionary<string, string>
         {

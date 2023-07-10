@@ -175,9 +175,6 @@ public class AppInitializer
 
         if (!string.IsNullOrEmpty(steam) && !string.IsNullOrEmpty(gog))
         {
-            // TODO remove me, used for debugging
-            return gog;
-
             log.LogWarning("Found both GOG and Steam versions, can't decide automatically");
             return string.Empty;
         }
