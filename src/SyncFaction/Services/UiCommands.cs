@@ -137,17 +137,35 @@ public class UiCommands
 
         log.Clear();
         log.LogInformation(Md.NoScroll.Id(), "{markdown}", mvm.Mod.Markdown);
-        if (isLocal)
-        {
-            LogFlags(mvm.Mod);
-        }
-
+        var storage = viewModel.Model.GetGameStorage(fileSystem, log);
+        DisplayExtendedInfo(mvm.Mod, isLocal, storage);
         return true;
     }
 
-    private void LogFlags(IMod mod)
+    private void DisplayExtendedInfo(IMod mod, bool isLocal, GameStorage storage)
     {
-        log.LogInformation("---");
+        log.LogInformation((Md.NoScroll).Id(), "---");
+        log.LogInformation((Md.NoScroll).Id(), "Id: `{id}`", mod.Id);
+        if (isLocal)
+        {
+            var modDir = storage.GetModDir(mod);
+            log.LogInformation((Md.NoScroll).Id(), "Path: `{path}`", modDir.FullName);
+            log.LogInformation((Md.NoScroll).Id(), "[Open in Explorer]({dir})", modDir.FullName);
+        }
+
+        if (mod.Category is not Category.Dev and not Category.Local)
+        {
+            log.LogInformation((Md.NoScroll).Id(), "[See on FactionFiles]({url})", mod.BrowserUrl);
+            log.LogInformation((Md.NoScroll).Id(), "Uploaded: `{date:yyyy/MM/dd}`", mod.CreatedAt);
+            log.LogInformation((Md.NoScroll).Id(), "Downloads: `{downloads}`", mod.DownloadCount);
+        }
+
+        if (!isLocal)
+        {
+            return;
+        }
+
+        log.LogInformation((Md.NoScroll | Md.B).Id(), "Extended info:");
         if (mod.Flags == ModFlags.None)
         {
             log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod has no known files and probably will do nothing");
@@ -173,6 +191,8 @@ public class UiCommands
         {
             log.LogInformation((Md.NoScroll | Md.Bullet).Id(), "Mod replaces certain files entirely. If they were edited by other mod before, changes will be lost. If you experience issues, try to change mod order, placing this one before others");
         }
+
+        log.LogInformation((Md.NoScroll).Id(), "---");
     }
 
     internal async Task<bool> RestoreMods(ViewModel viewModel, CancellationToken token)
@@ -249,9 +269,9 @@ public class UiCommands
         }
 
         viewModel.Model.IsVerified = true;
-        if (viewModel.Model.DevMode)
+        if (viewModel.Model.StartupUpdates == false)
         {
-            log.LogWarning("Skipped update check because DevMode is enabled");
+            log.LogWarning("Skipped update check because StartupUpdates is disabled");
         }
         else
         {
@@ -315,16 +335,16 @@ public class UiCommands
     {
         // always show mods from local directory
         var categories = new List<Category> { Category.Local };
-        if (viewModel.Model.DevMode && viewModel.Model.UseCdn)
+        if (viewModel.Model.DevHiddenMods)
         {
-            log.LogTrace("Listing dev mods from CDN because DevMode and UseCDN are enabled");
+            log.LogWarning("Listing dev mods from CDN because DevHiddenMods is enabled");
             categories.Add(Category.Dev);
         }
 
         Action displayLast = null;
-        if (viewModel.Model.DevMode && isInit)
+        if (viewModel.Model.StartupUpdates == false && isInit)
         {
-            log.LogWarning("Skipped reading mods and news from FactionFiles because DevMode is enabled");
+            log.LogWarning("Skipped reading mods and news from FactionFiles because StartupUpdates is disabled");
         }
         else
         {
@@ -354,7 +374,7 @@ public class UiCommands
             viewModel.OnlineSelectedCount = 0;
         });
 
-        var result = await parallelHelper.Execute(categories, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Fetching online mods", "categories", token);
+        var result = await parallelHelper.Execute(categories, Body, viewModel.Model.ThreadCount, TimeSpan.FromSeconds(10), $"Listing mods", "categories", token);
         Task.Yield();
         if (!token.IsCancellationRequested)
         {
@@ -373,7 +393,7 @@ public class UiCommands
     internal async Task<bool> RefreshLocal(ViewModel viewModel, CancellationToken token)
     {
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var mods = await modLoader.GetAvailableMods(viewModel.Model.Settings, viewModel.Model.DevMode, storage, token);
+        var mods = await modLoader.GetAvailableMods(viewModel.Model.Settings, viewModel.Model.DevHiddenMods, storage, token);
         viewModel.UpdateLocalMods(mods);
         return true;
     }
@@ -504,6 +524,16 @@ public class UiCommands
             return new ApplyModResult(new List<GameFile>(), false);
         }
 
+        var refreshSuccess = await RefreshLocal(viewModel, token);
+        if (!refreshSuccess)
+        {
+            return new ApplyModResult(new List<GameFile>(), false);
+        }
+
+        var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
+        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, viewModel.Model.IsGog!.Value, viewModel.Model.ThreadCount, token);
+        return result;
+
         async Task Body(IMod mod, CancellationTokenSource breaker, CancellationToken t)
         {
             var modDir = storage.GetModDir(mod);
@@ -515,9 +545,5 @@ public class UiCommands
                 breaker.Cancel();
             }
         }
-
-        var installedMods = viewModel.Model.AppliedMods.Select(x => viewModel.LocalMods.First(m => m.Mod.Id == x).Mod).ToList();
-        var result = await fileManager.InstallUpdate(storage, pendingUpdates, fromScratch, installedMods, viewModel.Model.IsGog!.Value, viewModel.Model.ThreadCount, token);
-        return result;
     }
 }

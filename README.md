@@ -109,9 +109,9 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 27. ~~fix TODOs~~
 28. ~~make xdelta work for managed files~~
 29. ~~test what happens if cdn host is unavailable~~
-30. rickroll
+30. ~~rickroll~~
 33. ~~run with Launcher.exe if found (RSL2)~~
-34. dev mode should not ignore update check. make separate checkbox for it and save
+34. ~~dev mode should not ignore update check. make separate checkbox for it and save~~
 
 
 ## Release
@@ -140,6 +140,7 @@ Implemented with support from **moneyl, Camo, Goober, natalie, ATMLVE** and othe
 
 ## Backlog
 
+* fix jumping text on devmode toggle
 * port/network checker?
   * inspect how game uses network for client and host modes
   * check if traffic can flow as required by either mode

@@ -15,6 +15,7 @@
   <ItemGroup>
     <None Remove="icon.png" />
     <None Remove="lego.png" />
+    <None Remove="hammer.wav" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +30,7 @@
     <PackageReference Include="MdXaml" Version="1.20.1" />
     <PackageReference Include="MdXaml.Html" Version="1.20.1" />
     <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.4" />
+    <PackageReference Include="NAudio" Version="2.1.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.3.0" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.2.4" />
   </ItemGroup>
@@ -36,6 +38,7 @@
   <ItemGroup>
     <Resource Include="icon.png" />
     <Resource Include="lego.png" />
+    <Resource Include="hammer.wav" />
   </ItemGroup>
 
   <ItemGroup>

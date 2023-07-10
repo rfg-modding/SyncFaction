@@ -16,8 +16,6 @@ public class Mod : IMod
     [JsonIgnore]
     public string Markdown => @$"# **{Name}** by {Author}
 
-*Added: {CreatedAt:yyyy MMMM dd}  #  Downloads: {DownloadCount}*  #  [See on FactionFiles]({BrowserUrl})
-
 {ImageMd}
 
 {DescriptionMd}

@@ -48,6 +48,12 @@ public partial class Model
     private bool useCdn;
 
     [ObservableProperty]
+    private bool startupUpdates = true;
+
+    [ObservableProperty]
+    private bool devHiddenMods;
+
+    [ObservableProperty]
     private bool? isGog;
 
     [ObservableProperty]
@@ -65,6 +71,8 @@ public partial class Model
         Multithreading = state.Multithreading ?? true;
         IsGog = state.IsGog; // keep nullable because first-time check can be aborted before we know the version
         UseCdn = state.UseCdn ?? true;
+        StartupUpdates = state.StartupUpdates ?? true;
+        DevHiddenMods = state.DevHiddenMods ?? false;
         IsVerified = state.IsVerified ?? false;
         Settings = state.Settings ?? new Settings();
         PopulateList(state.TerraformUpdates, TerraformUpdates, true);
@@ -81,6 +89,8 @@ public partial class Model
             IsGog = IsGog,
             IsVerified = IsVerified,
             UseCdn = UseCdn,
+            StartupUpdates = StartupUpdates,
+            DevHiddenMods = DevHiddenMods,
             TerraformUpdates = TerraformUpdates.ToList(),
             RslUpdates = RslUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),

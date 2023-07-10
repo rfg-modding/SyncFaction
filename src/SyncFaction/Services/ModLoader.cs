@@ -138,10 +138,10 @@ public class ModLoader
         return OnlineModStatus.None;
     }
 
-    internal async Task<List<IMod>> GetAvailableMods(Settings settings, bool devMode, IGameStorage storage, CancellationToken token)
+    internal async Task<List<IMod>> GetAvailableMods(Settings settings, bool devMods, IGameStorage storage, CancellationToken token)
     {
         var result = new List<IMod>();
-        foreach (var mod in EnumerateModFolders(storage, devMode))
+        foreach (var mod in EnumerateModFolders(storage, devMods))
         {
             mod.ModInfo = await ReadModInfo(mod, settings, storage, token);
             mod.Flags = GetFlags(mod, storage);
@@ -176,9 +176,10 @@ public class ModLoader
         return modInfo;
     }
 
-    private IEnumerable<IMod> EnumerateModFolders(IAppStorage storage, bool devMode)
+    private IEnumerable<IMod> EnumerateModFolders(IAppStorage storage, bool devMods)
     {
         log.LogTrace("Reading mods in [{dir}]", storage.App.FullName);
+        log.LogWarning("Listing hidden mods because DevHiddenMods is enabled");
         foreach (var dir in storage.App.EnumerateDirectories().Where(static dir => !dir.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase)))
         {
             log.LogTrace("Mod in [{dir}]: trying", dir.Name);
@@ -196,9 +197,9 @@ public class ModLoader
                 {
                     var json = reader.ReadToEnd();
                     var mod = JsonSerializer.Deserialize<Mod>(json);
-                    if (mod.Hide && !devMode)
+                    if (mod.Hide && !devMods)
                     {
-                        log.LogTrace("Mod in [{dir}] ignored: has hide flag in description and DevMode is not enabled", dir.Name);
+                        log.LogTrace("Mod in [{dir}] ignored: has hide flag in description and DevHiddenMods is not enabled", dir.Name);
                         continue;
                     }
 

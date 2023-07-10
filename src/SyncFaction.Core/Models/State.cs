@@ -18,5 +18,7 @@ public class State
     public bool? IsVerified { get; set; }
     public bool? Multithreading { get; set; }
     public bool? UseCdn { get; set; }
+    public bool? StartupUpdates { get; set; }
+    public bool? DevHiddenMods { get; set; }
     public Settings? Settings { get; set; }
 }
