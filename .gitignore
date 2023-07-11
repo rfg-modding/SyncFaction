@@ -351,3 +351,7 @@ MigrationBackup/
 
 
 .idea/
+coverage/
+
+/.editorconfig
+_publish

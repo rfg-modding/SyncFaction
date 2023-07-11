@@ -1,0 +1,11 @@
+﻿<!-- ReSharper disable InconsistentNaming -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CustomBase.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+    <Style TargetType="Window" x:Key="CustomWindowStyle" />
+    <Style TargetType="GridSplitter">
+        <Setter Property="Background" Value="LightGray" />
+    </Style>
+    <SolidColorBrush x:Key="SF.DisabledText" Color="#838383" />
+</ResourceDictionary>

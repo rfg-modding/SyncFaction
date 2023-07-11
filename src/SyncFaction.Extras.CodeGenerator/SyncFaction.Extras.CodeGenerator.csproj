@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SyncFaction.Extras</RootNamespace>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0-3.final" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildProjectDirectory)\_buildforcer">
+      <Visible>true</Visible>
+    </None>
+  </ItemGroup>
+  <Target Name="ForceNextBuild" AfterTargets="PrepareForRun">
+
+    <Touch Files="$(MSBuildProjectDirectory)\_buildforcer" AlwaysCreate="true" />
+  </Target>
+
+</Project>
