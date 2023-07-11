@@ -1,4 +1,4 @@
-- [**Index**](/index.md)
+- [**Index**](/_index.md)
 - [Backlog](/backlog.md)
 - [Tech Info](/tech.md)
 - Modding
