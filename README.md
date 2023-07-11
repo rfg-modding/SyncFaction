@@ -17,7 +17,7 @@ Red Faction Guerrilla Re-MARS-tered mod manager with focus on user experience
 
 Download [latest release](TODO) and place .exe in game folder. That's it!
 
-> You will need at least **20GiB** of free storage space
+> You will need at least **20GiB** (TODO measure with terraform rebuild) of free storage space
 
 ## Docs
 

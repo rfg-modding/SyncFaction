@@ -6,29 +6,32 @@ This is main documentation page with general info. See sidebar links for more de
 
 Download [latest release](TODO) and place .exe in game folder. That's it!
 
-> You will need at least **20GiB** of free storage space
+> You will need at least **20GiB** (TODO measure with terraform rebuild) of free storage space
 
 ## Features
 
 * Works for both Steam and GOG versions or **RFG Re-MARS-tered**
 * Auto-update
-  * Terraform patch (general game improvement, MP rebalance, tons of fixes, new maps)
+  * Terraform patch (general SP game improvements, MP rebalance, tons of fixes, new maps)
   * RSL2 (script loader to fix crashes and enable more modding capabilities)
   * Incremental updates supported
 * Integration with [Faction Files](https://www.factionfiles.com/ff.php?action=files)
   * Browse, download and install mods
   * See news for upcoming Game Nights
-* Download progress display, cache and resume for places with bad internet
-* Backup management: save you from downloading game files over and over again if something got messed up
+* Download progress display, cache and resume on errors for places with bad internet
+* Backup management: no need to download game files over and over again if something is messed up
 * Fast switch between game versions
   * `vanilla` if you want to roll back in time
   * `patched` to play MP without issues
   * `modded` to play SP with any mods even if they affect MP
+* Mods can be placed as regular folders manually, old-school way
+* CDN for faster downloads and for sharing dev builds
 
 ## Non-features
 
 * Saving storage space is not a priority. Backups are created only when files are modified for the first time, but after extensive modding game folder can be 2x heavier (or more!) because every game file is stored twice for quick restore
-* Editing game file formats for modding is done manually with Nanoforge and other tools. Only VPP archives are supported for now
+* Same for saving IO. Every time you change mods, files are restored to latest patch and all mods are re-applied from scratch. Complex IO-friendly file tracking would be difficult to get right
+* Editing game file formats for modding is done manually with Nanoforge and other tools. Only VPP archives are supported for now in SF
 
 ## Getting help
 
