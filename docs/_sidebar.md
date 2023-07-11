@@ -1,7 +1,8 @@
+- [**Index**](/index.md)
 - [Backlog](/backlog.md)
 - [Tech Info](/tech.md)
 - Modding
-  - **[Intro](/modding/intro.md)**
+  - [**Intro**](/modding/intro.md)
   - [Binary Patch](/modding/binary_patch.md)
   - [Verification](/modding/verification.md)
   - [Version Specific Mods](/modding/version_specific.md)
