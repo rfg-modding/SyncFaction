@@ -1,4 +1,3 @@
-using MathNet.Numerics;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models;
 
@@ -112,18 +111,7 @@ public class ParallelHelper
                 log.LogInformation(Md.Bullet.Id(), "{operation}: {i}/{total}, ??? left", info.Operation, info.Count.Value, info.Total);
             }
 
-            var fit = Fit.LineFunc(info.Measures.ToArray(), info.Times.ToArray());
-            var estimateSecondsAll = fit(info.Total);
-            var estimateSecondsLeft = Math.Max(estimateSecondsAll - elapsed.TotalSeconds, 0);
-            if (!double.IsNormal(estimateSecondsLeft))
-            {
-                log.LogTrace("Estimate time is invalid, replaced [{value}] with zero", estimateSecondsLeft);
-                estimateSecondsLeft = 0;
-            }
-
-            var estimate = FormatTimespan(TimeSpan.FromSeconds(estimateSecondsLeft));
-
-            log.LogInformation(Md.Bullet.Id(), "{operation}: {i}/{total}, {estimate} left", info.Operation, info.Count.Value, info.Total, estimate);
+            log.LogInformation(Md.Bullet.Id(), "{operation}: {i}/{total}", info.Operation, info.Count.Value, info.Total);
         }
     }
 

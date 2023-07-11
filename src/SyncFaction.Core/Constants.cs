@@ -11,7 +11,7 @@ public static class Constants
     public const string ImgDirName = ".img";
     public const string StateFile = "state.txt";
     public const string ModDescriptionFile = ".mod.json";
-    public const string HashFile = ".hashes.json";
+    public const string HashFile = ".mod.hashes.json";
     public const string SteamModDir = ".steam";
     public const string GogModDir = ".gog";
     public const string ModInfoFile = "modinfo.xml";

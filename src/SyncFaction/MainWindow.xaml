@@ -324,7 +324,7 @@
             </TextBlock>
             <TextBlock Margin="10,10,10,10">
                 ▷&#160;
-                <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://github.com/Rast1234/SyncFaction">GitHub page</Hyperlink>
+                <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://github.com/rfg-modding/SyncFaction">GitHub page</Hyperlink>
                 &#160;for feedback
             </TextBlock>
             <WrapPanel Margin="10,10,10,10">

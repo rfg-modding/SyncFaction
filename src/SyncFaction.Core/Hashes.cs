@@ -119,7 +119,7 @@ public static class Hashes
     {
         {"rfg.exe", "0d52039e7f2d3f25a4be52a2aba83919456fb3f00e52e75051726247471a2df4"},
         { "steam_api.dll", "d99d425793f588fbc15f91c7765977cdd642b477be01dac41c0388ab6a5d492d" },
-        {"sw_api.dll", "6f813445ff757f70164c0103833478240e339d5e81dcbc5c4be238264380c89d"},
+        {"sw_api.dll", "79abdd4e22aab7e1b47f8fdd8b36fe75aaf99a87fe4a9279be62e9ef44a6af24"},
         {"thqnocfg_steam.dat", "8357f2c8b9c3be4bcaf780271a1f3b76f9f4cad8dbf1b410fb4cd70cc4851186"},
         { "data/terr01_precache.vpp_pc", "2003c162f00e8cd7e2d58be99832532bc7bd9c9271329f08e37a40db94f4e4f1" },
         { "data/vehicles_r.vpp_pc", "9917023b74f3da29089bff3623f23b94e75e58edb0bdc9a007ee2ff5ded53383" },

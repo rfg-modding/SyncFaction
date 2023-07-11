@@ -46,7 +46,7 @@ public class FileManager
         {
             log.LogTrace("Mod [{id}] has modinfo.xml", mod.Id);
             var operations = mod.ModInfo.BuildOperations();
-            var modinfoPath = modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).First().FullName.ToLowerInvariant();
+            var modinfoPath = modDir.EnumerateFiles(Constants.ModInfoFile, SearchOption.AllDirectories).First().FullName.ToLowerInvariant();
             excludeFiles.Add(modinfoPath);
             log.LogTrace("Excluded modinfo file from mod content [{file}]", modinfoPath);
             foreach (var op in operations.FileSwaps)
@@ -80,7 +80,11 @@ public class FileManager
             }
         }
 
-        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories).Where(static x => !x.Directory!.IsVppDirectory()).Where(x => !excludeDirs.Any(ex => x.Directory!.FullName.ToLowerInvariant().StartsWith(ex, StringComparison.OrdinalIgnoreCase))).Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant())).Where(static x => x.IsModContent());
+        var individualModFiles = modDir.EnumerateFiles("*", SearchOption.AllDirectories)
+            .Where(static x => !x.Directory!.IsVppDirectory())
+            .Where(x => !excludeDirs.Any(ex => x.Directory!.FullName.ToLowerInvariant().StartsWith(ex, StringComparison.OrdinalIgnoreCase)))
+            .Where(x => !excludeFiles.Contains(x.FullName.ToLowerInvariant()))
+            .Where(static x => x.IsModContent());
         foreach (var modFile in individualModFiles)
         {
             token.ThrowIfCancellationRequested();
@@ -120,7 +124,7 @@ public class FileManager
         if (hashFile != null)
         {
             log.LogTrace("Mod [{id}] has hash file [{file}]", mod.Id, hashFile.FullName);
-            if (!await Verify(modDir, hashFile, threadCount, token))
+            if (!await Verify(storage, hashFile, threadCount, token))
             {
                 log.LogError("Hash check failed");
                 return new ApplyModResult(modified.Select(static x => x.GameFile).ToList(), false);
@@ -142,9 +146,9 @@ public class FileManager
         return new ApplyModResult(modified.Select(static x => x.GameFile).ToList(), true);
     }
 
-    private async Task<bool> Verify(IDirectoryInfo modDir, IFileInfo hashFile, int threadCount, CancellationToken token)
+    private async Task<bool> Verify(IAppStorage storage, IFileInfo hashFile, int threadCount, CancellationToken token)
     {
-        var fs = modDir.FileSystem;
+        var fs = storage.FileSystem;
         await using var stream = hashFile.OpenRead();
         var hashes = JsonSerializer.Deserialize<HashChecks>(stream)!;
         await parallelHelper.Execute(hashes.ToList(), Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
@@ -155,16 +159,18 @@ public class FileManager
             token.ThrowIfCancellationRequested();
             var relativePath = hashChecks.Key;
             var expectedHash = hashChecks.Value;
-            var filePath = fs.Path.Combine(modDir.FullName, relativePath);
+            var filePath = fs.Path.Combine(storage.Game.FullName, relativePath);
             var file = fs.FileInfo.New(filePath);
             if (!file.Exists)
             {
+                log.LogError("File for verification not found: [{}]", file.FullName);
                 breaker.Cancel();
             }
 
             var hash = await fileChecker.ComputeHash(file, token);
             if (hash != expectedHash)
             {
+                log.LogError("File [{}] SHA256=[{}], expected=[{}]", file.FullName, hash, expectedHash);
                 breaker.Cancel();
             }
         }

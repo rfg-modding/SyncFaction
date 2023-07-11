@@ -1,0 +1,5 @@
+- [Backlog](/backlog.md)
+- [Tech Info](/tech.md)
+- **Links**
+  - [Red Faction Community Discord (FactionFiles) ➪](https://discord.gg/factionfiles)
+  - [FactionFiles ➪](https://www.factionfiles.com/)

@@ -155,7 +155,7 @@ public class ModLoader
     {
         var modDir = storage.GetModDir(mod);
         log.LogTrace("Mod [{id}] in [{dir}]: reading modinfo.xml", mod.Id, modDir.Name);
-        var xmlFile = modDir.EnumerateFiles("modinfo.xml", SearchOption.AllDirectories).FirstOrDefault();
+        var xmlFile = modDir.EnumerateFiles(Constants.ModInfoFile, SearchOption.AllDirectories).FirstOrDefault();
         if (xmlFile is null)
         {
             log.LogTrace("Mod [{id}]: modinfo.xml not found", mod.Id);

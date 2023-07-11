@@ -304,13 +304,13 @@ public class GameFile
     {
         var separator = modFile.FileSystem.Path.DirectorySeparatorChar;
         var relativeModPath = modFile.FileSystem.Path.GetRelativePath(modDir.FullName, modFile.FullName);
-        if (relativeModPath.StartsWith("steam", StringComparison.OrdinalIgnoreCase))
+        if (relativeModPath.StartsWith(".steam", StringComparison.OrdinalIgnoreCase))
         {
-            relativeModPath = relativeModPath[("steam".Length + 1)..];
+            relativeModPath = relativeModPath[(".steam".Length + 1)..];
         }
-        else if (relativeModPath.StartsWith("gog", StringComparison.OrdinalIgnoreCase))
+        else if (relativeModPath.StartsWith(".gog", StringComparison.OrdinalIgnoreCase))
         {
-            relativeModPath = relativeModPath[("gog".Length + 1)..];
+            relativeModPath = relativeModPath[(".gog".Length + 1)..];
         }
 
         var modNameNoExt = modFile.FileSystem.Path.GetFileNameWithoutExtension(modFile.Name);

@@ -492,13 +492,15 @@ public class UiCommands
         {
             var storage = viewModel.Model.GetGameStorage(fileSystem, log);
             var fileReports = await fileManager.GenerateFileReport(storage, viewModel.Model.ThreadCount, token);
-            var files = fileReports.ToDictionary(static x => x.Path.Replace('\\', '/').PadRight(100), static x => x.ToString());
+            var filesDict = fileReports.ToDictionary(static x => x.Path.Replace('\\', '/').PadRight(100), static x => x.ToString());
+            var files = new SortedDictionary<string, string>(filesDict);
             var state = viewModel.Model.ToState();
-            var report = new Report(files, state, Title.Value, viewModel.LastException);
-            var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+            var report = new Report(state, Title.Value, viewModel.LastException);
             var logger = (MemoryTarget) LogManager.Configuration.AllTargets.Single(static x => x.Name == "memory");
             var memoryLogs = logger.Logs;
-            viewModel.DiagView = json + "\n\n" + string.Join("\n", memoryLogs);
+            var filesJson = JsonSerializer.Serialize(files, new JsonSerializerOptions { WriteIndented = true });
+            var reportJson = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+            viewModel.DiagView = filesJson + "\n\n" + reportJson + "\n\n" + string.Join("\n", memoryLogs);
             return true;
         }
         catch (Exception e)
