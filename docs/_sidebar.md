@@ -7,5 +7,5 @@
   - [Verification](/modding/verification.md)
   - [Version Specific Mods](/modding/version_specific.md)
 - **Links**
-  - [Red Faction Community Discord (FactionFiles) ➪](https://discord.gg/factionfiles)
+  - [Red Faction Community Discord ➪](https://discord.gg/factionfiles)
   - [FactionFiles ➪](https://www.factionfiles.com/)
