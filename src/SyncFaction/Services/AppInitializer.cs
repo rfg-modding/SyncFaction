@@ -163,6 +163,7 @@ public class AppInitializer
         var gog = DetectGogLocation();
         var steam = await DetectSteamLocation(token);
 
+        return gog; // TODO remove me (debug)
         if (!string.IsNullOrEmpty(gog) && string.IsNullOrEmpty(steam))
         {
             return gog;
