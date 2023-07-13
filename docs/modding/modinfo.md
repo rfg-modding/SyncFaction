@@ -156,6 +156,20 @@ The only important thing here is the `modinfo.xml` file name. Other files and di
 
 If you edit contents of `misc.vpp_pc`, do the same for `table.vpp_pc` and vice versa. This is weird but that's how the game works.
 
+### Legacy
+
+ModManager had support for more LIST_ACTIONs:
+
+* `COMBINE_BY_TEXT`, apparently to match nodes based on their text contents
+* `COMBINE_BY_INDEX`, apperently to match nodes based on their position under parent
+* `COMBINE_BY_ATTRIBYTE:foo,bar`, apparently to match by attribute names or values
+
+Also it probably allowed to control if attributes of a certain node should be copied.
+
+> In 139 mods from FF, Nexus and ModDb i was unable to find even a single mod using any of that!
+
+Probably because these features were not documented anywhere. If you have a use-case for something like that, create an issue and describe what you are trying to achieve.
+
 ---
 
 ## Example: Replace a File
