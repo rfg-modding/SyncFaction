@@ -114,7 +114,7 @@ Here's how inputs look in SF:
 
 ![inputs](../_assets/inputs.png)
 
-Note that there is an option to enter custom value (the last one). If you keep your Options simple enough, eg. `<Option Name="123">123</Option>` and use them accordingly in Changes, users can experiment and enter custom values. Of course they can do it even of Option is expected to have XML structure, but it's not very convenient.
+Note that there is an option to enter custom value (the last one). If you keep your Options simple enough, eg. `<Option Name="123">123</Option>` and use them accordingly in Changes, users can experiment and enter custom values. Of course they can do it even if your Options have XML structure, but it's not very convenient.
 
 Selected values are saved in SF settings and will be restored automatically every time when mod settings panel is displayed. Also there's an option to reset all inputs for a mod.
 
