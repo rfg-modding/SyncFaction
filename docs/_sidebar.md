@@ -1,11 +1,15 @@
-- [**Index**](/_index.md)
+- [***Index***](/)
 - [Backlog](/backlog.md)
+- [Dev Mode](/dev_mode.md)
 - [Tech Info](/tech.md)
+- [Troubleshooting](/troubleshooting.md)
+- [Usage](/usage.md)
 - Modding
-  - [**Intro**](/modding/intro.md)
+  - [***Intro***](/modding/intro.md)
   - [Binary Patch](/modding/binary_patch.md)
+  - [ModInfo.xml](/modding/modinfo.md)
   - [Verification](/modding/verification.md)
   - [Version Specific Mods](/modding/version_specific.md)
-- **Links**
+- Links
   - [Red Faction Community Discord ➪](https://discord.gg/factionfiles)
   - [FactionFiles ➪](https://www.factionfiles.com/)

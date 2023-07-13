@@ -383,6 +383,7 @@ public class FfClient
 
     private async Task<bool> ExtractArchive(IMod mod, IFileInfo downloadedFile, IDirectoryInfo modDir, IFileInfo incompleteDataFile, CancellationToken token)
     {
+        // TODO get rid of top-level directory if it's the only thing on top level, eg fast_vehicles.zip/fast_vehicles/*
         log.LogInformation("Extracting {id}: `{file}`", mod.Id, downloadedFile.FullName);
         // if everything was successfully extracted before, dont touch anything: this allows user to fiddle with files
         incompleteDataFile.Refresh();

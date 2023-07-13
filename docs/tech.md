@@ -8,11 +8,11 @@ All settings, cache, backups and downloads are stored inside `<game_dir>/.syncfa
 
 ## Project structure
 
-* `SyncFaction` - app with UI
-* `SyncFaction.Core` - main logic and features, separated from UI
-* `SyncFaction.Extras` - helpers for auto-generated build version
-* `SyncFaction.Extras.CodeGenerator` - helpers for auto-generated build version
-* `SyncFaction.ModManager` - modinfo.xml support, recursive merging algorithms for xml files
-* `SyncFaction.Packer` - VPP archive reader/writer, optimized for streaming
-* `SyncFaction.Toolbox` - CLI with tools useful for development, eg. selective archive extractor and metadata/checksum calculator
-* `tests/*` - tests for non-trivial code like vpp archiver and backup file management
+* `SyncFaction`: app with UI
+* `SyncFaction.Core`: main logic and features, separated from UI
+* `SyncFaction.Extras`: helpers for auto-generated build version
+* `SyncFaction.Extras.CodeGenerator`: helpers for auto-generated build version
+* `SyncFaction.ModManager`: modinfo.xml support, recursive merging algorithms for xml files
+* `SyncFaction.Packer`: VPP archive reader/writer, optimized for streaming
+* `SyncFaction.Toolbox`: CLI with tools useful for development, eg. selective archive extractor and metadata/checksum calculator
+* `tests/*`: tests for non-trivial code like vpp archiver and backup file management

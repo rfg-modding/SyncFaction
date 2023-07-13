@@ -138,6 +138,7 @@ public class ModInstaller : IModInstaller
             var disposables = new List<IDisposable>();
             try
             {
+                // TODO allow <Replace> to add files if they are not found in archive
                 var logicalFiles = archive.LogicalFiles.Select(x => xmlMagic.ApplyPatches(x, vppOperations, disposables, token));
                 await using (var dst = tmpFile.OpenWrite())
                 {
