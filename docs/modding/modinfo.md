@@ -112,7 +112,7 @@ Each `<Option>` can have arbitrary XML content and it will be substituted when i
 
 Here's how inputs look in SF:
 
-![inputs](/_assets/inputs.png)
+![inputs](../_assets/inputs.png)
 
 Note that there is an option to enter custom value (the last one). If you keep your Options simple enough, eg. `<Option Name="123">123</Option>` and use them accordingly in Changes, users can experiment and enter custom values. Of course they can do it even of Option is expected to have XML structure, but it's not very convenient.
 
