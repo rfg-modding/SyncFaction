@@ -26,6 +26,7 @@ Download [latest release](https://github.com/rfg-modding/SyncFaction/releases) a
   * `vanilla` if you want to roll back in time
 * Mods can be placed in app directory manually, old-school way
 * CDN for faster downloads and sharing dev builds
+* Savegame transfer between game versions
 
 ## Non-features
 

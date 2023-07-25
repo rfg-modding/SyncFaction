@@ -19,6 +19,13 @@ On first run, SF checks your game files. If you had mods before or tampered with
 
 SF will detect if your desktop is light or dark and use according theme automatically.
 
+If you have Steam version, SF will ask if you want to copy your savegame to location where GOG version expects it. This is done only once and is required because the game will be converted to GOG version when you update it. Savegames are always backed up in destination directory.
+
+Savegame files are:
+
+* Steam: `C:\Program Files (x86)\Steam\userdata\STEAMUSERID\667720\remote\autocloud\save\keen_savegame_0_0.sav`
+* GOG: `C:\Users\USER\AppData\Local\GOG.com\Galaxy\Applications\51153410217180642\Storage\Shared\Files\autocloud\save\keen_savegame_0_0.sav`
+
 ## Updates
 
 SF checks for updates of Terraform Patch and RSL and asks user to download and install them. They are absolutely required to play multiplayer and provide common ground for future mods. Normally you don't need to avoid or disable auto-update. If, for some reason, you want app to work entirely offline, want to play vanilla game or apply legacy mods that don't work on top of Terraform - read further.

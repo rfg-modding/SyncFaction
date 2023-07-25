@@ -35,6 +35,9 @@ Be careful, these options tamper with SF logic and will break your warranty beca
   * `<root>`: open game directory
   * `/data`: open game data directory
   * `/.syncfaction`: open app directory
+* Copy Save
+  * `to Steam`: copy savegame file from GOG directory to Steam directory
+  * `to GOG`: copy savegame file from Steam directory to GOG directory
 
 Things not intended for users:
 
