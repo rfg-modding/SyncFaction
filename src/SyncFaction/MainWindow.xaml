@@ -358,7 +358,7 @@
                         <Button x:Name="Init" Content="Repeat App Initialization" Command="{Binding InitCommand}" />
                         <Button x:Name="DarkMode" Content="Switch Theme (not really)" Command="{Binding SwitchDarkModeCommand}" />
                         <Button x:Name="GetLogs" Content="Get Logs and Clear Output" Command="{Binding GetLogsCommand}" />
-                        <Label HorizontalAlignment="Center">Open directories:</Label>
+                        <Label Height="40" VerticalContentAlignment="Center" HorizontalAlignment="Center">Open directories:</Label>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Button BorderThickness="1 1 0 1" Content="&lt;root&gt;" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Command="{Binding OpenDirCommand}" CommandParameter="" />
                             <Button BorderThickness="1 1 0 1" Content="/data" MinWidth="10" Margin="0,10,0,10" Padding="2,0,2,0" Command="{Binding OpenDirCommand}" CommandParameter="data" />
@@ -366,24 +366,29 @@
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Left">
-                        <CheckBox Margin="10" IsChecked="{Binding UpdateRequired}" Content="UI: Update required" />
-                        <CheckBox Margin="10" IsChecked="{Binding Interactive}" Content="UI: Interactive/Busy" />
-                        <CheckBox Margin="10" IsChecked="{Binding Model.StartupUpdates}" Content="Startup update check" />
-                        <CheckBox Margin="10" IsChecked="{Binding Model.DevHiddenMods}" Content="Dev and hidden mods" />
+                        <CheckBox Margin="10" Height="20" VerticalContentAlignment="Center" IsChecked="{Binding UpdateRequired}" Content="UI: Update required" />
+                        <CheckBox Margin="10" Height="20" VerticalContentAlignment="Center" IsChecked="{Binding Interactive}" Content="UI: Interactive/Busy" />
+                        <CheckBox Margin="10" Height="20" VerticalContentAlignment="Center" IsChecked="{Binding Model.StartupUpdates}" Content="Startup update check" />
+                        <CheckBox Margin="10" Height="20" VerticalContentAlignment="Center" IsChecked="{Binding Model.DevHiddenMods}" Content="Dev and hidden mods" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button Content="Steam◁" MinWidth="10" Margin="1,10,0,10" Padding="2,0,2,0" Command="{Binding CopySaveToSteamCommand}" CommandParameter="data/.syncfaction" />
+                            <Label Height="40" Padding="0" VerticalContentAlignment="Center" HorizontalAlignment="Center">Copy Save</Label>
+                            <Button Content="▷GOG" MinWidth="10" Margin="0,10,1,10" Padding="2,0,2,0" Command="{Binding CopySaveToGogCommand}" CommandParameter="" />
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
             </GroupBox>
             <GroupBox Grid.Column="1" HorizontalAlignment="Left" Margin="5" Header="Settings">
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
-                    <CheckBox Margin="10" IsChecked="{Binding Model.Multithreading}">
+                    <CheckBox Margin="10" Height="20" VerticalContentAlignment="Center" IsChecked="{Binding Model.Multithreading}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock>Multithreading (</TextBlock>
                             <TextBlock Text="{Binding Model.ThreadCount}" />
                             <TextBlock>)</TextBlock>
                         </StackPanel>
                     </CheckBox>
-                    <CheckBox Margin="10" IsChecked="{Binding Model.UseCdn}" Content="Use CDN: try if slow DL" />
+                    <CheckBox Margin="10" Height="20" VerticalContentAlignment="Center" IsChecked="{Binding Model.UseCdn}" Content="Use CDN: try if slow DL" />
                     <Button x:Name="RestoreMods" Content="Restore Last Mods" Command="{Binding RestoreModsCommand}" />
                     <Button x:Name="RestorePatch" Content="Restore to Patch" Command="{Binding RestorePatchCommand}" />
                     <Button x:Name="RestoreVanilla" Content="Restore to Vanilla" Command="{Binding RestoreVanillaCommand}" />

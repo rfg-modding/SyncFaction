@@ -36,8 +36,10 @@ public class UiCommands
     private readonly FileManager fileManager;
     private readonly ParallelHelper parallelHelper;
     private readonly FileChecker fileChecker;
+    private readonly SteamLocator steamLocator;
+    private readonly GogLocator gogLocator;
 
-    public UiCommands(IFileSystem fileSystem, ModLoader modLoader, IStateProvider stateProvider, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ParallelHelper parallelHelper, FileChecker fileChecker, ILogger<UiCommands> log)
+    public UiCommands(IFileSystem fileSystem, ModLoader modLoader, IStateProvider stateProvider, FfClient ffClient, AppInitializer appInitializer, FileManager fileManager, ParallelHelper parallelHelper, FileChecker fileChecker, SteamLocator steamLocator, GogLocator gogLocator, ILogger<UiCommands> log)
     {
         this.log = log;
         this.fileSystem = fileSystem;
@@ -48,6 +50,8 @@ public class UiCommands
         this.fileManager = fileManager;
         this.parallelHelper = parallelHelper;
         this.fileChecker = fileChecker;
+        this.steamLocator = steamLocator;
+        this.gogLocator = gogLocator;
     }
 
     internal async Task<bool> Download(ViewModel viewModel, CancellationToken token)
@@ -547,5 +551,62 @@ public class UiCommands
                 breaker.Cancel();
             }
         }
+    }
+
+    internal async Task<bool> CopySaveToGog(ViewModel viewModel, CancellationToken token) => await CopySave(true, token);
+
+    internal async Task<bool> CopySaveToSteam(ViewModel viewModel, CancellationToken token) => await CopySave(false, token);
+
+    private async Task<bool> CopySave(bool steamToGog, CancellationToken token)
+    {
+        var direction = steamToGog
+            ? "Steam to GOG"
+            : "GOG to Steam";
+        var srcName = steamToGog
+            ? "Steam"
+            : "GOG";
+        var dstName = steamToGog
+            ? "GOG"
+            : "Steam";
+        log.LogTrace("CopySave: {direction}", direction);
+
+        async Task<(IFileInfo? src, IFileInfo? dst)> GetPaths()
+        {
+            var steamPath = await steamLocator.DetectSteamSavegameFile(token);
+            var gogPath = gogLocator.DetectGogSavegameFile();
+            return steamToGog
+                ? (steamPath, gogPath)
+                : (gogPath, steamPath);
+        }
+
+        var (src, dst) = await GetPaths();
+        if (src?.Exists != true)
+        {
+            log.LogInformation("{srcName} savegame not found, nothing to copy", srcName);
+            return true; // this is fine
+        }
+
+        if (dst is null)
+        {
+            log.LogError("{dsnName} savegame location is unknown, can't copy to this destination", dstName);
+            return true; // this is fine
+        }
+
+        if (dst.Exists)
+        {
+            var bak = fileManager.GetUniqueBakFile(dst);
+            dst.CopyTo(bak.FullName);
+        }
+
+        var dir = dst.Directory!;
+        if (!dir.Exists)
+        {
+            dir.Create();
+            log.LogTrace("Created directory [{dir}]", dir.FullName);
+        }
+
+        src.CopyTo(dst.FullName, true);
+        log.LogTrace("CopySave {direction} success, [{src}] to [{dst}]", direction, src.FullName, dst.FullName);
+        return true;
     }
 }

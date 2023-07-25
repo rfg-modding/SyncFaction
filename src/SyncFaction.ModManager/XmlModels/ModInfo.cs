@@ -291,7 +291,7 @@ public class ModInfo
         }
 
         var dataVpp = fs.Path.Combine(data, vpp);
-        var archiveRelativePath = fs.Path.Combine(parts[2..]);
+        var archiveRelativePath = fs.Path.Join(parts[2..]);
 
         var result = new VppPath(dataVpp, archiveRelativePath);
         log.LogTrace("Parsed [{rawPath}] to [{vppPath}]", rawPath, result);

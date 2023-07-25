@@ -55,6 +55,8 @@ public partial class App
         services.AddSingleton<ModLoader>();
         services.AddSingleton<FileChecker>();
         services.AddSingleton<ParallelHelper>();
+        services.AddSingleton<SteamLocator>();
+        services.AddSingleton<GogLocator>();
         services.AddSingleton<IFileSystem, FileSystem>();
         services.AddSingleton<IVppArchiver, VppArchiver>();
         services.AddSingleton<IModInstaller, ModInstaller>();

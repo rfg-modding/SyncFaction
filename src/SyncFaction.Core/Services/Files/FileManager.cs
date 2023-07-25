@@ -282,4 +282,22 @@ public class FileManager
         storage.PatchBak.Delete(true);
         storage.PatchBak.Create();
     }
+
+    /// <summary>
+    /// Returns first nonexistent file with .bak extension and a number, eg: foo.bar.bak, foo.bar.bak.1, foo.bar.2, ...
+    /// </summary>
+    public IFileInfo GetUniqueBakFile(IFileInfo file)
+    {
+        var fs = file.FileSystem;
+        var i = 0;
+        var result = fs.FileInfo.New(file.FullName + ".bak");
+        while (result.Exists)
+        {
+            i++;
+            result = fs.FileInfo.New(result.FullName + $".{i}");
+        }
+
+        log.LogTrace("Unique bak file: [{result}]", result.FullName);
+        return result;
+    }
 }

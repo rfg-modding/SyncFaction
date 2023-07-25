@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
@@ -24,16 +25,18 @@ public class AppInitializer
     private readonly ILogger<AppInitializer> log;
     private readonly IFileSystem fileSystem;
     private readonly IStateProvider stateProvider;
-    private readonly FileManager fileManager;
     private readonly FileChecker fileChecker;
+    private readonly SteamLocator steamLocator;
+    private readonly GogLocator gogLocator;
 
-    public AppInitializer(IFileSystem fileSystem, IStateProvider stateProvider, FileManager fileManager, FileChecker fileChecker, ILogger<AppInitializer> log)
+    public AppInitializer(IFileSystem fileSystem, IStateProvider stateProvider, FileChecker fileChecker, SteamLocator steamLocator, GogLocator gogLocator, ILogger<AppInitializer> log)
     {
         this.log = log;
         this.fileSystem = fileSystem;
         this.stateProvider = stateProvider;
-        this.fileManager = fileManager;
         this.fileChecker = fileChecker;
+        this.steamLocator = steamLocator;
+        this.gogLocator = gogLocator;
     }
 
     internal async Task<bool> Init(ViewModel viewModel, CancellationToken token)
@@ -47,8 +50,8 @@ public class AppInitializer
         var stateFromFile = stateProvider.LoadStateFile(appStorage, log);
         viewModel.Model.FromState(stateFromFile);
         var firstLaunch = appStorage.Init();
-        OnFirstLaunch(firstLaunch);
         viewModel.Model.IsGog = await ValidateSteamOrGog(viewModel.Model.IsGog, appStorage, viewModel.Model.ThreadCount, token);
+        OnFirstLaunch(firstLaunch, viewModel.Model.IsGog.Value, viewModel);
         InitStateProvider(viewModel.Model);
         return true;
     }
@@ -122,13 +125,44 @@ public class AppInitializer
         throw new InvalidOperationException("Game version is not recognized as Steam or GOG");
     }
 
-    private void OnFirstLaunch(bool firstLaunch)
+    private void OnFirstLaunch(bool firstLaunch, bool isGog, ViewModel viewModel)
     {
-        if (firstLaunch)
+        if (!firstLaunch)
         {
-            log.LogTrace("This is first launch");
-            // TODO nothing special to do here for now?
+            return;
         }
+
+        log.LogTrace("This is first launch. isGog [{isGog}]", isGog);
+        if (!isGog)
+        {
+            OneTimeCopySteamSaves(viewModel);
+        }
+    }
+
+    private void OneTimeCopySteamSaves(ViewModel viewModel)
+    {
+        log.LogInformation(Md.B.Id(), "One-time prompt to copy saves from Steam version to GOG");
+        viewModel.ViewAccessor.WindowView.Dispatcher.Invoke(() =>
+        {
+            var message = @"Important question!
+
+This message will be displayed only once.
+
+Your Steam version of the game will be converted to GOG to simplify modding and community support.
+
+Do you want to transfer your savegames, progess, profile and settings to a directory where GOG version expects them? Simply put, keep all your in-game data.
+
+Typically [ Yes ] is a good choice. However, you may want to have both GOG and Steam game versions with separate settings and progress.
+";
+            var result = MessageBox.Show(message, "Savegame transfer", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            log.LogTrace("Messagebox result [{result}]", result);
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            viewModel.CopySaveToGogCommand.Execute(null);
+        });
     }
 
     [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "I know registry is windows-only")]
@@ -160,8 +194,8 @@ public class AppInitializer
             return currentDir.FullName;
         }
 
-        var gog = DetectGogLocation();
-        var steam = await DetectSteamLocation(token);
+        var gog = gogLocator.DetectGogLocation();
+        var steam = await steamLocator.DetectSteamGameLocation(token);
 
         return gog; // TODO remove me (debug)
         if (!string.IsNullOrEmpty(gog) && string.IsNullOrEmpty(steam))
@@ -184,71 +218,5 @@ public class AppInitializer
         return string.Empty;
     }
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "I dont care")]
-    private async Task<string> DetectSteamLocation(CancellationToken token)
-    {
-        try
-        {
-            log.LogTrace("Looking for Steam install path");
-            using var key = Registry.LocalMachine.OpenSubKey(@"Software\Wow6432Node\Valve\Steam", false);
-            var steamLocation = key?.GetValue(@"InstallPath") as string;
-            if (string.IsNullOrEmpty(steamLocation))
-            {
-                log.LogTrace("Steam location not found in registry");
-            }
-            else
-            {
-                var config = await fileSystem.File.ReadAllTextAsync($@"{steamLocation}\steamapps\libraryfolders.vdf", token);
-                var regex = new Regex(@"""path""\s+""(.+?)""");
-                var locations = regex.Matches(config).Select(static x => x.Groups).Select(static x => x[1].Value).Select(static x => x.Replace(@"\\", @"\").TrimEnd('\\'));
-                const string gamePath = @"steamapps\common\Red Faction Guerrilla Re-MARS-tered";
-                foreach (var location in locations)
-                {
-                    log.LogTrace("Trying steam library at [{location}]", location);
-                    var gameDir = fileSystem.Path.Combine(location, gamePath);
-                    if (fileSystem.Directory.Exists(gameDir))
-                    {
-                        log.LogTrace("Found Steam install path [{path}]", gameDir);
-                        {
-                            return gameDir;
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            log.LogTrace(ex, "Could not autodetect Steam location");
-        }
 
-        return string.Empty;
-    }
-
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "I dont care")]
-    private string DetectGogLocation()
-    {
-        try
-        {
-            log.LogTrace("Looking for GOG install path");
-            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games\2029222893", false);
-            var location = key?.GetValue(@"path") as string;
-            if (string.IsNullOrEmpty(location))
-            {
-                log.LogTrace("GOG location not found in registry");
-            }
-            else
-            {
-                log.LogTrace("Found GOG install path [{path}]", location);
-                {
-                    return location;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            log.LogTrace(ex, "Could not autodetect GOG location");
-        }
-
-        return string.Empty;
-    }
 }
