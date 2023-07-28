@@ -2,11 +2,10 @@ namespace SyncFaction.Core.Models.FactionFiles;
 
 public enum Category
 {
+    // TODO rename FF cats, rename enum
     None = 0,
     Artwork = 37,
     MapsStandalone = 44,
-    MapsPatches = 45,
-    MapPacks = 46,
     ModsClassic = 16,
     ModsRemaster = 30,
     ModsScriptLoader = 29,

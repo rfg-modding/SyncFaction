@@ -17,8 +17,6 @@ public class CategoryHumanReadableConverter : IValueConverter
         {
             Category.Artwork => "Artwork",
             Category.MapsStandalone => "Standalone Maps",
-            Category.MapsPatches => "Patched Maps",
-            Category.MapPacks => "Map Packs",
             Category.ModsClassic => "Mods for Classic Edition",
             Category.ModsRemaster => "Mods for Re-Mars-tered",
             Category.ModsScriptLoader => "ScriptLoader Mods",

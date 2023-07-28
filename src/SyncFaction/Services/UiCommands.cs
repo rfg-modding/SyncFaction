@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -353,9 +354,6 @@ public class UiCommands
         else
         {
             // add categories to query
-            categories.Add(Category.MapPacks);
-            categories.Add(Category.MapsStandalone);
-            categories.Add(Category.MapsPatches);
             categories.Add(Category.ModsRemaster);
 
             // upd text
@@ -405,7 +403,24 @@ public class UiCommands
     internal async Task<bool> Update(ViewModel viewModel, CancellationToken token)
     {
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
-        var mods = (await modLoader.GetMods(Category.ModsStandalone, gameStorage, token)).ToList();
+        var mods = new ConcurrentBag<IMod>();
+        // find Terraform in mods or standalone, RSL2 in tools. TODO remove standalone after moving FF cats
+        var cats = new List<Category>
+        {
+            Category.ModsStandalone,
+            Category.Tools,
+            Category.ModsRemaster
+        };
+        await Task.WhenAll(cats.Select(async c =>
+            {
+                var result = await modLoader.GetMods(c, gameStorage, token);
+                foreach (var mod in result)
+                {
+                    mods.Add(mod);
+                }
+            })
+            .ToArray());
+
         var updates = viewModel.LockCollections(() => viewModel.Model.RemoteTerraformUpdates.Concat(viewModel.Model.RemoteRslUpdates).Select(x => mods.Single(y => y.Id == x)).ToList());
 
         var installed = viewModel.LockCollections(() => viewModel.Model.TerraformUpdates.Concat(viewModel.Model.RslUpdates).ToList());

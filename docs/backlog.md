@@ -5,6 +5,8 @@ Ideas, notes about features, testing, release process, etc
 ## Release
 
 * ~~implement transfer savegames/settings/profile steam to gog~~
+* mention local folders as installable mods in docs
+* add WC to glossary
 * fix TODOs left from debugging
 * rename FF categories as MM/legacy/something, add new for SF mods
 * remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
