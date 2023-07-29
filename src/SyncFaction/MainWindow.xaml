@@ -320,11 +320,11 @@
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="2">
             <TextBlock Margin="10,10,10,10">
                 ▷&#160;Join&#160;
-                <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://discord.gg/factionfiles">FactionFiles Discord</Hyperlink>
+                <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://discord.gg/factionfiles" ToolTip="https://discord.gg/factionfiles">FactionFiles Discord</Hyperlink>
             </TextBlock>
             <TextBlock Margin="10,10,10,10">
                 ▷&#160;
-                <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://github.com/rfg-modding/SyncFaction">GitHub page</Hyperlink>
+                <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="https://github.com/rfg-modding/SyncFaction" ToolTip="https://github.com/rfg-modding/SyncFaction">GitHub page</Hyperlink>
                 &#160;for feedback
             </TextBlock>
             <WrapPanel Margin="10,10,10,10">
