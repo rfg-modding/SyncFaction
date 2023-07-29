@@ -131,6 +131,12 @@ public class XmlHelper
             }
         }
 
+        if (node.LocalName.Equals(XmlModels.Extensions.HolderName, StringComparison.OrdinalIgnoreCase))
+        {
+            // top-level <edit> without list_action means "add"
+            return "add";
+        }
+
         return null;
     }
 

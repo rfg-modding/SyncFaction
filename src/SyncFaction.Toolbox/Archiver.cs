@@ -163,7 +163,7 @@ public class Archiver
             using var reader = new StreamReader(logicalFile.Content);
             xml.Load(reader);
             using var ms = new MemoryStream();
-            xml.SerializeToMemoryStream(ms);
+            xml.SerializeToMemoryStream(ms, true);
             await ms.CopyToAsync(fileStream, token);
         }
         else
