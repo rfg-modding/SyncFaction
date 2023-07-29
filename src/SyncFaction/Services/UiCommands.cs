@@ -303,7 +303,8 @@ public class UiCommands
             Process.Start(new ProcessStartInfo
             {
                 UseShellExecute = true,
-                FileName = launcher.FullName
+                FileName = launcher.FullName,
+                WorkingDirectory = launcher.Directory.FullName
             });
             return true;
         }
