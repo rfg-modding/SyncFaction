@@ -39,7 +39,7 @@
                                     <TextBlock Text="link: " />
                                     <TextBlock TextWrapping="Wrap">
                                         <Hyperlink Command="NavigationCommands.GoToPage" CommandParameter="{Binding WebLink.XmlText}">
-                                            <TextBlock Text="{Binding WebLink.Name}" />
+                                            <TextBlock ToolTip="{Binding WebLink.XmlText}" Text="{Binding WebLink.Name}" />
                                         </Hyperlink>
                                     </TextBlock>
                                 </StackPanel>
