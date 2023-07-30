@@ -1,6 +1,6 @@
 # SyncFaction
 
-[![](https://img.shields.io/badge/How_to-Use-blue?labelColor=f59408&color=444&logo=readthedocs&logoColor=444)](https://rfg-modding.github.io/SyncFaction/)
+[![](https://img.shields.io/badge/How_to-Use-blue?labelColor=f59408&color=444&logo=libreoffice&logoColor=444)](https://rfg-modding.github.io/SyncFaction/)
 [![](https://img.shields.io/badge/How_to-Make_Mods-blue?labelColor=f59408&color=444&logo=awesomelists&logoColor=444)](https://rfg-modding.github.io/SyncFaction/#/modding/intro)
 [![](https://img.shields.io/badge/Support-FactionFiles_Discord-blue?labelColor=f59408&color=444&logo=discord&logoColor=444)](https://discord.gg/factionfiles)
 
