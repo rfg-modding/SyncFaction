@@ -41,7 +41,7 @@ Now let's see how you can share modded files.
 
 > Not recommended!
 
-Let's say you changed something in game files: patched `.exe`, or modified something inside `.vpp_pc` archives. You can share it all right away. Directory structure in your mod must be the same as in game. Example:
+Let's say you changed something in game files: patched `.exe`, or modified something inside `.vpp_pc` archives. You can share it all right away. Directory structure in your mod must be the same as in the game. Example:
 
 ```
 📦 powerful_turrets.zip
@@ -57,7 +57,6 @@ Let's say you changed something in game files: patched `.exe`, or modified somet
 Pros:
 
 * The most simple way to share your work
-* It's ok to add new files though
 
 Cons:
 
@@ -65,7 +64,7 @@ Cons:
 
 ## Loose archives
 
-Works for distributing modified contents of a `.vpp_pc` archive. Create a folder named as the archive you want to patch and place files there. Existing archive entries will be replaced, new ones will be added to the end.
+Useful for distributing modified contents of a `.vpp_pc` archive. Create a folder named as the archive you want to patch and place files there. Existing archive entries will be replaced. New ones will be added after existing entries inside the archive.
 
 ```
 📦 weak_turrets.zip

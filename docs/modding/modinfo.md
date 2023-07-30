@@ -25,7 +25,7 @@ ModInfo consists of following nodes:
 
 There are 2 types of `Changes`: `<Edit>` and `<Replace>`.
 
-There is 1 of `UserInput`: `ListBox`.
+There is 1 type of `UserInput`: `ListBox`.
 
 ### Replace
 
@@ -55,11 +55,13 @@ This type of change works with XML contents of `.xtbl .dtdox .gtodx` files. `Fil
 
 ### LIST_ACTION ADD
 
+This is default `LIST_ACTION` value when nothing is specified on `<Edit>` node.
+
 When specified on a node in `modinfo.xml`, takes all child nodes and appends them to the same parent in game file
 
 ### LIST_ACTION ADD_NEW
 
-This is also default `LIST_ACTION` value when it is not specified on `<Edit>` or on any other node inside it.
+This is default `LIST_ACTION` value when nothing is specified on any node inside `<Edit>`.
 
 When specified on a node in `modinfo.xml`, takes all child nodes and appends **only new ones** to the same parent in game file. Child nodes that already exist are merged normally.
 
