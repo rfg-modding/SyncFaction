@@ -105,6 +105,10 @@ Cons:
 
 Nothing stops you from building a mod where all of these approaches are used together. However, be careful because SF is not tested on all possible combinations, especially when you have `modinfo.xml`. Please test how your mod installs. If you see inconsistent or weird behavior, report a bug.
 
+## Testing
+
+Mods from FF are downoladed to `<game_root>/data/.syncfaction/Mod_id` folders. Similarly, you can test how your mod works by placing all the files in `<game_root>/data/.syncfaction/Your_mod_name`. It will be shown in local mod list in SF and you can try to apply it. Also you are free to edit any files in downloaded mods and see how they affect your game. Just remember to apply mods every time you make changes.
+
 ## Compatibility
 
 SF is designed to be compatible with as many existing mods as possible. It has logic to guess file locations but **please don't rely on it**. Examples:

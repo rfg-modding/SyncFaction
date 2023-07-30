@@ -6,6 +6,7 @@ First, some abbreviations:
 * FF = [FactionFiles](https://factionfiles.com), community site for all content related to RedFaction series
 * MP = multiplayer mode
 * SP = singleplayer campaign
+* WC = wrecking crew singleplayer mode
 * RFG = the game, 2018 remastered version
 * Terraform aka Community patch = [project by Camo](https://github.com/CamoRF/Red-Faction-Guerrilla-Terraform-Patch) fixing game bugs, rebalaning MP, ...
 * RSL/RSL2, Script Loader = [extension by moneyl](https://github.com/rfg-modding/RSL2) to provide extra moddability
@@ -50,6 +51,6 @@ When you select a mod, you'll see its description and probably some warnings reg
 
 Some mods have settings. A panel will appear in the middle to let you select values provided my mod author.
 
-When you are ready, press `Apply` and wait. **In case of errors, game state is not automatically cleaned up**, so you will need to undo some mods and try to `Apply` again. Of you hit `Apply` with 0 mods, game is effectively cleaned up to latest patched state.
+When you are ready, press `Apply` and wait. **In case of errors, game state is not automatically cleaned up**, so you will need to undo some mods and try to `Apply` again. If you hit `Apply` with 0 mods, game is effectively cleaned up to latest patched state.
 
 `Refresh` button updates local mod list if you moved some folders.

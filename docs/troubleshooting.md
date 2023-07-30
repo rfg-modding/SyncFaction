@@ -16,4 +16,4 @@ That page can be confusing, see the screenshot:
 * Check if game location is valid
 * See if new versions of SyncFaction are available on Github
 * Please report errors here in [issues](https://github.com/rfg-modding/SyncFaction/issues). **Create and copy diagnostics report** to help fixing it! Also describe what you were trying to do.
-* Probably ping **rast1234** on FactionFiles Discord (link below)
+* Probably ping **@rast1234** on [FactionFiles Discord](https://discord.gg/factionfiles)
