@@ -197,7 +197,6 @@ Typically [ Yes ] is a good choice. However, you may want to have both GOG and S
         var gog = gogLocator.DetectGogLocation();
         var steam = await steamLocator.DetectSteamGameLocation(token);
 
-        return gog; // TODO remove me (debug)
         if (!string.IsNullOrEmpty(gog) && string.IsNullOrEmpty(steam))
         {
             return gog;

@@ -4,15 +4,14 @@ Ideas, notes about features, testing, release process, etc
 
 ## Release
 
-* remove hack for old update IDs (rfgcommunityupdate)
-* see how many space is needed for backups, edit TODOs in docs mentioning that
-* fix TODOs left from debugging
 * FF: coordinate with Goober
   * upload terraform rebuild
   * test with new update id
   * rename FF categories
   * remove old updates from search
   * delist old patches in FF?
+* remove hack for old update IDs (rfgcommunityupdate)
+* see how many space is needed for backups, edit TODOs in docs mentioning that (only accurate after FF upload)
 * remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
 * test on both steam and gog versions
 

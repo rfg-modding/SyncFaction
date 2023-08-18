@@ -355,7 +355,8 @@ public class UiCommands
         else
         {
             // add categories to query
-            categories.Add(Category.ModsRemaster);
+            categories.Add(Category.ModsGeneral);
+            categories.Add(Category.ModsScriptLoader);
 
             // upd text
             var document = await ffClient.GetNewsWiki(token);
@@ -405,12 +406,10 @@ public class UiCommands
     {
         var gameStorage = viewModel.Model.GetGameStorage(fileSystem, log);
         var mods = new ConcurrentBag<IMod>();
-        // find Terraform in mods or standalone, RSL2 in tools. TODO remove standalone after moving FF cats
         var cats = new List<Category>
         {
-            Category.ModsStandalone,
             Category.Tools,
-            Category.ModsRemaster
+            Category.ModsGeneral
         };
         await Task.WhenAll(cats.Select(async c =>
             {

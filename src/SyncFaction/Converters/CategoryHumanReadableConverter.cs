@@ -15,14 +15,15 @@ public class CategoryHumanReadableConverter : IValueConverter
         var category = value as Category?;
         return category switch
         {
+            // TODO rename cats
             Category.Artwork => "Artwork",
-            Category.MapsStandalone => "Standalone Maps",
-            Category.ModsClassic => "Mods for Classic Edition",
-            Category.ModsRemaster => "Mods for Re-Mars-tered",
-            Category.ModsScriptLoader => "ScriptLoader Mods",
-            Category.ModsStandalone => "Standalone Mods",
-            Category.Patches => "Patches",
-            Category.Tools => "Tools",
+            Category.ModsExperimentalMaps => "Mods - Experimental Map Edits",
+            Category.ModsClassic => "Mods - ModManager (Classic)",
+            Category.ModsGeneral => "Mods - General (Re-Mars-tered)",
+            Category.ModsScriptLoader => "Mods - Script Loader (Re-Mars-tered)",
+            Category.ModsClassicStandalone => "Mods - Standalone (Classic)",
+            Category.PatchesClassic => "Software - Patches (Classic)",
+            Category.Tools => "Software - Tools",
             Category.Local => "Local Folders",
             Category.Dev => "Development (CDN only)",
             _ => throw new ArgumentOutOfRangeException()

@@ -214,7 +214,7 @@ public class FfClient
                     }
 
                     lastReported = current;
-                    log.LogInformation(Md.Bullet.Id(), "Downloading {id}: {read:F0} / {total:F0} MiB", mod.Id, readMiB, totalMiB);
+                    log.LogInformation(Md.Bullet.Id(), "Downloading [{name}]: {read:F0} / {total:F0} MiB", mod.Name, readMiB, totalMiB);
                 }
             }
         }
@@ -456,20 +456,6 @@ public class FfClient
 
     private async Task<long?> GetIdBySearchString(string searchString, CancellationToken token)
     {
-        // TODO remove this block. left for debugging with old patch/update naming scheme
-        {
-            if (searchString == "rfgterraform1")
-            {
-                searchString = "rfgcommunitypatch";
-            }
-
-            if (searchString.StartsWith("rfgterraform", StringComparison.Ordinal))
-            {
-                var number = int.Parse(searchString["rfgterraform".Length..], CultureInfo.InvariantCulture) - 1;
-                searchString = $"rfgcommunityupdate{number}";
-            }
-        }
-
         var builder = new UriBuilder(Constants.FindMapUrl) { Query = $"rflName={searchString}" };
         var url = builder.Uri;
         log.LogTrace("Request: GET {url}", url);
