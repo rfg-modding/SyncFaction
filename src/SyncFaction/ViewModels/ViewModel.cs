@@ -144,7 +144,8 @@ public partial class ViewModel
             RestoreModsCancelCommand,
             RestorePatchCancelCommand,
             RestoreVanillaCancelCommand,
-            GenerateReportCancelCommand
+            GenerateReportCancelCommand,
+            UpdateCancelCommand
         };
 
         PropertyChanged += NotifyInteractiveCommands;

@@ -168,7 +168,7 @@ public class FileManager
             }
 
             var hash = await fileChecker.ComputeHash(file, token);
-            if (hash != expectedHash)
+            if (!hash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
             {
                 log.LogError("File [{}] SHA256=[{}], expected=[{}]", file.FullName, hash, expectedHash);
                 breaker.Cancel();

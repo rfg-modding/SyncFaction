@@ -16,6 +16,7 @@ Ideas, notes about features, testing, release process, etc
 * ask Goober to rename FF categories as MM/legacy/something
 * remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
 * test on both steam and gog versions
+* document `.delete.json` for loose archives
 
 ## Backlog
 

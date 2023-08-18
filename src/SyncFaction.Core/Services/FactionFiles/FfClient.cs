@@ -200,7 +200,7 @@ public class FfClient
             int bytesRead;
             var totalMiB = (double) expectedSize / 1024 / 1024;
             long lastReported = 0;
-            while ((bytesRead = await source.ReadAsync(buffer, cancellationToken)) != 0)
+            while ((bytesRead = await ReadWithTimeout(source, buffer, cancellationToken)) != 0)
             {
                 await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                 totalBytesRead += bytesRead;
@@ -221,6 +221,23 @@ public class FfClient
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Each individual stream read from HttpClient Response may hang infinitely on network loss. We have to time-limit every read
+    /// </summary>
+    private static async ValueTask<int> ReadWithTimeout(Stream stream, Memory<byte> buffer, CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        try
+        {
+            cts.CancelAfter(TimeSpan.FromMinutes(5));
+            return await stream.ReadAsync(buffer, cts.Token);
+        }
+        catch (Exception e) when (cts.IsCancellationRequested)
+        {
+            throw new IOException("Timed out while reading from network", e);
         }
     }
 

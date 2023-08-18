@@ -57,7 +57,7 @@ public partial class ViewModel
     [RelayCommand(CanExecute = nameof(Interactive))]
     private async Task Run(object x, CancellationToken token) => await ExecuteSafe(this, "Launching game", uiCommands.Run, token, silent: true);
 
-    [RelayCommand(CanExecute = nameof(Interactive))]
+    [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task Update(object x, CancellationToken token) => await ExecuteSafe(this, "Updating", uiCommands.Update, token);
 
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]

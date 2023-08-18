@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.IO.Abstractions;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.Files;
@@ -68,7 +70,11 @@ public class ModInstaller : IModInstaller
 
     private async Task ApplyVppDirectoryModInternal(GameFile gameFile, IDirectoryInfo vppDir, IFileInfo tmpFile, CancellationToken token)
     {
-        var modFiles = vppDir.EnumerateFiles("*", SearchOption.AllDirectories).ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
+        var modFiles = vppDir
+            .EnumerateFiles("*", SearchOption.AllDirectories)
+            .Where(static x => !x.Name.Equals(Constants.DeleteFile, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
+        var deleteList = await ReadDeleteList(vppDir);
         await using var src = gameFile.FileInfo.OpenRead();
         var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
         var disposables = new List<IDisposable>();
@@ -83,11 +89,11 @@ public class ModInstaller : IModInstaller
             foreach (var key in newFileKeys)
             {
                 log.LogInformation(Md.Bullet.Id(), "Added `{file}` to `{vpp}`", key, archive.Name);
-                order++;
                 var modFile = modFiles[key];
                 var modSrc = modFile.OpenRead();
                 disposables.Add(modSrc);
-                logicalFiles.Add(new LogicalFile(modSrc, key, order, null, null));
+                var originalName = modFile.FileSystem.Path.GetRelativePath(vppDir.FullName, modFile.FullName);
+                logicalFiles.Add(new LogicalFile(modSrc, originalName, order++, null, null));
             }
 
             await using var dst = tmpFile.OpenWrite();
@@ -99,8 +105,8 @@ public class ModInstaller : IModInstaller
                 foreach (var logicalFile in archive.LogicalFiles)
                 {
                     token.ThrowIfCancellationRequested();
-                    var key = logicalFile.Name;
-                    order = logicalFile.Order;
+                    var key = logicalFile.Name.ToLowerInvariant();
+                    //order = logicalFile.Order;
                     if (modFiles.TryGetValue(key, out var modFile))
                     {
                         log.LogInformation(Md.Bullet.Id(), "Replaced `{file}` in `{vpp}`", key, archive.Name);
@@ -110,12 +116,20 @@ public class ModInstaller : IModInstaller
                         yield return logicalFile with
                         {
                             Content = modSrc,
-                            CompressedContent = null
+                            CompressedContent = null,
+                            Order = order++
                         };
+                    }
+                    else if (deleteList.Contains(logicalFile.Name.ToLowerInvariant()))
+                    {
+                        log.LogInformation(Md.Bullet.Id(), "Deleted `{file}` in `{vpp}`", key, archive.Name);
                     }
                     else
                     {
-                        yield return logicalFile;
+                        yield return logicalFile with
+                        {
+                            Order = order++
+                        };
                     }
                 }
             }
@@ -127,6 +141,23 @@ public class ModInstaller : IModInstaller
                 disposable.Dispose();
             }
         }
+    }
+
+    private async Task<ImmutableHashSet<string>> ReadDeleteList(IDirectoryInfo vppDir)
+    {
+        var deleteFile = vppDir.EnumerateFiles("*").FirstOrDefault(static x => x.Name.Equals(Constants.DeleteFile, StringComparison.OrdinalIgnoreCase));
+        if (deleteFile == null)
+        {
+            return ImmutableHashSet<string>.Empty;
+        }
+
+        log.LogTrace("Loose vpp directory has delete list [{file}]", deleteFile.FullName);
+        await using var stream = deleteFile.OpenRead();
+        var deleteList = JsonSerializer.Deserialize<List<string>>(stream)!;
+        log.LogTrace("Delete list has [{count}] entries", deleteList.Count);
+        return deleteList
+            .Select(static x => x.ToLowerInvariant())
+            .ToImmutableHashSet();
     }
 
     public async Task<bool> ApplyModInfo(GameFile gameFile, VppOperations vppOperations, CancellationToken token)
