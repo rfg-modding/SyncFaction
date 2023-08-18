@@ -4,19 +4,17 @@ Ideas, notes about features, testing, release process, etc
 
 ## Release
 
-* coordinate with Camo on terraform rebuild
-  * include unification patch, currently hosted on dev CDN
+* remove hack for old update IDs (rfgcommunityupdate)
+* see how many space is needed for backups, edit TODOs in docs mentioning that
+* fix TODOs left from debugging
+* FF: coordinate with Goober
+  * upload terraform rebuild
+  * test with new update id
+  * rename FF categories
   * remove old updates from search
   * delist old patches in FF?
-  * remove hack for old update IDs (rfgcommunityupdate)
-  * test with new update id
-  * test SF with terraform rebuild
-  * see how many space is needed for backups, edit TODOs in docs mentioning that
-* fix TODOs left from debugging
-* ask Goober to rename FF categories as MM/legacy/something
 * remove stuff from news page: links dont work, formatting is bad, a lot of content is bad
 * test on both steam and gog versions
-* document `.delete.json` for loose archives
 
 ## Backlog
 

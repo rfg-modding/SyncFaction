@@ -77,6 +77,17 @@ Useful for distributing modified contents of a `.vpp_pc` archive. Create a folde
     |-📄 tweak_table.xtbl  // please don't do this for XTBLs!
 ```
 
+To delete archive entries, create a file `.delete.json` with an array of names. Example:
+
+> `mod_root/data/misc.vpp_pc/.delete.json`
+
+```json
+[
+    "dlc_marauder_charge.rig_pc",
+    "hess_helmet.rig_pc"
+]
+```
+
 Pros:
 
 * Mods made this way will be more compatible with each other (as long as they affect different files)
