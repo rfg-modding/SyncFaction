@@ -133,16 +133,12 @@
                         <PropertyGroupDescription.GroupNames>
                             <!-- manually controlled categories, displayed even when empty, and in given order. have to be strings because of converter -->
                             <!--
-                        <factionFiles:Category>MapPacks</factionFiles:Category>
-                        <factionFiles:Category>MapsStandalone</factionFiles:Category>
-                        <factionFiles:Category>MapsPatches</factionFiles:Category>
-                        <factionFiles:Category>ModsRemaster</factionFiles:Category>
+                        <factionFiles:Category>ModsGeneral</factionFiles:Category>
+                        <factionFiles:Category>ModsScriptLoader</factionFiles:Category>
                         <factionFiles:Category>Local</factionFiles:Category>
                         -->
-                            <system:String>Map Packs</system:String>
-                            <system:String>Standalone Maps</system:String>
-                            <system:String>Patched Maps</system:String>
-                            <system:String>Mods for Re-Mars-tered</system:String>
+                            <system:String>Mods - General</system:String>
+                            <system:String>Mods - Script Loader</system:String>
                             <system:String>Local Folders</system:String>
 
 
