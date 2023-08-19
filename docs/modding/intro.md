@@ -4,6 +4,8 @@ Welcome to documentation for modders! These pages will guide you through mod dev
 
 There are several ways to make a mod. Here's quick overview. Even more details can be found on separate pages, see navigation on the left.
 
+When you are done, upload your mod to FactionFiles in RFG general mods category, ask on Discord to approve it, and it will be downloadable right from SyncFaction!
+
 ## Mod structure
 
 SF expects a mod to be a directory with files in `<game_root>/data/.syncfaction` or, when downloading from FF, an archive without intermediate directory inside. Here's an example:
