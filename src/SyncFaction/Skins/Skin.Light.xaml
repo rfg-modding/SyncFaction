@@ -8,4 +8,5 @@
         <Setter Property="Background" Value="LightGray" />
     </Style>
     <SolidColorBrush x:Key="SF.DisabledText" Color="#838383" />
+    <SolidColorBrush x:Key="SF.Foreground" Color="Black" />
 </ResourceDictionary>

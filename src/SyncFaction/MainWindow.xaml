@@ -218,7 +218,7 @@
         <Button Grid.Column="3" Grid.Row="3" x:Name="Cancel" Content="Cancel" MinWidth="100" Width="100" Command="{Binding CancelCommand}" />
         <Label Grid.Column="3" Grid.Row="2" Name="CurrentOperation" Content="{Binding CurrentOperation}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0" Foreground="DarkGray" />
         <TabControl Grid.Row="0" Grid.Column="3" Grid.RowSpan="2" SelectedIndex="{Binding SelectedTab}" Name="Tabs" Template="{StaticResource TabControlTemplate}" IsEnabled="{Binding Interactive}">
-            <TabItem Header="Browse Online" Name="DownloadItem" IsSelected="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeConverter}}">
+            <TabItem Header="Browse Online" Name="DownloadItem" Foreground="{DynamicResource SF.Foreground}" IsSelected="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeConverter}}">
                 <ListView Name="OnlineModList" BorderThickness="0" ItemsSource="{Binding Source={StaticResource OnlineModViewSource}, Mode=OneWay}" SelectionMode="Multiple">
                     <ListView.GroupStyle>
                         <GroupStyle ContainerStyle="{StaticResource ModListGroupCollapsibleHeader}" />
@@ -245,7 +245,7 @@
                     </ListView.View>
                 </ListView>
             </TabItem>
-            <TabItem Header="Install" Name="ApplyItem" IsSelected="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeConverter}, ConverterParameter=Apply}">
+            <TabItem Header="Install" Name="ApplyItem" Foreground="{DynamicResource SF.Foreground}" IsSelected="{Binding SelectedTab, Converter={StaticResource TabSelectedByTypeConverter}, ConverterParameter=Apply}">
                 <Grid>
                     <ListView Name="LocalModList" BorderThickness="0" ItemsSource="{Binding Source={StaticResource LocalModViewSource}, Mode=OneWay}" SelectionMode="Multiple" dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding DropHandler}" dd:DragDrop.SelectDroppedItems="False" dd:DragDrop.UseDefaultEffectDataTemplate="True">
                         <ListView.GroupStyle>
