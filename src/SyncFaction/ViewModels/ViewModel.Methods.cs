@@ -133,7 +133,7 @@ public partial class ViewModel
                 log.LogInformation(Md.H1.Id(), "What is this?");
                 log.LogInformation(@"Multiplayer mods depend on Terraform Patch and Script Loader. Even some singleplayer mods too! **It is highly recommended to have latest versions installed.**
 This app is designed to keep players updated to avoid issues in multiplayer.
-If you don't need this: install mods manually, suggest an improvement on Github or FF Discord, or enable DevMode and restart app.");
+If you don't need this: install mods manually, suggest an improvement on Github or FF Discord, or fiddle with settings in DevMode and restart app.");
                 log.LogError(Md.H1.Id(), "Press button below to update your game");
                 log.LogInformation("Mod management will be available after updating.");
 
