@@ -21,7 +21,7 @@ Red Faction Guerrilla Re-MARS-tered mod manager with focus on user experience
 
 Download [latest release](https://github.com/rfg-modding/SyncFaction/releases) and place .exe in game folder. That's it!
 
-> You will need at least **20GiB** (TODO measure with terraform rebuild) of free storage space
+> You will need at least **40GiB** of free storage space
 
 ## Docs
 
