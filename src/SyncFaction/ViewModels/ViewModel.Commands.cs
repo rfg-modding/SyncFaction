@@ -120,8 +120,7 @@ public partial class ViewModel
     [RelayCommand]
     private async Task OpenAppdataDir(object x, CancellationToken token)
     {
-        var appData = Environment.GetEnvironmentVariable("appdata");
-        var path = fileSystem.DirectoryInfo.New(fileSystem.Path.Join(appData, @"kaiko\rfg")).FullName;
+        var path = gogLocator.GetAppdataDir().FullName;
         log.LogTrace("OpenDir [{dir}]", path);
         Process.Start(new ProcessStartInfo
         {

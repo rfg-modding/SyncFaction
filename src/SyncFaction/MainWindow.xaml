@@ -296,23 +296,43 @@
             </StackPanel>
             <Button x:Name="Refresh" Content="Refresh" Visibility="{Binding UpdateNotRequired,Converter={StaticResource BoolToVis}}" Command="{Binding RefreshCommand}" />
         </StackPanel>
-        <Label VerticalAlignment="Stretch" Content="Game directory" Grid.Row="2" Grid.Column="1" />
-        <Grid VerticalAlignment="Stretch" Grid.Row="2" Grid.Column="2">
-            <TextBox BorderThickness="1 1 0 1" x:Name="Directory" TextWrapping="NoWrap" Text="{Binding Model.GameDirectory, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" IsReadOnly="True" />
-            <TextBlock IsHitTestVisible="False" Text="" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
-                To avoid manually locating game every time, put app .exe inside game dir
-                <TextBlock.Style>
-                    <Style TargetType="{x:Type TextBlock}">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Text, ElementName=Directory}" Value="">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-        </Grid>
+        <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2">
+            <Label VerticalAlignment="Stretch" Content="Player name" />
+            <Grid VerticalAlignment="Stretch" MinWidth="80">
+                <TextBox x:Name="PlayerName" TextWrapping="NoWrap" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" IsReadOnly="False" Text="{Binding Model.PlayerName, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <TextBlock IsHitTestVisible="False" Text="" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                    unchanged
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=PlayerName}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+            <Label VerticalAlignment="Stretch" Content="Game directory" Margin="10 0 0 0" />
+            <Grid VerticalAlignment="Stretch" MaxWidth="370">
+                <TextBox BorderThickness="1 1 0 1" x:Name="Directory" TextWrapping="NoWrap" Text="{Binding Model.GameDirectory, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" HorizontalScrollBarVisibility="Hidden" IsEnabled="True" IsReadOnly="True" />
+                <TextBlock IsHitTestVisible="False" Text="" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                    To avoid manually locating every time, put app .exe inside game dir
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=Directory}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </StackPanel>
+
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="2">
             <TextBlock Margin="10,10,10,10" VerticalAlignment="Center">
                 ▷&#160;Join&#160;
@@ -405,7 +425,7 @@
                     <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left">
                         <Button x:Name="GenerateReport" Content="Generate Report" Command="{Binding GenerateReportCommand}" />
                         <Button x:Name="CopyReport" IsEnabled="{Binding DiagView, Converter={StaticResource EmptyStringDisabledConverter}}" Content="Copy to Clipboard" Click="CopyReport_Click" />
-                        <Button x:Name="RestoreMods" Content="Restore Last Mods" Command="{Binding RestoreModsCommand}" />
+                        <Button x:Name="RestoreMods" Content="Restore to Last Mods" Command="{Binding RestoreModsCommand}" />
                         <Button x:Name="RestorePatch" Content="Restore to Patch" Command="{Binding RestorePatchCommand}" />
                         <Button x:Name="RestoreVanilla" Content="Restore to Vanilla" Command="{Binding RestoreVanillaCommand}" />
                     </StackPanel>

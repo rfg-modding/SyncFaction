@@ -52,6 +52,7 @@ public partial class ViewModel
 
     private readonly UiCommands uiCommands = null!;
     private readonly IFileSystem fileSystem;
+    private readonly GogLocator gogLocator;
 
     private readonly ILogger<ViewModel> log = null!;
 
@@ -108,11 +109,12 @@ public partial class ViewModel
     [ObservableProperty]
     private string? diagView;
 
-    public ViewModel(UiCommands uiCommands, IFileSystem fileSystem, ILogger<ViewModel> log) : this()
+    public ViewModel(UiCommands uiCommands, IFileSystem fileSystem, GogLocator gogLocator, ILogger<ViewModel> log) : this()
     {
         this.log = log;
         this.uiCommands = uiCommands;
         this.fileSystem = fileSystem;
+        this.gogLocator = gogLocator;
 
         SetDesignTimeDefaults(false);
     }

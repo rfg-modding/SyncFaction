@@ -55,4 +55,16 @@ public class GogLocator
         var file = fileSystem.FileInfo.New(fileSystem.Path.Join(appDataLocal, @"GOG.com\Galaxy\Applications\51153410217180642\Storage\Shared\Files\autocloud\save\keen_savegame_0_0.sav"));
         return file;
     }
+
+    public IDirectoryInfo GetAppdataDir()
+    {
+        var appData = Environment.GetEnvironmentVariable("appdata");
+        return fileSystem.DirectoryInfo.New(fileSystem.Path.Join(appData, @"kaiko\rfg"));
+    }
+
+    public IFileInfo GetConfigFile()
+    {
+        var appData = GetAppdataDir().FullName;
+        return fileSystem.FileInfo.New(fileSystem.Path.Join(appData, @"config.ini"));
+    }
 }

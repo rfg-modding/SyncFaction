@@ -42,6 +42,9 @@ public partial class Model
     private string gameDirectory = string.Empty;
 
     [ObservableProperty]
+    private string playerName = string.Empty;
+
+    [ObservableProperty]
     private bool devMode;
 
     [ObservableProperty]

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using HTMLConverter;
@@ -87,6 +88,7 @@ public class UiCommands
 
     internal async Task<bool> Apply(ViewModel viewModel, CancellationToken token)
     {
+        await ChangePlayerName(viewModel, token);
         var modsToApply = viewModel.LockCollections(() => viewModel.LocalMods.Where(static x => x.Status == LocalModStatus.Enabled).ToList());
         await RestoreInternal(viewModel, false, token);
         foreach (var mvm in modsToApply.Where(static mvm => mvm.Mod.ModInfo is not null))
@@ -295,6 +297,13 @@ public class UiCommands
 
     internal async Task<bool> Run(ViewModel viewModel, CancellationToken token)
     {
+        if (viewModel.Model.IsGog is null)
+        {
+            throw new InvalidOperationException("App is not properly initialized, still don't know game version");
+        }
+
+        await ChangePlayerName(viewModel, token);
+
         var storage = viewModel.Model.GetGameStorage(fileSystem, log);
         var launcher = storage.Game.EnumerateFiles().SingleOrDefault(static x => x.Name.Equals("launcher.exe", StringComparison.OrdinalIgnoreCase));
         if (launcher?.Exists == true)
@@ -311,8 +320,6 @@ public class UiCommands
 
         switch (viewModel.Model.IsGog)
         {
-            case null:
-                throw new InvalidOperationException("App is not properly initialized, still don't know game version");
             case true:
                 {
                     var exe = storage.Game.EnumerateFiles().Single(static x => x.Name.Equals("rfg.exe", StringComparison.OrdinalIgnoreCase));
@@ -623,5 +630,33 @@ public class UiCommands
         src.CopyTo(dst.FullName, true);
         log.LogTrace("CopySave {direction} success, [{src}] to [{dst}]", direction, src.FullName, dst.FullName);
         return true;
+    }
+
+    private async Task ChangePlayerName(ViewModel model, CancellationToken token)
+    {
+        var newName = model.Model.PlayerName;
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            log.LogDebug("Player name has not changed");
+            return;
+        }
+
+        log.LogInformation("Changing player name to [{name}]", newName);
+        var config = gogLocator.GetConfigFile();
+        if (!config.Exists)
+        {
+            log.LogWarning("Can not change player name: config file does not exist. Run game once, then set player name again");
+            return;
+        }
+
+        var bak = fileManager.GetUniqueBakFile(config);
+        config.CopyTo(bak.FullName);
+        var content = await fileSystem.File.ReadAllTextAsync(config.FullName, token);
+        var replacement = $"multiplayer_user_name={newName}";
+        var regex = new Regex("multiplayer_user_name=(.*)");
+        var newContent = regex.Replace(content, replacement);
+        await fileSystem.File.WriteAllTextAsync(config.FullName, newContent, token);
+        model.Model.PlayerName = string.Empty;
+        log.LogDebug("Player name changed to [{name}]", newName);
     }
 }
