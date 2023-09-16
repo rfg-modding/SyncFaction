@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -241,6 +242,7 @@ public class FileManager
         // NOTE: don't automatically nuke patch_bak if restored to vanilla. this allows fast switch between vanilla and updated version
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "This is intended")]
     public async Task<IReadOnlyList<FileReport>> GenerateFileReport(IAppStorage storage, int threadCount, CancellationToken token)
     {
         var fs = storage.App.FileSystem;
@@ -251,24 +253,35 @@ public class FileManager
 
         async Task ReportFile(IFileSystemInfo info, CancellationTokenSource breaker, CancellationToken t)
         {
-            var relativePath = fs.Path.GetRelativePath(storage.Game.FullName, info.FullName);
-            var created = info.CreationTimeUtc;
-            var modified = info.LastWriteTimeUtc;
-            var accessed = info.LastAccessTimeUtc;
-            switch (info)
+            var relativePath = string.Empty;
+            var created = DateTime.MinValue;
+            var modified = DateTime.MinValue;
+            var accessed = DateTime.MinValue;
+            try
             {
-                case IDirectoryInfo:
-                    results.Add(new FileReport(relativePath + "/", -1, null, created, modified, accessed));
+                relativePath = fs.Path.GetRelativePath(storage.Game.FullName, info.FullName);
+                created = info.CreationTimeUtc;
+                modified = info.LastWriteTimeUtc;
+                accessed = info.LastAccessTimeUtc;
+                switch (info)
+                {
+                    case IDirectoryInfo:
+                        results.Add(new FileReport(relativePath + "/", -1, null, created, modified, accessed));
 
-                    break;
-                case IFileInfo file:
-                    var size = file.Length;
-                    var hash = await fileChecker.ComputeHash(file, t);
-                    results.Add(new FileReport(relativePath, size, hash, created, modified, accessed));
+                        break;
+                    case IFileInfo file:
+                        var size = file.Length;
+                        var hash = await fileChecker.ComputeHash(file, t);
+                        results.Add(new FileReport(relativePath, size, hash, created, modified, accessed));
 
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(info));
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(info));
+                }
+            }
+            catch (Exception e)
+            {
+                results.Add(new FileReport(relativePath, -1, $"FAIL: {e.GetType().Name}", created, modified, accessed));
             }
         }
     }
