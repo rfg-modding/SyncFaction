@@ -152,8 +152,8 @@ public partial class ViewModel
     private async Task GetLogs(object x, CancellationToken token) => await ExecuteSafe(this, "Collecting logs", uiCommands.GetLogs, token);
 
     [RelayCommand]
-    private async Task CopySaveToGog(object x, CancellationToken token) => await ExecuteSafe(this, "Copying save: Steam to GOG", uiCommands.CopySaveToGog, token);
+    private async Task CopySaveToGog(object x, CancellationToken token) => await ExecuteSafe(this, "Copying save: Steam to GOG", uiCommands.CopySaveToGog, token, false);
 
     [RelayCommand]
-    private async Task CopySaveToSteam(object x, CancellationToken token) => await ExecuteSafe(this, "Copying save: GOG to Steam", uiCommands.CopySaveToSteam, token);
+    private async Task CopySaveToSteam(object x, CancellationToken token) => await ExecuteSafe(this, "Copying save: GOG to Steam", uiCommands.CopySaveToSteam, token, false);
 }
