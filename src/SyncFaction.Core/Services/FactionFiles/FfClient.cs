@@ -5,6 +5,7 @@ using System.IO.Abstractions;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AngleSharp;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using JorgeSerrano.Json;
@@ -141,12 +142,21 @@ public class FfClient
 
     public async Task<IHtmlDocument> GetNewsWiki(CancellationToken token)
     {
-        log.LogTrace("Request: GET {url}", Constants.WikiPage);
-        var response = await client.GetAsync(Constants.WikiPage, token);
+        var url = new Uri(Constants.WikiPage);
+        log.LogTrace("Request: GET {url}", url);
+        var response = await client.GetAsync(url, token);
         log.LogTrace("Response: {code}, length {contentLength}", response.StatusCode, response.Content.Headers.ContentLength);
         await using var contentStream = await response.EnsureSuccessStatusCode().Content.ReadAsStreamAsync(token);
-        var parser = new HtmlParser();
-        return await parser.ParseDocumentAsync(contentStream, token);
+
+        var context = BrowsingContext.New(); // do not dispose! its pointless anyway
+        var html = (IHtmlDocument) await context.OpenAsync(res => res.Content(contentStream).Address(url).Status(200), token);
+        foreach (var link in html.All.OfType<IHtmlAnchorElement>())
+        {
+            // NOTE: this is required to make urls absolute
+            link.Href = link.Href;
+        }
+
+        return html;
     }
 
     public async Task<List<long>> ListPatchIds(string prefix, CancellationToken token)

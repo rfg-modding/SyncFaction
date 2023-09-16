@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Markup;
 using MdXaml;
 
@@ -48,7 +51,9 @@ public class MarkdownRender
 
         if (!string.IsNullOrEmpty(update.Xaml))
         {
-            var docFromHtml = XamlReader.Parse(update.Xaml) as FlowDocument;
+            var docFromHtml = (FlowDocument) XamlReader.Parse(update.Xaml);
+            FixXamlHyperlinks(docFromHtml);
+
             view.Document.Blocks.AddRange(docFromHtml.Blocks.ToList());
         }
 
@@ -64,6 +69,30 @@ public class MarkdownRender
             Debug.WriteLine($"noscroll before={offset}");
             Scroll.ScrollToVerticalOffset(offset);
             Debug.WriteLine($"noscroll before={Scroll.VerticalOffset}");
+        }
+    }
+
+    private static void FixXamlHyperlinks(FlowDocument document)
+    {
+        var hyperlinks = GetVisuals(document).OfType<Hyperlink>();
+        foreach (var link in hyperlinks)
+        {
+            link.Command = NavigationCommands.GoToPage;
+            link.CommandParameter = link.NavigateUri.ToString();
+            link.ToolTip = link.NavigateUri.ToString();
+        }
+    }
+
+    private static IEnumerable<DependencyObject> GetVisuals(DependencyObject root)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            yield return child;
+
+            foreach (var descendants in GetVisuals(child))
+            {
+                yield return descendants;
+            }
         }
     }
 

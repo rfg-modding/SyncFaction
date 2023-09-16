@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using HTMLConverter;
 using Microsoft.Extensions.Logging;
 using NLog;
@@ -359,7 +360,7 @@ public class UiCommands
             categories.Add(Category.ModsScriptLoader);
 
             // upd text
-            var document = await ffClient.GetNewsWiki(token);
+            using var document = await ffClient.GetNewsWiki(token);
             var header = document.GetElementById("firstHeading")?.TextContent;
             var content = document.GetElementById("mw-content-text")?.InnerHtml;
             var xaml = HtmlToXamlConverter.ConvertHtmlToXaml(content, true);
@@ -623,5 +624,31 @@ public class UiCommands
         src.CopyTo(dst.FullName, true);
         log.LogTrace("CopySave {direction} success, [{src}] to [{dst}]", direction, src.FullName, dst.FullName);
         return true;
+    }
+}
+
+class CustomLinkCommand : ICommand
+{
+    public event EventHandler CanExecuteChanged;
+
+    public bool CanExecute(object parameter) => true;
+
+    public void Execute(object parameter)
+    {
+        var href = (string)parameter;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(href)
+            {
+                UseShellExecute = true,
+                Verb = "open"
+            });
+        }
+        catch
+        {
+            // error handle; notifications, path changes, etc.
+            // MessageBox.Show($"Failed to open {href}");
+        }
     }
 }
