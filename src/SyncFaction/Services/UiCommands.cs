@@ -246,7 +246,7 @@ public class UiCommands
             {
                 // forget we had updates entirely
                 viewModel.Model.TerraformUpdates.Clear();
-                viewModel.Model.RslUpdates.Clear();
+                viewModel.Model.ReconstructorUpdates.Clear();
             }
         });
     }
@@ -300,7 +300,7 @@ public class UiCommands
         var launcher = storage.Game.EnumerateFiles().SingleOrDefault(static x => x.Name.Equals("launcher.exe", StringComparison.OrdinalIgnoreCase));
         if (launcher?.Exists == true)
         {
-            log.LogInformation("Launching game RSL Launcher...");
+            log.LogInformation("Launching game via Reconstructor Launcher...");
             Process.Start(new ProcessStartInfo
             {
                 UseShellExecute = true,
@@ -422,9 +422,9 @@ public class UiCommands
             })
             .ToArray());
 
-        var updates = viewModel.LockCollections(() => viewModel.Model.RemoteTerraformUpdates.Concat(viewModel.Model.RemoteRslUpdates).Select(x => mods.Single(y => y.Id == x)).ToList());
+        var updates = viewModel.LockCollections(() => viewModel.Model.RemoteTerraformUpdates.Concat(viewModel.Model.RemoteReconstructorUpdates).Select(x => mods.Single(y => y.Id == x)).ToList());
 
-        var installed = viewModel.LockCollections(() => viewModel.Model.TerraformUpdates.Concat(viewModel.Model.RslUpdates).ToList());
+        var installed = viewModel.LockCollections(() => viewModel.Model.TerraformUpdates.Concat(viewModel.Model.ReconstructorUpdates).ToList());
         var result = await InstallUpdates(installed, updates, gameStorage, viewModel, token);
         if (!result.Success)
         {
@@ -438,8 +438,8 @@ public class UiCommands
         {
             viewModel.Model.TerraformUpdates.Clear();
             viewModel.Model.TerraformUpdates.AddRange(viewModel.Model.RemoteTerraformUpdates);
-            viewModel.Model.RslUpdates.Clear();
-            viewModel.Model.RslUpdates.AddRange(viewModel.Model.RemoteRslUpdates);
+            viewModel.Model.ReconstructorUpdates.Clear();
+            viewModel.Model.ReconstructorUpdates.AddRange(viewModel.Model.RemoteReconstructorUpdates);
         });
         stateProvider.WriteStateFile(gameStorage, viewModel.Model.ToState(), log);
         log.LogInformation("Successfully updated game: `{version}`", viewModel.GetHumanReadableVersion());
@@ -454,8 +454,8 @@ public class UiCommands
         log.LogInformation("Installed patches: `{version}`", viewModel.GetHumanReadableVersion());
         log.LogInformation("Checking for updates...");
         var terraform = await ffClient.ListPatchIds(Constants.PatchSearchStringPrefix, token);
-        var rsl = await ffClient.ListPatchIds(Constants.RslSearchStringPrefix, token);
-        viewModel.UpdateUpdates(terraform, rsl);
+        var reconstructor = await ffClient.ListPatchIds(Constants.ReconstructorSearchStringPrefix, token);
+        viewModel.UpdateUpdates(terraform, reconstructor);
     }
 
     internal void WriteState(ViewModel viewModel)

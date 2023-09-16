@@ -31,7 +31,7 @@ public static class Constants
     public const string WikiPage = "https://www.redfactionwiki.com/wiki/RF:G_Game_Night_News";
 
     public const string PatchSearchStringPrefix = "rfgterraform";
-    public const string RslSearchStringPrefix = "rfgscriptloader";
+    public const string ReconstructorSearchStringPrefix = "rfgscriptloader";
 
     public const string CdnUrl = @"https://rfg.rast.rocks";
     public const string CdnListUrl = @"https://storage.bunnycdn.com/rfgmods/dev/"; // NOTE: trailing slash is important!

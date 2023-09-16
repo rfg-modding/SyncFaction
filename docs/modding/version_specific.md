@@ -2,7 +2,7 @@
 
 > Advanced feature!
 >
-> It doesn't really have a use-case for regular mods. Intended for Terraform patch and RSL developers.
+> It doesn't really have a use-case for regular mods. Intended for Terraform patch and Reconstructor developers.
 
 Allows you to edit/replace files only on certain game version, Steam or GOG
 

@@ -2,7 +2,7 @@
 
 > Advanced feature!
 >
-> It doesn't really have a use-case for regular mods. Intended for Terraform patch and RSL developers.
+> It doesn't really have a use-case for regular mods. Intended for Terraform patch and Reconstructor developers.
 
 If you want to slightly edit a large file and want to save some bandwidth, you can create a binary patch and SF will apply it.
 

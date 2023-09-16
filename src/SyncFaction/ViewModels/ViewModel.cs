@@ -157,8 +157,8 @@ public partial class ViewModel
         BindingOperations.EnableCollectionSynchronization(LocalMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.TerraformUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.RemoteTerraformUpdates, collectionLock);
-        BindingOperations.EnableCollectionSynchronization(Model.RslUpdates, collectionLock);
-        BindingOperations.EnableCollectionSynchronization(Model.RemoteRslUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.ReconstructorUpdates, collectionLock);
+        BindingOperations.EnableCollectionSynchronization(Model.RemoteReconstructorUpdates, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.AppliedMods, collectionLock);
         BindingOperations.EnableCollectionSynchronization(Model.LastMods, collectionLock);
 

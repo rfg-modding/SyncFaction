@@ -9,7 +9,7 @@ First, some abbreviations:
 * WC = wrecking crew singleplayer mode
 * RFG = the game, 2018 remastered version
 * Terraform aka Community patch = [project by Camo](https://github.com/CamoRF/Red-Faction-Guerrilla-Terraform-Patch) fixing game bugs, rebalaning MP, ...
-* RSL/RSL2, Script Loader = [extension by moneyl](https://github.com/rfg-modding/RSL2) to provide extra moddability
+* Reconstructor, RSL/RSL2, Script Loader = [extension by moneyl](https://github.com/rfg-modding/Reconstructor) to provide extra moddability
 
 
 ## First run
@@ -29,7 +29,7 @@ Savegame files are:
 
 ## Updates
 
-SF checks for updates of Terraform Patch and RSL and asks user to download and install them. They are absolutely required to play multiplayer and provide common ground for future mods. Normally you don't need to avoid or disable auto-update. If, for some reason, you want app to work entirely offline, want to play vanilla game or apply legacy mods that don't work on top of Terraform - read further.
+SF checks for updates of Terraform Patch and Reconstructor and asks user to download and install them. They are absolutely required to play multiplayer and provide common ground for future mods. Normally you don't need to avoid or disable auto-update. If, for some reason, you want app to work entirely offline, want to play vanilla game or apply legacy mods that don't work on top of Terraform - read further.
 
 SF will never check for its own updates or auto-update itself, nor will it upload any information/telemetry.
 

@@ -13,7 +13,7 @@ Download [latest release](https://github.com/rfg-modding/SyncFaction/releases) a
 * Works for both Steam and GOG versions or **RFG Re-MARS-tered**
 * Auto-update
   * Terraform patch (general SP game improvements, MP rebalance, tons of fixes, new maps)
-  * RSL2 (script loader to fix crashes and enable more modding capabilities)
+  * Reconstructor (script loader to fix crashes and enable more modding capabilities)
   * Incremental updates supported
 * Integration with [Faction Files](https://www.factionfiles.com/ff.php?action=files)
   * Browse, download and install mods

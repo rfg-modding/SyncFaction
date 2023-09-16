@@ -86,32 +86,32 @@ public partial class ViewModel
         lock (collectionLock)
         {
             var terraform = string.Join(", ", Model.TerraformUpdates);
-            var rsl = string.Join(", ", Model.RslUpdates);
+            var reconstructor = string.Join(", ", Model.ReconstructorUpdates);
             if (string.IsNullOrEmpty(terraform))
             {
                 terraform = "none";
             }
 
-            if (string.IsNullOrEmpty(rsl))
+            if (string.IsNullOrEmpty(reconstructor))
             {
-                rsl = "none";
+                reconstructor = "none";
             }
 
-            return $"Terraform: {terraform}, RSL: {rsl}";
+            return $"Terraform: {terraform}, Reconstructor: {reconstructor}";
         }
     }
 
-    internal void UpdateUpdates(IEnumerable<long> terraform, IEnumerable<long> rsl)
+    internal void UpdateUpdates(IEnumerable<long> terraform, IEnumerable<long> reconstructor)
     {
         lock (collectionLock)
         {
             Model.RemoteTerraformUpdates.Clear();
             Model.RemoteTerraformUpdates.AddRange(terraform);
-            Model.RemoteRslUpdates.Clear();
-            model.RemoteRslUpdates.AddRange(rsl);
+            Model.RemoteReconstructorUpdates.Clear();
+            model.RemoteReconstructorUpdates.AddRange(reconstructor);
 
-            var newUpdates = Model.RemoteTerraformUpdates.Concat(model.RemoteRslUpdates).ToList();
-            var currentUpdates = Model.TerraformUpdates.Concat(Model.RslUpdates).ToList();
+            var newUpdates = Model.RemoteTerraformUpdates.Concat(model.RemoteReconstructorUpdates).ToList();
+            var currentUpdates = Model.TerraformUpdates.Concat(Model.ReconstructorUpdates).ToList();
             if (!currentUpdates.SequenceEqual(newUpdates))
             {
                 log.LogInformation("Changelogs and info:");
@@ -123,9 +123,9 @@ public partial class ViewModel
                 }
 
                 i = 1;
-                foreach (var x in Model.RemoteRslUpdates)
+                foreach (var x in Model.RemoteReconstructorUpdates)
                 {
-                    log.LogInformation(Md.Bullet.Id(), "[RSL part {i} (id {id})]({url})", i, x, FormatUrl(x));
+                    log.LogInformation(Md.Bullet.Id(), "[Reconstructor part {i} (id {id})]({url})", i, x, FormatUrl(x));
                     i++;
                 }
 

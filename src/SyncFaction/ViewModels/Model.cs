@@ -25,9 +25,9 @@ public partial class Model
 
     public ObservableCollection<long> RemoteTerraformUpdates { get; } = new();
 
-    public ObservableCollection<long> RslUpdates { get; } = new();
+    public ObservableCollection<long> ReconstructorUpdates { get; } = new();
 
-    public ObservableCollection<long> RemoteRslUpdates { get; } = new();
+    public ObservableCollection<long> RemoteReconstructorUpdates { get; } = new();
 
     public ObservableCollection<long> AppliedMods { get; } = new();
 
@@ -76,7 +76,7 @@ public partial class Model
         IsVerified = state.IsVerified ?? false;
         Settings = state.Settings ?? new Settings();
         PopulateList(state.TerraformUpdates, TerraformUpdates, true);
-        PopulateList(state.RslUpdates, RslUpdates, true);
+        PopulateList(state.RslUpdates, ReconstructorUpdates, true);
         PopulateList(state.AppliedMods, AppliedMods, false);
         PopulateList(state.LastMods, LastMods, false);
     }
@@ -92,7 +92,7 @@ public partial class Model
             StartupUpdates = StartupUpdates,
             DevHiddenMods = DevHiddenMods,
             TerraformUpdates = TerraformUpdates.ToList(),
-            RslUpdates = RslUpdates.ToList(),
+            RslUpdates = ReconstructorUpdates.ToList(),
             AppliedMods = AppliedMods.ToList(),
             LastMods = LastMods.ToList(),
             Settings = Settings
