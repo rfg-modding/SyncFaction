@@ -65,7 +65,6 @@ public class SteamLocator
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "I dont care")]
     internal async Task<IFileInfo?> DetectSteamSavegameFile(CancellationToken token)
     {
-        //
         try
         {
             var steamLocation = GetInstallPath();
