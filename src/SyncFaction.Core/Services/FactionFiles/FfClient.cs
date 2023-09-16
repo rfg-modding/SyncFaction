@@ -7,7 +7,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Html.Dom;
-using AngleSharp.Html.Parser;
 using JorgeSerrano.Json;
 using Microsoft.Extensions.Logging;
 using SharpCompress.Archives;

@@ -132,7 +132,7 @@ public partial class ViewModel
             CancelCommand,
             RestoreModsCommand,
             RestorePatchCommand,
-            RestoreVanillaCommand
+            RestoreVanillaCommand,
         };
 
         cancelCommands = new List<ICommand>

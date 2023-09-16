@@ -6,7 +6,6 @@ using System.Text;
 using System.Xml;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
-using SyncFaction.Core;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Models;

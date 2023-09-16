@@ -117,6 +117,19 @@ public partial class ViewModel
         });
     }
 
+    [RelayCommand]
+    private async Task OpenAppdataDir(object x, CancellationToken token)
+    {
+        var appData = Environment.GetEnvironmentVariable("appdata");
+        var path = fileSystem.DirectoryInfo.New(fileSystem.Path.Join(appData, @"kaiko\rfg")).FullName;
+        log.LogTrace("OpenDir [{dir}]", path);
+        Process.Start(new ProcessStartInfo
+        {
+            UseShellExecute = true,
+            FileName = path
+        });
+    }
+
     [RelayCommand(CanExecute = nameof(Interactive), IncludeCancelCommand = true)]
     private async Task RestorePatch(object x, CancellationToken token) => await ExecuteSafe(this, "Restoring to latest patch", uiCommands.RestorePatch, token);
 
