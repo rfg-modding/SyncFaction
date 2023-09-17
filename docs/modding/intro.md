@@ -74,7 +74,7 @@ Useful for distributing modified contents of a `.vpp_pc` archive. Create a folde
     |-📄 terr01_l1.asm_pc
     |-📄 new_file
   |-📂 misc.vpp_pc
-    |-📄 tweak_table.xtbl  // please don't do this for XTBLs!
+    |-📄 tweak_table.xtbl  // please don't use this method for XTBLs! read below for a better approach
 ```
 
 To delete archive entries, create a file `.delete.json` with an array of names. Example:
@@ -86,6 +86,16 @@ To delete archive entries, create a file `.delete.json` with an array of names. 
     "dlc_marauder_charge.rig_pc",
     "hess_helmet.rig_pc"
 ]
+```
+
+To change archive options, create a file `.options.json`. Example with currently supported options:
+
+> `mod_root/data/misc.vpp_pc/.options.json`
+
+```json
+{
+	"Mode": "Normal" // Archive compression aka VPP Flags: "Normal", "Compressed", "Condensed", "Compacted" (both compressed and compacted)
+}
 ```
 
 Pros:
