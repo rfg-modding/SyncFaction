@@ -88,7 +88,9 @@ public class XmlMagic
 
         if (!source.HasChildNodes)
         {
-            log.LogTrace("Source [{src}] has no children, nothing to do", source.Name);
+            log.LogTrace("Source [{src}] has no children, replacing inner text", source.Name);
+            // NOTE: this is MM's weird behavior
+            target.InnerText = source.InnerText;
             return;
         }
 
