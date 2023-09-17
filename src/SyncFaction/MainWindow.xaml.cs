@@ -64,7 +64,6 @@ public partial class MainWindow : Window, IViewAccessor
                 : Theme.Dark;
         }
 
-
         DarkNet.Instance.SetWindowThemeWpf(this, theme);
         SkinManager = new ElementSkinManager(this);
         SkinManager.RegisterSkins(new Uri("Skins/Skin.Light.xaml", UriKind.Relative), new Uri("Skins/Skin.Dark.xaml", UriKind.Relative));

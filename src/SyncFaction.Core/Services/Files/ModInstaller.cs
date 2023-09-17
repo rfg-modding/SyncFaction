@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using SyncFaction.Core.Models;
 using SyncFaction.Core.Models.Files;
@@ -73,8 +74,10 @@ public class ModInstaller : IModInstaller
         var modFiles = vppDir
             .EnumerateFiles("*", SearchOption.AllDirectories)
             .Where(static x => !x.Name.Equals(Constants.DeleteFile, StringComparison.OrdinalIgnoreCase))
+            .Where(static x => !x.Name.Equals(Constants.ArchiveOptionsFile, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(x => x.FileSystem.Path.GetRelativePath(vppDir.FullName, x.FullName).ToLowerInvariant());
         var deleteList = await ReadDeleteList(vppDir);
+        var archiveOptions = await ReadArchiveOptions(vppDir);
         await using var src = gameFile.FileInfo.OpenRead();
         var archive = await vppArchiver.UnpackVpp(src, gameFile.Name, token);
         var disposables = new List<IDisposable>();
@@ -96,8 +99,16 @@ public class ModInstaller : IModInstaller
                 logicalFiles.Add(new LogicalFile(modSrc, originalName, order++, null, null));
             }
 
+            var newMode = archiveOptions.Mode ?? archive.Mode;
+            log.LogTrace("Archive mode: [{oldMode}] => [{newMode}]", archive.Mode, newMode);
             await using var dst = tmpFile.OpenWrite();
-            await vppArchiver.PackVpp(archive with { LogicalFiles = logicalFiles }, dst, token);
+            await vppArchiver.PackVpp(archive with
+                {
+                    LogicalFiles = logicalFiles,
+                    Mode = newMode
+                },
+                dst,
+                token);
 
             IEnumerable<LogicalFile> WalkArchive()
             {
@@ -153,11 +164,26 @@ public class ModInstaller : IModInstaller
 
         log.LogTrace("Loose vpp directory has delete list [{file}]", deleteFile.FullName);
         await using var stream = deleteFile.OpenRead();
-        var deleteList = JsonSerializer.Deserialize<List<string>>(stream)!;
+        var deleteList = JsonSerializer.Deserialize<List<string>>(stream, JsonOptions)!;
         log.LogTrace("Delete list has [{count}] entries", deleteList.Count);
         return deleteList
             .Select(static x => x.ToLowerInvariant())
             .ToImmutableHashSet();
+    }
+
+    private async Task<ArchiveOptions> ReadArchiveOptions(IDirectoryInfo vppDir)
+    {
+        var optionsFile = vppDir.EnumerateFiles("*").FirstOrDefault(static x => x.Name.Equals(Constants.ArchiveOptionsFile, StringComparison.OrdinalIgnoreCase));
+        if (optionsFile == null)
+        {
+            return new ArchiveOptions(default);
+        }
+
+        log.LogTrace("Loose vpp directory has archive options [{file}]", optionsFile.FullName);
+        await using var stream = optionsFile.OpenRead();
+        var archiveOptions = JsonSerializer.Deserialize<ArchiveOptions>(stream, JsonOptions)!;
+        log.LogTrace("Archive options: {archiveOptions}", archiveOptions);
+        return archiveOptions;
     }
 
     public async Task<bool> ApplyModInfo(GameFile gameFile, VppOperations vppOperations, CancellationToken token)
@@ -266,4 +292,6 @@ public class ModInstaller : IModInstaller
     }
 
     private static void EnsureDirectoriesCreated(IFileInfo file) => file.FileSystem.Directory.CreateDirectory(file.Directory!.FullName);
+
+    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions() { Converters = { new JsonStringEnumConverter() } };
 }
