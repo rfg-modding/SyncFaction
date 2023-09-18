@@ -21,6 +21,7 @@ We have regular parties once a week. Things to know if you want to join:
 
 <details>
 <summary><code>Expand</code></summary>
+
 ### Community Patch
 
 You'll need to install community-made patches to play. Download size is several gigabytes so please take some time to prepare.
