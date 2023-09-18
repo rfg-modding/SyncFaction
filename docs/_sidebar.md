@@ -1,4 +1,5 @@
 - [***Index***](/)
+- [Intro](/intro.md)
 - [Backlog](/backlog.md)
 - [Dev Mode](/dev_mode.md)
 - [Tech Info](/tech.md)

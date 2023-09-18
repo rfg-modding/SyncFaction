@@ -8,8 +8,6 @@
 
 We have regular parties once a week. Things to know if you want to join:
 
----
-
 ## Short HOWTO
 
 * You need RFG Re-mars-tered. GOG or Steam, clean install without mods
@@ -17,10 +15,9 @@ We have regular parties once a week. Things to know if you want to join:
 * Run and let it update your game. You will need at least **40GiB** of free storage space and some time to download patches
 * Meanwhile, join [FactionFiles Discord](https://discord.gg/factionfiles), see server events for upcoming RFG Game Night and select RFG Multiplayer role in `#role-selection` channel to receive pings
 * Want to use mods AND play multiplayer? Roll back to unpatched version of the game? SyncFaction lets you switch between versions in 1 click, see [Usage](usage.md)
+* Please ALWAYS run RFG with **[Run Game]** button in SyncFaction
 
----
-
-## Detailed guide
+## More detailed guide
 
 <details>
 <summary><code>Expand</code></summary>
