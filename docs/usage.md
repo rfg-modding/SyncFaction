@@ -54,3 +54,15 @@ Some mods have settings. A panel will appear in the middle to let you select val
 When you are ready, press `Apply` and wait. **In case of errors, game state is not automatically cleaned up**, so you will need to undo some mods and try to `Apply` again. If you hit `Apply` with 0 mods, game is effectively cleaned up to latest patched state.
 
 `Refresh` button updates local mod list if you moved some folders.
+
+## Switching between vanilla/patch/mods
+
+You want to install mods and still be able to play MP without time-consuming reinstall? You want to play unmodified singleplayer?
+
+SF lets you switch between heavliy-modded, patched MP-compatible, and unmodified game. Enable `Dev Mode` toggle. There are 3 buttons under Tools:
+
+* `Restore to Patch`: removes any mods and cleans up game to the latest Terraform+Reconstructor update. Use this to join MP
+* `Restore Last Mods`: applies mods you have installed before. Use this to get back to your setup after playing MP
+* `Restore to Vanilla`: *it's gonna take you back to the past*, to play original game without any edits
+
+These all work by copying files from backups in `game_root/.syncfaction/.bak*`. That's why SF needs a lot of space to work.

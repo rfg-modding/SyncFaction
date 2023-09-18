@@ -16,7 +16,7 @@ If you have any issues and want to *help us help you help us all*, press `Genera
 * `Multithreading`: uncheck to make certain operations single-threaded if your PC lags while SF works with files or network
 * `Use CDN`: **some** files from FF are mirrored to SyncFaction CDN. If a file is not mirrored to SF CDN, it is downloaded from FF anyway. If your downloads are slow, uncheck and see if there is any improvement. Maybe downloading directly from FF works better for you.
 
-## Restore
+## Tools
 
 To quickly switch between heavliy-modded and clean MP-compatible game, there are 3 buttons:
 
@@ -35,6 +35,7 @@ Be careful, these options tamper with SF logic and will break your warranty beca
   * `<root>`: open game directory
   * `/data`: open game data directory
   * `/.syncfaction`: open app directory
+  * `<AppData>/kaiko/rfg`: open directory with GOG config
 * Copy Save
   * `to Steam`: copy savegame file from GOG directory to Steam directory
   * `to GOG`: copy savegame file from Steam directory to GOG directory
@@ -44,6 +45,6 @@ Things not intended for users:
 * `Dev and hidden mods`: if enabled, will show mods from SF CDN. Intended for modders to quickly share dev builds. Also will display hidden mods, eg. installed updates
 * `UI: Update required`: uncheck to bypass update nag
 * `UI: Interactive/Busy`: toggle locked buttons and "working" state on/off
-* `Repeat App Initialization`: perform checks and actions done on app startup. Used for debugging
+* `Repeat Init`: perform checks and actions done on app startup. Used for debugging
 * `Switch Theme`: toggle light/dark theme. Used for debugging
 * `Get Logs and Clear Output`: displays logs and removes them from memory, clears text window

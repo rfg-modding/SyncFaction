@@ -6,6 +6,8 @@ This is main documentation page with general info. See sidebar links for [usage]
 
 Download [latest release](https://github.com/rfg-modding/SyncFaction/releases) and place .exe in game folder. That's it!
 
+Also check out [introduction for new players](intro.md) - it's a quickstart guide for anyone wondering if multiplayer is still alive.
+
 > You will need at least **40GiB** of free storage space
 
 ## Features
