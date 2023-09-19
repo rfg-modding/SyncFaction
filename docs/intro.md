@@ -11,12 +11,14 @@ We have regular parties once a week. Things to know if you want to join:
 ## Short HOWTO
 
 * You need RFG Re-mars-tered. GOG or Steam, clean install without mods
-* Download [SyncFaction](https://github.com/rfg-modding/SyncFaction/releases) and let it update your game. It takes some time, also you will need **40GiB** of free space
-* Meanwhile, join [FactionFiles Discord](https://discord.gg/factionfiles). Check out **server events** for upcoming RFG Game Night, also select RFG Multiplayer role in `#role-selection` channel to receive pings
+* Use [SyncFaction](https://github.com/rfg-modding/SyncFaction/releases) to update your game with community patches. It takes some time, also you will need **40GiB** of free space
+* Meanwhile, join [FactionFiles Discord](https://discord.gg/factionfiles). Check out **server events** for upcoming RFG Game Night, also visit `#role-selection` channel
 
 That's it, you're all set! 💥
 
 ## More detailed guide
+
+Same steps but with more info and explanations
 
 <details>
 <summary><code>Expand</code></summary>
