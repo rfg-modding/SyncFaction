@@ -11,11 +11,10 @@ We have regular parties once a week. Things to know if you want to join:
 ## Short HOWTO
 
 * You need RFG Re-mars-tered. GOG or Steam, clean install without mods
-* Download [SyncFaction](https://github.com/rfg-modding/SyncFaction/releases) and place it in the game folder
-* Run and let it update your game. You will need at least **40GiB** of free storage space and some time to download patches
-* Meanwhile, join [FactionFiles Discord](https://discord.gg/factionfiles), see server events for upcoming RFG Game Night and select RFG Multiplayer role in `#role-selection` channel to receive pings
-* Want to use mods AND play multiplayer? Roll back to unpatched version of the game? SyncFaction lets you switch between versions in 1 click, see [Usage](usage.md)
-* Please ALWAYS run RFG with **[Run Game]** button in SyncFaction
+* Download [SyncFaction](https://github.com/rfg-modding/SyncFaction/releases) and let it update your game. It takes some time, also you will need **40GiB** of free space
+* Meanwhile, join [FactionFiles Discord](https://discord.gg/factionfiles). Check out **server events** for upcoming RFG Game Night, also select RFG Multiplayer role in `#role-selection` channel to receive pings
+
+That's it, you're all set! 💥
 
 ## More detailed guide
 
@@ -37,6 +36,7 @@ Why do we need patches and a launcher app?
 * RFG is not modding-friendly game. Players will crash if their game files are not the same, that's why we need something to keep everyone updated
 * There is no simple way to auto-download new maps as in other games. Currently they are part of the patch and we release updates to add more
 * Multiplayer is currently broken in GOG version of the game, we fixed that
+* Want to use mods AND play multiplayer? Roll back to unpatched version of the game? SyncFaction lets you switch between versions in 1 click, see [Usage](usage.md)
 
 
 ### FactionFiles Discord
