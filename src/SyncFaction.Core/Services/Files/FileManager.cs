@@ -152,8 +152,7 @@ public class FileManager
         var fs = storage.FileSystem;
         await using var stream = hashFile.OpenRead();
         var hashes = JsonSerializer.Deserialize<HashChecks>(stream)!;
-        await parallelHelper.Execute(hashes.ToList(), Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
-        return true;
+        return await parallelHelper.Execute(hashes.ToList(), Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
 
         async Task Body(KeyValuePair<string, string> hashChecks, CancellationTokenSource breaker, CancellationToken token)
         {

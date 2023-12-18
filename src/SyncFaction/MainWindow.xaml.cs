@@ -64,7 +64,10 @@ public partial class MainWindow : Window, IViewAccessor
                 : Theme.Dark;
         }
 
-        DarkNet.Instance.SetWindowThemeWpf(this, theme);
+        if (!IsWine())
+        {
+            DarkNet.Instance.SetWindowThemeWpf(this, theme);
+        }
         SkinManager = new ElementSkinManager(this);
         SkinManager.RegisterSkins(new Uri("Skins/Skin.Light.xaml", UriKind.Relative), new Uri("Skins/Skin.Dark.xaml", UriKind.Relative));
         SkinManager.UpdateTheme(this.viewModel.Theme);
@@ -93,6 +96,8 @@ public partial class MainWindow : Window, IViewAccessor
         using var resourceSet = new ResourceSet(assembly.GetManifestResourceStream(resources));
         wav = (Stream)resourceSet.GetObject("hammer.wav");
     }
+
+    private static bool IsWine() => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WINEPREFIX"));
 
     /// <summary>
     /// Expands window if dev mode grid is shown and vice versa. Does not know height on first run, that's why another event is needed

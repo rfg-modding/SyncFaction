@@ -193,4 +193,17 @@ public class Tests
         var x = Path.GetFileNameWithoutExtension(f);
         x.Should().Be("a.b.c");
     }
+
+    [Test]
+    public void StringOrderTest()
+    {
+        var strings = new List<string>()
+        {
+            "spiker.str2_pc",
+            "spiker_projectile.str2_pc",
+            "spiker_rifle_high.str2_pc"
+        };
+        var result = strings.OrderBy(static x => x, StringComparer.Ordinal).ToList();
+        result[0].Should().Be("spiker.str2_pc");
+    }
 }

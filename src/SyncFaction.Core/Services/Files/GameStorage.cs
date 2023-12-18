@@ -31,15 +31,15 @@ public class GameStorage : AppStorage, IGameStorage
         EnsureCreated(Bak);
         EnsureCreated(PatchBak);
         EnsureCreated(Managed);
-        VanillaHashes = fileHashes.OrderBy(static x => x.Key).ToImmutableSortedDictionary();
-        RootFiles = VanillaHashes.Keys.Where(static x => x.Split('/').Length == 1).ToDictionary(x => fileSystem.Path.GetFileNameWithoutExtension(x), static x => x).OrderBy(static x => x.Key).ToImmutableSortedDictionary();
+        VanillaHashes = fileHashes.OrderBy(static x => x.Key, StringComparer.Ordinal).ToImmutableSortedDictionary();
+        RootFiles = VanillaHashes.Keys.Where(static x => x.Split('/').Length == 1).ToDictionary(x => fileSystem.Path.GetFileNameWithoutExtension(x), static x => x).OrderBy(static x => x.Key, StringComparer.Ordinal).ToImmutableSortedDictionary();
         DataFiles = VanillaHashes.Keys.Where(static x =>
             {
                 var tokens = x.Split('/');
                 return tokens.Length == 2 && tokens[0].ToLowerInvariant() == "data";
             })
             .ToDictionary(x => fileSystem.Path.GetFileNameWithoutExtension(x.Split('/').Last()), static x => x)
-            .OrderBy(static x => x.Key)
+            .OrderBy(static x => x.Key, StringComparer.Ordinal)
             .ToImmutableSortedDictionary();
     }
 

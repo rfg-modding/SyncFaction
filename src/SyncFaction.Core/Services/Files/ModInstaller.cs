@@ -88,7 +88,7 @@ public class ModInstaller : IModInstaller
             var logicalFiles = WalkArchive().ToList();
 
             // append new files
-            var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(static x => x);
+            var newFileKeys = modFiles.Keys.Except(usedKeys).OrderBy(static x => x, StringComparer.Ordinal);
             foreach (var key in newFileKeys)
             {
                 log.LogInformation(Md.Bullet.Id(), "Added `{file}` to `{vpp}`", key, archive.Name);

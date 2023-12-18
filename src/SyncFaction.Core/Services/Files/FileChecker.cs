@@ -22,7 +22,7 @@ public class FileChecker
         log.LogWarning("Verifying game contents. This is one-time thing, but going to take a while");
         // descending name order places bigger files earlier and this gives better check times
         var data = gameStorage.VanillaHashes
-            .OrderByDescending(static x => x.Key)
+            .OrderByDescending(static x => x.Key, StringComparer.Ordinal)
             .ToList();
         return await parallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), "Verifying", "files", token);
 
@@ -48,7 +48,7 @@ public class FileChecker
             ? nameof(Hashes.Gog)
             : nameof(Hashes.Steam);
         var data = files
-            .OrderBy(static x => x.Key)
+            .OrderBy(static x => x.Key, StringComparer.Ordinal)
             .ToList();
         return await parallelHelper.Execute(data, Body, threadCount, TimeSpan.FromSeconds(10), $"Probing {versionName} version", "files", token);
 

@@ -9,8 +9,8 @@ public static class Hashes
         : AllSteam.Value;
 
     // NOTE: different VPP_PC files between steam and gog are listed in separate dictionaries
-    private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllSteam = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Steam).OrderBy(x => x.Key).ToImmutableSortedDictionary());
-    private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllGog = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Gog).OrderBy(x => x.Key).ToImmutableSortedDictionary());
+    private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllSteam = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Steam).OrderBy(x => x.Key, StringComparer.Ordinal).ToImmutableSortedDictionary());
+    private static readonly Lazy<ImmutableSortedDictionary<string, string>> AllGog = new(() => Vpp.Concat(Videos).Concat(Common).Concat(Gog).OrderBy(x => x.Key, StringComparer.Ordinal).ToImmutableSortedDictionary());
 
     public static readonly ImmutableDictionary<string, string> Vpp = new Dictionary<string, string>
     {
