@@ -2,7 +2,10 @@ using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
 
-public class Replace : IChange
+public class ReplaceUppercase : Replace{}
+public class ReplaceLowercase : Replace{}
+
+public partial class Replace : IChange
 {
     [XmlAttribute]
     public string File { get; set; }

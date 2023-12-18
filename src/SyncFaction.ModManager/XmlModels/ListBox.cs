@@ -3,7 +3,7 @@ using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
 
-public class ListBox : Input
+public partial class ListBox : Input
 {
     [XmlIgnore]
     public List<IOption> DisplayOptions => displayOptionsOnce.Value;

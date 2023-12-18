@@ -3,7 +3,7 @@ using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
 
-public abstract class Input
+public abstract partial class Input
 {
     [XmlIgnore]
     public abstract XmlNode? SelectedValue { get; }
@@ -13,6 +13,9 @@ public abstract class Input
 
     [XmlAttribute]
     public string DisplayName { get; set; }
+
+    [XmlAttribute]
+    public string Description { get; set; }
 
     /// <summary>
     /// For debug printing as json

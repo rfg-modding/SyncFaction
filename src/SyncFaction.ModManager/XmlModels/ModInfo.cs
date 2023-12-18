@@ -9,7 +9,7 @@ using SyncFaction.ModManager.Models;
 namespace SyncFaction.ModManager.XmlModels;
 
 [XmlRoot("Mod")]
-public class ModInfo
+public partial class ModInfo
 {
     [XmlIgnore]
     public IDirectoryInfo WorkDir { get; set; } = null!;
@@ -43,8 +43,42 @@ public class ModInfo
     public static ModInfo LoadFromXml(Stream stream, IDirectoryInfo xmlFileDirectory, ILogger log)
     {
         using var reader = XmlReader.Create(stream, Settings);
-        var serializer = new XmlSerializer(typeof(ModInfo));
-        var modInfo = (ModInfo) serializer.Deserialize(reader)!;
+        Exception? lastException = null;
+        ModInfo? modInfo = null;
+
+        // attempts to deserialize if root element is <Mod>, <mod> or <MOD>
+        try
+        {
+            modInfo = new XmlSerializer(typeof(ModInfo)).Deserialize(reader) as ModInfo;
+        }
+        catch (InvalidOperationException e)
+        {
+            lastException = e;
+        }
+
+        try
+        {
+            modInfo ??= new XmlSerializer(typeof(ModInfoUppercase)).Deserialize(reader) as ModInfo;
+        }
+        catch (InvalidOperationException e)
+        {
+            lastException = e;
+        }
+
+        try
+        {
+            modInfo ??= new XmlSerializer(typeof(ModInfoLowercase)).Deserialize(reader) as ModInfo;
+        }
+        catch (InvalidOperationException e)
+        {
+            lastException = e;
+        }
+
+        if (modInfo is null)
+        {
+            throw new InvalidOperationException("Invalid modinfo xml content!", lastException);
+        }
+
         modInfo.Init(xmlFileDirectory, log);
         return modInfo;
     }
@@ -245,7 +279,11 @@ public class ModInfo
         }
     }
 
-    private FileSwapOperation ConvertToOperation(Replace replace, int index, IFileSystem fs, IImmutableDictionary<VppPath, IFileInfo> referencedFiles) => new FileSwapOperation(index, GetPaths(fs, replace.File), referencedFiles[GetPaths(fs, replace.File)]);
+    private FileSwapOperation ConvertToOperation(Replace replace, int index, IFileSystem fs, IImmutableDictionary<VppPath, IFileInfo> referencedFiles)
+    {
+        var paths = GetPaths(fs, replace.File);
+        return new FileSwapOperation(index, paths, referencedFiles[paths]);
+    }
 
     private XmlEditOperation ConvertToOperation(Edit edit, int index, IFileSystem fs) => new XmlEditOperation(index, GetPaths(fs, edit.File), edit.LIST_ACTION, edit.NestedXml.ToList());
 

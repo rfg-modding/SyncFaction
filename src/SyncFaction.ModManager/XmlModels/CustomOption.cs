@@ -3,7 +3,7 @@ using System.Xml;
 namespace SyncFaction.ModManager.XmlModels;
 
 /// <summary>
-/// No-op: do not apply changes if this is selected
+/// User input with any value
 /// </summary>
 public class CustomOption : IOption
 {

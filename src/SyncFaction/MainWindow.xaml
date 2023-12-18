@@ -84,6 +84,7 @@
             <DataTemplate DataType="{x:Type modXml:ListBox}">
                 <GroupBox Margin="10 5 10 5" Padding="5" Header="{Binding DisplayName}">
                     <StackPanel Orientation="Vertical">
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
                         <ComboBox Margin="5" HorizontalContentAlignment="Stretch" SelectionChanged="Selector_OnSelectionChanged" SelectedIndex="{Binding SelectedIndex, FallbackValue=0}" ItemsSource="{Binding DisplayOptions}" />
 
                         <Expander Margin="5" IsExpanded="False">

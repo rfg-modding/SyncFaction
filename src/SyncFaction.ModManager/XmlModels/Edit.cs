@@ -3,7 +3,10 @@ using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
 
-public class Edit : HasNestedXml, IChange
+public class EditLowercase: Edit{}
+public class EditUppercase: Edit{}
+
+public partial class Edit : HasNestedXml, IChange
 {
     [XmlAttribute]
     public string File { get; set; }

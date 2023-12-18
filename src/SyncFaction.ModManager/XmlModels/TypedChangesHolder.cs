@@ -13,8 +13,12 @@ public class TypedChangesHolder
     /// Hack for XmlSerializer to work with interfaces
     /// </summary>
     [XmlArray(nameof(TypedChanges))]
-    [XmlArrayItem(typeof(Replace))]
-    [XmlArrayItem(typeof(Edit))]
+    [XmlArrayItem("Replace", typeof(Replace))]
+    [XmlArrayItem("replace", typeof(ReplaceLowercase))]
+    [XmlArrayItem("REPLACE", typeof(ReplaceUppercase))]
+    [XmlArrayItem("Edit", typeof(Edit))]
+    [XmlArrayItem("edit", typeof(EditLowercase))]
+    [XmlArrayItem("EDIT", typeof(EditUppercase))]
     public IList TypedChangesXmlHack
     {
         get => TypedChanges;

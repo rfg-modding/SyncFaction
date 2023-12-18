@@ -2,11 +2,11 @@ using System.Xml.Serialization;
 
 namespace SyncFaction.ModManager.XmlModels;
 
-public class WebLink
+public partial class WebLink
 {
     [XmlAttribute]
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     [XmlText]
-    public string XmlText { get; set; }
+    public string XmlText { get; set; } = null!;
 }
