@@ -97,7 +97,9 @@ public class FileManager
             modified.Add(result);
         }
 
-        var repackVppDirectories = modDir.EnumerateDirectories("*", SearchOption.AllDirectories).Where(x => x.IsVppDirectory()).Where(x => x.EnumerateFiles("*", SearchOption.AllDirectories).Any());
+        var repackVppDirectories = modDir.EnumerateDirectories("*", SearchOption.AllDirectories)
+            .Where(x => !excludeDirs.Any(ex => x.FullName.ToLowerInvariant().StartsWith(ex, StringComparison.OrdinalIgnoreCase)))
+        .Where(x => x.IsVppDirectory()).Where(x => x.EnumerateFiles("*", SearchOption.AllDirectories).Any());
         foreach (var vppDir in repackVppDirectories)
         {
             token.ThrowIfCancellationRequested();
