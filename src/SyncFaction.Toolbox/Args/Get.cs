@@ -41,7 +41,7 @@ public class Get : Command
 
     private async Task<int> Handle(string archive, string file, string output, bool xmlFormat, bool force, InvocationContext context, CancellationToken token)
     {
-        var settings = new UnpackSettings(archive, file, output, xmlFormat, false, false, force);
+        var settings = new UnpackSettings(archive, file, output, xmlFormat, false, false, false, force);
         var archiver = context.GetHost().Services.GetRequiredService<Archiver>();
         await archiver.Unpack(settings, token);
         return 0;

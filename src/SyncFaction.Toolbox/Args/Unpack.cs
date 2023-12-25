@@ -26,6 +26,13 @@ public class Unpack : Command
         },
         $"unpack nested archives recursively in default subfolder ({Archiver.DefaultDir})");
 
+    private readonly Option<bool> textures = new(new[]
+        {
+            "-t",
+            "--textures"
+        },
+        $"unpack cpeg_pc/cvbm_pc/gpeg_pc/gvbm_pc texture containers");
+
     private readonly Option<bool> metadata = new(new[]
         {
             "-m",
@@ -46,14 +53,15 @@ public class Unpack : Command
         AddArgument(outputArg);
         AddOption(xmlFormat);
         AddOption(recursive);
+        AddOption(textures);
         AddOption(metadata);
         AddOption(force);
         Handler = CommandHandler.Create(Handle);
     }
 
-    private async Task<int> Handle(string archive, string output, bool xmlFormat, bool recursive, bool metadata, bool force, InvocationContext context, CancellationToken token)
+    private async Task<int> Handle(string archive, string output, bool xmlFormat, bool recursive, bool textures, bool metadata, bool force, InvocationContext context, CancellationToken token)
     {
-        var settings = new UnpackSettings(archive, "*", output, xmlFormat, recursive, metadata, force);
+        var settings = new UnpackSettings(archive, "*", output, xmlFormat, recursive, textures, metadata, force);
         var archiver = context.GetHost().Services.GetRequiredService<Archiver>();
         await archiver.Unpack(settings, token);
         return 0;

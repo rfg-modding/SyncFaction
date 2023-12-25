@@ -41,26 +41,7 @@ public sealed class VppWriter : IDisposable
 
     public async Task WriteAll(Stream s, CancellationToken token)
     {
-        if (!s.CanSeek)
-        {
-            throw new ArgumentException($"Need seekable stream, got {s}", nameof(s));
-        }
-
-        if (!s.CanWrite)
-        {
-            throw new ArgumentException($"Need writable stream, got {s}", nameof(s));
-        }
-
-        if (s.Position != 0)
-        {
-            throw new ArgumentException($"Expected start of stream, got position = {s.Position}", nameof(s));
-        }
-
-        if (s.Length != 0)
-        {
-            throw new ArgumentException($"Expected empty stream, got length = {s.Length}", nameof(s));
-        }
-
+        Utils.CheckStream(s);
         CheckEntries(token);
 
         // this is only to get entries block size. offsets and sizes are not computed yet
@@ -76,18 +57,18 @@ public sealed class VppWriter : IDisposable
         var headerBlockSize = 2048;
 
         // occupy space for later overwriting
-        await WriteZeroes(s, headerBlockSize + entriesBlockSize + entryNamesBlockSize, token);
+        await Utils.WriteZeroes(s, headerBlockSize + entriesBlockSize + entryNamesBlockSize, token);
 
         var (dataSize, dataCompressedSize) = await WriteDataDetectProfile(s, token);
 
         var headerBlock = await GetHeader(s.Length, fakeEntriesBlock.Length, entryNamesBlock.Length, dataSize, dataCompressedSize, token);
         var realEntriesBlock = await GetEntries(token);
         s.Position = 0;
-        await Write(s, headerBlock, token);
-        await Write(s, realEntriesBlock, token);
-        await WriteZeroes(s, entriesPad, token);
-        await Write(s, entryNamesBlock, token);
-        await WriteZeroes(s, entryNamesPad, token);
+        await Utils.Write(s, headerBlock, token);
+        await Utils.Write(s, realEntriesBlock, token);
+        await Utils.WriteZeroes(s, entriesPad, token);
+        await Utils.Write(s, entryNamesBlock, token);
+        await Utils.WriteZeroes(s, entryNamesPad, token);
     }
 
     public void CheckEntries(CancellationToken token)
@@ -133,13 +114,13 @@ public sealed class VppWriter : IDisposable
             var compressedDataSize = logicalFile.CompressedSize;
             var hash = CircularHash(logicalFile.Name);
 
-            await WriteUint4(ms, nameOffset, token);
-            await WriteZeroes(ms, 4, token);
-            await WriteUint4(ms, dataOffset, token);
-            await Write(ms, hash, token);
-            await WriteUint4(ms, logicalFile.Content.Length, token);
-            await WriteUint4(ms, compressedDataSize, token);
-            await WriteZeroes(ms, 4, token);
+            await Utils.WriteUint4(ms, nameOffset, token);
+            await Utils.WriteZeroes(ms, 4, token);
+            await Utils.WriteUint4(ms, dataOffset, token);
+            await Utils.Write(ms, hash, token);
+            await Utils.WriteUint4(ms, logicalFile.Content.Length, token);
+            await Utils.WriteUint4(ms, compressedDataSize, token);
+            await Utils.WriteZeroes(ms, 4, token);
             currentNameOffset += logicalFile.NameCString.Value.Length; // names just go one after another
         }
 
@@ -176,7 +157,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         foreach (var logicalFile in logicalFiles)
         {
             token.ThrowIfCancellationRequested();
-            await Write(ms, logicalFile.NameCString.Value, token);
+            await Utils.Write(ms, logicalFile.NameCString.Value, token);
         }
 
         return ms.ToArray();
@@ -189,12 +170,12 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         */
         var buffer = new byte[2048];
         await using var ms = new MemoryStream(buffer);
-        await Write(ms, HeaderMagic, token);
-        await Write(ms, HeaderVersion, token);
-        await WriteString(ms, "            Packed           with         SyncFaction            ", 65, token);
-        await WriteString(ms, $"           code by           rast         specs  by         moneyl       parsed with      kaitai.io     special thanks       Camo                                          Read The         Martian     Chronicles from  Ray Bradbury.   I liked them.         ", 256, token);
-        await WriteZeroes(ms, 3, token);
-        await Write(ms,
+        await Utils.Write(ms, HeaderMagic, token);
+        await Utils.Write(ms, HeaderVersion, token);
+        await Utils.WriteString(ms, "            Packed           with         SyncFaction            ", 65, token);
+        await Utils.WriteString(ms, $"           code by           rast         specs  by         moneyl       parsed with      kaitai.io     special thanks       Camo                                          Read The         Martian     Chronicles from  Ray Bradbury.   I liked them.         ", 256, token);
+        await Utils.WriteZeroes(ms, 3, token);
+        await Utils.Write(ms,
             new byte[]
             {
                 (byte) mode,
@@ -203,13 +184,13 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
                 0
             },
             token);
-        await WriteZeroes(ms, 4, token);
-        await WriteUint4(ms, logicalFiles.Count, token);
-        await WriteUint4(ms, totalSize, token);
-        await WriteUint4(ms, entryBlockLength, token);
-        await WriteUint4(ms, nameBlockLength, token);
-        await WriteUint4(ms, dataBlockLength, token);
-        await WriteUint4(ms, compDataBlockLength, token);
+        await Utils.WriteZeroes(ms, 4, token);
+        await Utils.WriteUint4(ms, logicalFiles.Count, token);
+        await Utils.WriteUint4(ms, totalSize, token);
+        await Utils.WriteUint4(ms, entryBlockLength, token);
+        await Utils.WriteUint4(ms, nameBlockLength, token);
+        await Utils.WriteUint4(ms, dataBlockLength, token);
+        await Utils.WriteUint4(ms, compDataBlockLength, token);
         return buffer;
     }
 
@@ -269,7 +250,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
                     }
                     else
                     {
-                        await WriteStream(output, logicalFile.CompressedContent, token);
+                        await Utils.WriteStream(output, logicalFile.CompressedContent, token);
                     }
 
                     logicalFile.CompressedSize = (uint) (output.Position - posBefore);
@@ -277,7 +258,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
                 }
                 else
                 {
-                    await WriteStream(output, logicalFile.Content, token);
+                    await Utils.WriteStream(output, logicalFile.Content, token);
                     await output.FlushAsync(token);
                     offset += (uint) logicalFile.Content.Length;
                     if (compressOutput)
@@ -291,7 +272,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
                 {
                     // align if not last entry
                     var padSize = RfgVpp.GetPadSize(offset, individualAlignment, false);
-                    await WriteZeroes(output, padSize, token);
+                    await Utils.WriteZeroes(output, padSize, token);
                     await output.FlushAsync(token);
                     offset += (uint) padSize;
                     uncompressedSize += (uint) padSize; // TODO is this legit?
@@ -306,41 +287,6 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
             ? (uint) delta
             : 0xFFFFFFu;
         return (uncompressedSize, compressedSize);
-    }
-
-    private async Task WriteStream(Stream stream, Stream src, CancellationToken token) => await src.CopyToAsync(stream, token);
-
-    private async Task Write(Stream stream, byte[] value, CancellationToken token) => await stream.WriteAsync(value, token);
-
-    private async Task WriteZeroes(Stream stream, int count, CancellationToken token)
-    {
-        if (count == 0)
-        {
-            return;
-        }
-
-        var value = new byte[count];
-        await stream.WriteAsync(value, token);
-    }
-
-    private async Task WriteUint4(Stream stream, long value, CancellationToken token) => await Write(stream, BitConverter.GetBytes((uint) value), token);
-
-    private async Task WriteUint4(Stream stream, int value, CancellationToken token) => await Write(stream, BitConverter.GetBytes((uint) value), token);
-
-    private async Task WriteString(Stream stream, string value, int targetSize, CancellationToken token)
-    {
-        var chars = Encoding.ASCII.GetBytes(value + "\0");
-        var fixedSizeChars = GetArrayOfFixedSize(chars, targetSize);
-        // string must always end with \0 character!
-        fixedSizeChars[targetSize - 1] = 0;
-        await stream.WriteAsync(fixedSizeChars, token);
-    }
-
-    private byte[] GetArrayOfFixedSize(byte[] source, int targetSize)
-    {
-        var destination = new byte[targetSize];
-        Array.Copy(source, destination, Math.Min(source.Length, destination.Length));
-        return destination;
     }
 
     public static byte[] CircularHash(string input)

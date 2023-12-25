@@ -183,8 +183,6 @@ public partial class RfgVpp
         }
     }
 
-    public static string ToHexString(byte[] bytes, string separator = "") => BitConverter.ToString(bytes).Replace("-", separator);
-
     public static int GetPadSize(long dataSize, int padTo, bool isLast)
     {
         if (padTo == 0)
@@ -308,7 +306,7 @@ comp data sz: [{LenCompressedData}]
             $@"EntryData:
 index:       [{I}]
 name:        [{XName}]
-hash:        [{ToHexString(XNameHash)}]
+hash:        [{Utils.ToHexString(XNameHash)}]
 data length: [{XLenData}]
 comp length: [{XLenCompressedData}]
 data offset: [{XDataOffset}] (broken if zlib)
@@ -326,7 +324,7 @@ is last: [{IsLast}]
     {
         public override string ToString() =>
             $@"Entry:
-hash:        [{ToHexString(NameHash)}]
+hash:        [{Utils.ToHexString(NameHash)}]
 data length: [{LenData}]
 comp length: [{LenCompressedData}]
 data offset: [{DataOffset}] (may be broken)

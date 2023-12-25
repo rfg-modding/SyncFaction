@@ -9,8 +9,10 @@ using NLog.Extensions.Logging;
 using NLog.Filters;
 using NLog.Layouts;
 using NLog.Targets;
+using NLog.Targets.Wrappers;
 using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Services;
+using SyncFaction.Packer.Services.Peg;
 using SyncFaction.Toolbox;
 using SyncFaction.Toolbox.Args;
 
@@ -19,7 +21,9 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
             .ConfigureServices((_, services) =>
             {
                 services.AddTransient<IVppArchiver, VppArchiver>();
+                services.AddTransient<IPegArchiver, PegArchiver>();
                 services.AddTransient<Archiver>();
+                services.AddTransient<ImageConverter>();
                 services.AddTransient<XmlHelper>();
                 services.AddLogging(x =>
                 {
@@ -27,9 +31,15 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
 
                     var config = new LoggingConfiguration();
 
+                    var layout = Layout.FromString("${date:format=HH\\:mm\\:ss} ${pad:padding=5:inner=${level:uppercase=true}} ${message}${onexception:${newline}${exception}}");
                     var console = new ConsoleTarget("console");
-                    console.Layout = Layout.FromString("${date:format=HH\\:MM\\:ss} ${message}");
-                    var rule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, console);
+                    console.Layout = layout;
+                    var rule1 = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, new AsyncTargetWrapper(console, 10000, AsyncTargetWrapperOverflowAction.Discard));
+
+                    var file = new FileTarget("file");
+                    file.FileName = ".syncfaction.toolbox.log";
+                    file.Layout = layout;
+                    var rule2 = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, new AsyncTargetWrapper(file, 10000, AsyncTargetWrapperOverflowAction.Grow));
 
                     var filterRule = new LoggingRule("*", NLog.LogLevel.Trace, NLog.LogLevel.Off, new NullTarget());
                     filterRule.Filters.Add(new ConditionBasedFilter
@@ -49,13 +59,25 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
                     });
 
                     config.AddRule(filterRule);
-                    config.AddRule(rule);
+                    config.AddRule(rule1);
+                    config.AddRule(rule2);
 
                     x.AddNLog(config);
                 });
             })
             .UseCommandHandler<AppRootCommand, AppRootCommand.CommandHandler>())
+    .AddMiddleware(async (context, next) =>
+    {
+        try
+        {
+            await next.Invoke(context);
+        }
+        catch (Exception e)
+        {
+            var log = context.GetHost().Services.GetRequiredService<ILogger<Program>>();
+            log.LogError(e, "Failed!");
+        }
+    })
     .UseDefaults()
     .Build();
-
 await runner.InvokeAsync(args);
