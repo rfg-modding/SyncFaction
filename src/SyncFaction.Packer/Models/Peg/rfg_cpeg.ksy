@@ -86,7 +86,7 @@ types:
         doc: Always 1
       - id: flags
         type: u2
-        doc: Only 3 values are actually used: no flags, srgb, unknown9. No multiple flags!
+        doc: Only 3 values are actually used: no flags, srgb, has_anim_tiles. No multiple flags!
       - id: name_offset
         type: u4
         doc: Entry name byte offset inside entry names block. Some files have garbage values

@@ -96,7 +96,7 @@ public class PegWriter : IDisposable
         {
             token.ThrowIfCancellationRequested();
             logicalTexture.NameOffset = (int)ms.Position;
-            await Utils.Write(ms, logicalTexture.NameCString, token);
+            await Utils.Write(ms, logicalTexture.GetNameCString(), token);
         }
 
         return ms.ToArray();

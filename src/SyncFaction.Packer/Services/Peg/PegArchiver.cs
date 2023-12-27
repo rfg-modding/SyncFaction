@@ -55,7 +55,7 @@ public class PegArchiver : IPegArchiver
             return (null, null);
         }
 
-        var first = ext.StartsWith("c");
+        var first = ext.StartsWith(".c");
         return first ? (input, pair) : (pair, input);
     }
 }

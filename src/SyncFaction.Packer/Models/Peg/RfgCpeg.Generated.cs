@@ -166,7 +166,7 @@ namespace SyncFaction.Packer.Models.Peg
             public byte[] NumberOfFrames { get { return _numberOfFrames; } }
 
             /// <summary>
-            /// Only 3 values are actually used: no flags, srgb, unknown9. No multiple flags!
+            /// Only 3 values are actually used: no flags, srgb, has_anim_tiles. No multiple flags!
             /// </summary>
             public ushort Flags { get { return _flags; } }
 

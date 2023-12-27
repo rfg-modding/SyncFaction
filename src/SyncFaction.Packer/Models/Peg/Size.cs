@@ -4,6 +4,6 @@ public record Size(int Width, int Height)
 {
     public override string ToString()
     {
-        return $"w={Width}, h={Height}";
+        return $"({Width}x{Height})";
     }
 }

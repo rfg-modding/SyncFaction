@@ -13,7 +13,7 @@ public record LogicalTextureArchive(
 {
     // TODO: append
 
-    public void Replace(string name, Image<Bgra32> newImage)
+    public void Replace(string name, Image<Rgba32> newImage)
     {
         throw new NotImplementedException("TODO: find dds encoder and figure out parameters");
         var existing = LogicalTextures.Single(x => x.Name == name);

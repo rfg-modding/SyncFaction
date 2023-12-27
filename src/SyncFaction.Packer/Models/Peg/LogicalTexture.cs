@@ -21,7 +21,6 @@ public record LogicalTexture(
     private readonly int remainder = (int) Data.Length % Align;
     public int PadSize => remainder > 0 ? Align - remainder : 0;
     public int TotalSize => (int)Data.Length + PadSize;
-
-    public byte[] NameCString => Encoding.ASCII.GetBytes(Name + "\0");
     public int NameOffset { get; internal set; } = NameOffset;
+    public byte[] GetNameCString() => Encoding.ASCII.GetBytes(Name + "\0");
 }
