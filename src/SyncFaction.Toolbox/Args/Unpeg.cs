@@ -4,6 +4,10 @@ using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.Logging;
+using NLog.Fluent;
+using SixLabors.ImageSharp.Formats.Png;
 using SyncFaction.Packer.Models.Peg;
 using SyncFaction.Packer.Services.Peg;
 
@@ -11,7 +15,7 @@ namespace SyncFaction.Toolbox.Args;
 
 public class Unpeg : Command
 {
-    private readonly Argument<string> nameArg = new("name", "peg name to unpack, two files are read: cpeg_pc and gpeg_pc");
+    private readonly Argument<string> pathArg = new("path", "path to look for pegs");
     private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultDir, "output path");
 
     private readonly Option<bool> metadata = new(new[]
@@ -28,30 +32,47 @@ public class Unpeg : Command
         },
         "overwrite output if exists");
 
-    public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "Extract peg to dir")
+    public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "Read peg info")
     {
-        AddArgument(nameArg);
-        AddArgument(outputArg);
-        AddOption(metadata);
-        AddOption(force);
+        AddArgument(pathArg);
+        //AddArgument(outputArg);
+        //AddOption(metadata);
+        //AddOption(force);
         Handler = CommandHandler.Create(Handle);
     }
 
-    private async Task<int> Handle(string name, string output, bool xmlFormat, bool recursive, bool metadata, bool force, InvocationContext context, CancellationToken token)
+    private async Task<int> Handle(string path, InvocationContext context, CancellationToken token)
     {
-        var path = Path.GetDirectoryName(name);
-        var nameNoExt = Path.GetFileNameWithoutExtension(name);
-        //var settings = new UnpackSettings(nameNoExt, "*", output, xmlFormat, recursive, metadata, force);
-        var archiver = context.GetHost().Services.GetRequiredService<PegArchiver>();
-        Console.WriteLine(name);
-        Console.WriteLine(path);
-        Console.WriteLine(nameNoExt);
-        var cpu = new FileInfo(Path.Combine(path, nameNoExt + ".cpeg_pc")).OpenRead();
-        var gpu = new FileInfo(Path.Combine(path, nameNoExt + ".gpeg_pc")).OpenRead();
-        var logicalTextureArchive = await archiver.UnpackPeg(cpu, gpu, nameNoExt, token);
-        Console.WriteLine(JsonSerializer.Serialize(logicalTextureArchive, new JsonSerializerOptions(){WriteIndented = true}));
+        var absPath = new DirectoryInfo(path).FullName;
+        Console.WriteLine(absPath);
+        var services = context.GetHost().Services;
+        var log = services.GetRequiredService<ILogger<Unpeg>>();
+        var archiver = services.GetRequiredService<IPegArchiver>();
 
-        var outputDir = new DirectoryInfo(output);
+        var converter = new ImageConverter(services.GetRequiredService<ILogger<ImageConverter>>());
+        var documentMatcher = new Matcher(StringComparison.OrdinalIgnoreCase);
+        documentMatcher.AddInclude("**/*.cvbm_pc");
+        documentMatcher.AddInclude("**/*.cpeg_pc");
+        var paths = documentMatcher.GetResultsInFullPath(absPath).ToList();
+        foreach (var filePath in paths)
+        {
+            token.ThrowIfCancellationRequested();
+            var file = new FileInfo(filePath);
+            if (!file.Exists)
+            {
+                // skip dirs
+                continue;
+            }
+
+            await GetStats(filePath, archiver, converter, log, token);
+
+        }
+
+
+        return 0;
+
+        /*
+        var outputDir = new DirectoryInfo(null);
         if (!outputDir.Exists)
         {
             outputDir.Create();
@@ -59,8 +80,6 @@ public class Unpeg : Command
         }
 
         var tasks = new List<Task>();
-        var converter = new ImageConverter();
-
         foreach (var logicalTexture in logicalTextureArchive.LogicalTextures)
         {
             var newName = Path.ChangeExtension(logicalTexture.Name, ".png");
@@ -70,7 +89,6 @@ public class Unpeg : Command
                 throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
             }
             tasks.Add(Write(logicalTexture, outputFile, converter, token));
-
         }
 
         await Task.WhenAll(tasks);
@@ -82,17 +100,75 @@ public class Unpeg : Command
         await using var g = outputGpu.OpenWrite();
         await writer.WriteAll(c, g, token);
 
-        return 0;
+        return 0;*/
+    }
+
+    private async Task GetStats(string filePath, IPegArchiver archiver, ImageConverter converter, ILogger<Unpeg> log, CancellationToken token)
+    {
+        var nameNoExt = Path.GetFileNameWithoutExtension(filePath);
+
+        var (cpuFile, gpuFile) = archiver.GetPairFiles(new FileInfo(filePath));
+        if (cpuFile is null || gpuFile is null)
+        {
+            throw new InvalidOperationException("Can not find pair cpu+gpu files");
+        }
+        log.LogDebug("cpu {cpu}, gpu {gpu}", cpuFile.FullName, gpuFile.FullName);
+
+        await using var cpu = cpuFile.OpenRead();
+        await using var gpu = gpuFile.OpenRead();
+        var logicalTextureArchive = await archiver.UnpackPeg(cpu, gpu, nameNoExt, token);
+
+
+        foreach (var logicalTexture in logicalTextureArchive.LogicalTextures)
+        {
+            token.ThrowIfCancellationRequested();
+            log.LogInformation("{file} {texture}", cpuFile.FullName, logicalTexture);
+
+            if (logicalTexture.Name.Contains("armband_n.tga"))
+            {
+                await Write(logicalTexture, new FileInfo($"_{logicalTexture.Name}.png"), converter, token);
+                return;
+            }
+
+            //var png = converter.Decode(logicalTexture);
+            //var result = converter.Encode(png, logicalTexture);
+            //var pngResult = converter.Decode(logicalTexture with {Data = result});
+
+            //var encoder = new PngEncoder();
+
+            //using var raw = File.OpenWrite($"{logicalTexture.Name}.1.raw");
+            //logicalTexture.Data.Position = 0;
+            //logicalTexture.Data.CopyTo(raw);
+
+            //using var png1 = File.OpenWrite($"_{logicalTexture.Name}.1.png");
+            //await png.SaveAsync(png1, encoder, token);
+
+            /*using var conv = File.OpenWrite($"{logicalTexture.Name}.2conv");
+            result.Position = 0;
+            result.CopyTo(conv);
+
+            using var png2 = File.OpenWrite($"{logicalTexture.Name}.2.png");
+            await pngResult.SaveAsync(png2, encoder, token);*/
+
+        }
+
     }
 
     private async Task Write(LogicalTexture logicalTexture, FileInfo outputFile, ImageConverter imageConverter, CancellationToken token)
     {
-        //return;
         var rawFile = new FileInfo(outputFile.FullName + ".raw");
         await using var s = rawFile.OpenWrite();
         await logicalTexture.Data.CopyToAsync(s, token);
         logicalTexture.Data.Seek(0, SeekOrigin.Begin);
-        var image = imageConverter.Decode(logicalTexture);
+
+        var ddsFile = new FileInfo(outputFile.FullName + ".raw.dds");
+        await using var d = ddsFile.OpenWrite();
+        var header = await imageConverter.BuildHeader(logicalTexture, token);
+        await header.CopyToAsync(d, token);
+        await logicalTexture.Data.CopyToAsync(d, token);
+        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+
+        var image = imageConverter.DecodeFirstFrame(logicalTexture);
         await using var pngOut = outputFile.OpenWrite();
         await imageConverter.WritePngFile(image, pngOut, token);
     }

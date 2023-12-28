@@ -245,7 +245,7 @@ public class Archiver
         foreach (var logicalTexture in peg.LogicalTextures.Where(x => matchedFiles.Contains(x.Name)))
         {
             var name = $"{logicalTexture.Order:D4} {logicalTexture.Name}"; // NOTE: names may be non-unique
-            var outputFile = new FileInfo(Path.Combine(outputDir.FullName, name));
+            var outputFile = new FileInfo(Path.ChangeExtension(Path.Combine(outputDir.FullName, name), ".dds"));
             if (outputFile.Exists)
             {
                 throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
@@ -293,13 +293,15 @@ public class Archiver
     private async Task ExtractRawTexture(LogicalTexture logicalTexture, FileInfo outputFile, CancellationToken token)
     {
         await using var fileStream = outputFile.OpenWrite();
+        var header = await imageConverter.BuildHeader(logicalTexture, token);
+        await header.CopyToAsync(fileStream, token);
         await logicalTexture.Data.CopyToAsync(fileStream, token);
     }
 
     private async Task ExtractPngTexture(LogicalTexture logicalTexture, FileInfo outputFile, CancellationToken token)
     {
         await using var fileStream = outputFile.OpenWrite();
-        var image = imageConverter.Decode(logicalTexture);
+        var image = imageConverter.DecodeFirstFrame(logicalTexture);
         await imageConverter.WritePngFile(image, fileStream, token);
     }
 

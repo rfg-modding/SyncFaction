@@ -80,4 +80,5 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
     })
     .UseDefaults()
     .Build();
+//args = new[] { "unpeg", @"c:\vault\rfg\unpack_all" };
 await runner.InvokeAsync(args);
