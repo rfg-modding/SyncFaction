@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using DirectXTexNet;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
@@ -50,6 +49,7 @@ public class ImageConverter
         {
             scratchImage = scratchImage.GenerateMipMaps(TEX_FILTER_FLAGS.DEFAULT, logicalTexture.MipLevels);
             disposables.Add(scratchImage);
+            log.LogDebug("DDS bytes with generated mipmaps: {pixels}", scratchImage.GetPixelsSize());
         }
         var (dxFormat, compressed, _, _) = GetDxFormat(logicalTexture.Format, logicalTexture.Flags);
         if (compressed)
@@ -64,15 +64,23 @@ public class ImageConverter
             disposables.Add(scratchImage);
         }
 
-
         var dxSize = (int)scratchImage.GetPixelsSize(); // total length with all mips
-        var remainder = dxSize % logicalTexture.Align;
-        var padding = remainder > 0 ? logicalTexture.Align - remainder : 0;
+        log.LogDebug("DDS bytes after compression: {pixels}", dxSize);
+        // TODO pad to 16 always?
+        var dataAlign = 16;
+        var remainder = dxSize % dataAlign;
+        var padding = remainder > 0 ? dataAlign - remainder : 0;
         var totalSize = dxSize + padding;
+        log.LogDebug("DDS DATA padding {padding}, totalSize {totalSize}", padding, totalSize);
         // TODO maybe return unmanaged memory stream and make 1 less copy?
         var pixels = scratchImage.GetPixels();
-        var resultSpan = new Span<byte>(pixels.ToPointer(), totalSize);
-        var result = new MemoryStream(resultSpan.ToArray());
+        var pixelSpan = new Span<byte>(pixels.ToPointer(), dxSize);
+        var result = new MemoryStream(dxSize);
+        result.Write(pixelSpan);
+        var padSpan = new byte[padding].AsSpan();
+        padSpan.Fill(0);
+        result.Write(padSpan);
+        result.Position = 0;
         return result;
     }
 
@@ -116,75 +124,9 @@ public class ImageConverter
         return SixLabors.ImageSharp.Image.LoadPixelData<Rgba32>(span, logicalTexture.Size.Width, logicalTexture.Size.Height);
     }
 
-    public unsafe Image<Rgba32> Decode1(LogicalTexture logicalTexture)
-    {
-        using var disposables = new Disposables();
-        var pointer = new DisposablePtr(logicalTexture.TotalSize);
-        disposables.Add(pointer);
-        using (var writeStream = new UnmanagedMemoryStream((byte*) pointer.value.ToPointer(), logicalTexture.TotalSize, logicalTexture.TotalSize, FileAccess.Write))
-        {
-            logicalTexture.Data.CopyTo(writeStream);
-        }
-
-        var (dxFormat, compressed, _, _) = GetDxFormat(logicalTexture.Format, logicalTexture.Flags);
-        TexHelper.Instance.ComputePitch(dxFormat, logicalTexture.Size.Width, logicalTexture.Size.Height, out var rowPitch, out _, CP_FLAGS.NONE);
-        var dxImage = new Image(logicalTexture.Size.Width, logicalTexture.Size.Height, dxFormat, rowPitch, logicalTexture.TotalSize, pointer.value, null);
-        var metadata = new TexMetadata(logicalTexture.Size.Width, logicalTexture.Size.Height, 1, 1, 1, 0, 0, dxFormat, TEX_DIMENSION.TEXTURE2D);
-        var scratchImage = TexHelper.Instance.InitializeTemporary(new[] {dxImage}, metadata);
-        disposables.Add(scratchImage);
-        if (compressed)
-        {
-            // block-compressed images can't be converted and have to be decompressed instead
-            scratchImage = scratchImage.Decompress(0, DXGI_FORMAT.R8G8B8A8_UNORM);
-            disposables.Add(scratchImage);
-        }
-
-        if (scratchImage.GetMetadata().Format != DXGI_FORMAT.R8G8B8A8_UNORM)
-        {
-            // maybe it was uncompressed, eg r8g8b8a8_unorm_srgb. convert it to regular colorspace then
-            scratchImage = scratchImage.Convert(0, DXGI_FORMAT.R8G8B8A8_UNORM, TEX_FILTER_FLAGS.DEFAULT, 0.5f);
-            disposables.Add(scratchImage);
-        }
-
-        var dxOutImage = scratchImage.GetImage(0);
-        if (dxOutImage.RowPitch != logicalTexture.Size.Width*4)
-        {
-            log.LogWarning("DirectX texture [{name}] pitch {pitch} != width {width} * 4. Possible data corruption when converting to PNG", logicalTexture.Name, dxOutImage.RowPitch, logicalTexture.Size.Width);
-        }
-
-        var byteCount = logicalTexture.Size.Width * logicalTexture.Size.Height * 4; // TODO what about pitch?
-        var span = new Span<byte>(dxOutImage.Pixels.ToPointer(), byteCount);
-        // TODO is it a copy? Can other stuff be disposed?
-        return SixLabors.ImageSharp.Image.LoadPixelData<Rgba32>(span, logicalTexture.Size.Width, logicalTexture.Size.Height);
-    }
-
-    private class Disposables : List<IDisposable>, IDisposable
-    {
-        public void Dispose()
-        {
-            Reverse();
-            foreach (var item in this)
-            {
-                item.Dispose();
-            }
-        }
-    }
-
-    private class DisposablePtr : IDisposable
-    {
-        public DisposablePtr(int length)
-        {
-            value = Marshal.AllocHGlobal(length);
-        }
-
-        public readonly IntPtr value;
-
-        public void Dispose()
-        {
-            Marshal.FreeHGlobal(value);
-        }
-    }
-
+    /// <summary>
+    /// DDS header: 128 bytes for BC1/BC3, 148 bytes for SRGB variants and RGBA
+    /// </summary>
     public async Task<Stream> BuildHeader(LogicalTexture logicalTexture, CancellationToken token)
     {
         var ms = new MemoryStream();
@@ -243,39 +185,8 @@ public class ImageConverter
             RfgCpeg.Entry.BitmapFormat.Pc8888 => flags.HasFlag(TextureFlags.Srgb) ? new DxFormatInfo(DXGI_FORMAT.R8G8B8A8_UNORM_SRGB, false, true, 1) : new DxFormatInfo(DXGI_FORMAT.R8G8B8A8_UNORM, false, true, 1),
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported texture format")
         };
-
-    record DxFormatInfo(DXGI_FORMAT DxFormat, bool Compressed, bool Extended, int CompressionRatio);
-
-    [Flags]
-    public enum HeaderFlags : uint
-    {
-        Caps =0x1,
-        Height = 0x2,
-        Width = 0x4,
-        PitchUncompressed = 0x8,
-        PixelFormat =0x1000,
-        MipmapCount =0x20000,
-        LinearSizeCompressed =0x80000,
-        Depth =0x800000,
-        Required = Caps|Height|Width|PixelFormat
-    }
-
-    [Flags]
-    public enum HeaderCaps : uint
-    {
-        Complex =0x8,
-        Mipmap =0x400000,
-        Texture =0x1000,
-    }
-
-    [Flags]
-    public enum PixelFormatFlags : uint
-    {
-        AlphaPixels =0x1,
-        Alpha =0x2,
-        FourCC =0x4,
-        RGB =0x40,
-        YUV =0x200,
-        Luminance =0x20000,
-    }
 }
+/*
+ TODO: colors are off when converted to PNG, especially in normal maps
+
+*/

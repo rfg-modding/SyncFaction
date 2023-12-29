@@ -2,12 +2,15 @@ using System.CommandLine;
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using NLog.Fluent;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 using SyncFaction.Packer.Models.Peg;
 using SyncFaction.Packer.Services.Peg;
 
@@ -32,7 +35,7 @@ public class Unpeg : Command
         },
         "overwrite output if exists");
 
-    public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "Read peg info")
+    public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "TEST: debug peg info and image conversions")
     {
         AddArgument(pathArg);
         //AddArgument(outputArg);
@@ -124,11 +127,7 @@ public class Unpeg : Command
             token.ThrowIfCancellationRequested();
             log.LogInformation("{file} {texture}", cpuFile.FullName, logicalTexture);
 
-            if (logicalTexture.Name.Contains("armband_n.tga"))
-            {
-                await Write(logicalTexture, new FileInfo($"_{logicalTexture.Name}.png"), converter, token);
-                return;
-            }
+            await Write(logicalTexture, converter, log, token);
 
             //var png = converter.Decode(logicalTexture);
             //var result = converter.Encode(png, logicalTexture);
@@ -154,23 +153,100 @@ public class Unpeg : Command
 
     }
 
-    private async Task Write(LogicalTexture logicalTexture, FileInfo outputFile, ImageConverter imageConverter, CancellationToken token)
+    private async Task Write(LogicalTexture logicalTexture, ImageConverter imageConverter, ILogger<Unpeg> log, CancellationToken token)
     {
-        var rawFile = new FileInfo(outputFile.FullName + ".raw");
-        await using var s = rawFile.OpenWrite();
-        await logicalTexture.Data.CopyToAsync(s, token);
-        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+        var name = Path.GetFileNameWithoutExtension(logicalTexture.Name);
+        log.LogInformation("=== {name} ===", name);
+        var pngImage1 = await WriteAndGetPng(logicalTexture, name, imageConverter, log, token);
 
-        var ddsFile = new FileInfo(outputFile.FullName + ".raw.dds");
-        await using var d = ddsFile.OpenWrite();
-        var header = await imageConverter.BuildHeader(logicalTexture, token);
-        await header.CopyToAsync(d, token);
-        await logicalTexture.Data.CopyToAsync(d, token);
-        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+        var roundtripRaw = imageConverter.Encode(pngImage1, logicalTexture);
+        if (roundtripRaw.Position != 0)
+        {
+            throw new InvalidOperationException($"rewind! {logicalTexture}");
+        }
+        var roundtripTexture = logicalTexture with {Data = roundtripRaw};
 
-        var image = imageConverter.DecodeFirstFrame(logicalTexture);
-        await using var pngOut = outputFile.OpenWrite();
-        await imageConverter.WritePngFile(image, pngOut, token);
+        var pngImage2 = await WriteAndGetPng(roundtripTexture, $"{name}_roundtrip", imageConverter, log, token);
+        if (roundtripTexture.Data.Length != logicalTexture.Data.Length)
+        {
+            var diff = roundtripTexture.Data.Length - logicalTexture.Data.Length;
+            if (diff != 8)
+            {
+                throw new InvalidOperationException($"Roundtrip data size is : {roundtripRaw.Length} != {logicalTexture.Data.Length}. {logicalTexture}");
+            }
+            else
+            {
+                log.LogWarning($"{name} roundtrip size diff = 8 (new is bigger)", name);
+            }
+        }
+        var result1 = Compare(pngImage1, pngImage2);
+        log.LogInformation("{name} compare result: {result}", name, result1);
+
+        return;
+        var roundtripRaw2 = imageConverter.Encode(pngImage2, roundtripTexture);
+        var roundtripTexture2 = logicalTexture with {Data = roundtripRaw2};
+        var pngImage3 = await WriteAndGetPng(roundtripTexture2, $"{name}_roundtrip2", imageConverter, log, token);
+        var result2 = Compare(pngImage2, pngImage3);
+        log.LogInformation("{name} compare result: {result}", name, result2);
     }
 
+    private async Task<Image<Rgba32>> WriteAndGetPng(LogicalTexture logicalTexture, string name, ImageConverter imageConverter, ILogger<Unpeg> log, CancellationToken token)
+    {
+        var raw = new FileInfo($"_{name}.raw");
+        log.LogDebug("Writing {name} {size}", raw.Name, logicalTexture.Data.Length);
+        /*await using var s = raw.OpenWrite();
+        await logicalTexture.Data.CopyToAsync(s, token);*/
+        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+
+        var dds = new FileInfo($"_{name}.dds");
+        await using var d = dds.OpenWrite();
+        var header = await imageConverter.BuildHeader(logicalTexture, token);
+        /*await header.CopyToAsync(d, token);
+        await logicalTexture.Data.CopyToAsync(d, token);*/
+        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+
+        var png = new FileInfo($"_{name}.png");
+        var pngImage = imageConverter.DecodeFirstFrame(logicalTexture);
+        /*await using var pngOut = png.OpenWrite();
+        await imageConverter.WritePngFile(pngImage, pngOut, token);*/
+        return pngImage;
+    }
+
+    private CompareResult Compare(Image<Rgba32> image, Image<Rgba32> other)
+    {
+        if (image.Width != other.Width || image.Height != other.Height)
+        {
+            throw new ArgumentException("Image sizes are different");
+        }
+
+        var quantity = image.Width * image.Height;
+        var absoluteError = 0;
+        var pixelErrorCount = 0;
+
+        for (var x = 0; x < image.Width; x++)
+        {
+            for (var y = 0; y < image.Height; y++)
+            {
+                var actualPixel = image[x, y];
+                var expectedPixel = other[x, y];
+
+                var r = Math.Abs(expectedPixel.R - actualPixel.R);
+                var g = Math.Abs(expectedPixel.G - actualPixel.G);
+                var b = Math.Abs(expectedPixel.B - actualPixel.B);
+                var a = Math.Abs(expectedPixel.A - actualPixel.A);
+                absoluteError = absoluteError + r + g + b + a;
+
+                pixelErrorCount += r + g + b + a > 0 ? 1 : 0;
+            }
+        }
+        var meanError = (double)absoluteError / quantity;
+        var pixelErrorPercentage = (double)pixelErrorCount / quantity * 100;
+        return new CompareResult(absoluteError, meanError, pixelErrorCount, pixelErrorPercentage);
+    }
+
+    /// <param name="MeanError">Mean pixel error of absolute pixel error</param>
+    /// <param name="AbsoluteError">Absolute error, counts each color channel on every pixel the delta</param>
+    /// <param name="PixelErrorCount">Number of pixels that differ between images</param>
+    /// <param name="PixelErrorPercentage">Percentage of pixels that differ between images</param>
+    public record CompareResult(int AbsoluteError, double MeanError, int PixelErrorCount, double PixelErrorPercentage);
 }

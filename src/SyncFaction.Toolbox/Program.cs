@@ -25,6 +25,7 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
                 services.AddTransient<Archiver>();
                 services.AddTransient<ImageConverter>();
                 services.AddTransient<XmlHelper>();
+                services.AddTransient<PegWalker>();
                 services.AddLogging(x =>
                 {
                     x.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);

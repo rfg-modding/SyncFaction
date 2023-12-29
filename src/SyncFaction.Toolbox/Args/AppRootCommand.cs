@@ -9,6 +9,7 @@ public class AppRootCommand : RootCommand
     {
         AddCommand(new Unpack());
         AddCommand(new Unpeg());
+        AddCommand(new Repeg());
         //AddCommand(new Pack());
         AddCommand(new Get());
     }

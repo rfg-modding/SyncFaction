@@ -244,8 +244,10 @@ public class Archiver
         var metaEntries = new MetaEntries();
         foreach (var logicalTexture in peg.LogicalTextures.Where(x => matchedFiles.Contains(x.Name)))
         {
-            var name = $"{logicalTexture.Order:D4} {logicalTexture.Name}"; // NOTE: names may be non-unique
-            var outputFile = new FileInfo(Path.ChangeExtension(Path.Combine(outputDir.FullName, name), ".dds"));
+            var fileName = Path.GetFileNameWithoutExtension(logicalTexture.Name);
+            // NOTE: names are non-unique
+            var name = $"{logicalTexture.Order:D4} {fileName}";
+            var outputFile = new FileInfo($"{Path.Combine(outputDir.FullName, name)}.dds");
             if (outputFile.Exists)
             {
                 throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
@@ -253,11 +255,11 @@ public class Archiver
 
             await ExtractRawTexture(logicalTexture, outputFile, token);
             outputFile.Refresh();
-            var eHash = await ComputeHash(outputFile);
-            metaEntries.Add(name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, eHash));
+            var dHash = await ComputeHash(outputFile);
+            metaEntries.Add(name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, dHash));
 
             logicalTexture.Data.Seek(0, SeekOrigin.Begin);
-            var pngFile = new FileInfo(Path.ChangeExtension(Path.Combine(outputDir.FullName, name), ".png"));
+            var pngFile = new FileInfo($"{Path.Combine(outputDir.FullName, name)}.png");
             if (pngFile.Exists)
             {
                 throw new InvalidOperationException($"File [{pngFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
@@ -320,6 +322,7 @@ public class Archiver
     }
 
     public const string DefaultDir = ".unpack";
+    public const string DefaultOutputDir = ".output";
     public const string MetadataFile = ".metadata";
 
     public static readonly ImmutableHashSet<string> KnownArchiveExtensions = new HashSet<string>
