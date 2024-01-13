@@ -41,5 +41,5 @@ public static class Extensions
 
     public const string HolderName = "syncfaction_holder";
 
-    public static readonly string NoOpName = "syncfaction_noop";
+    public static readonly string NopName = "syncfaction_nop";
 }

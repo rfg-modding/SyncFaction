@@ -17,6 +17,12 @@ public partial class ListBox : Input
     [XmlAttribute]
     public bool AllowCustom { get; set; } = true;
 
+    /// <summary>
+    /// no-op option, experimental
+    /// </summary>
+    [XmlAttribute]
+    public bool AllowNop { get; set; } = true;
+
     [XmlAttribute]
     public string SameOptionsAs { get; set; }
 
@@ -43,6 +49,11 @@ public partial class ListBox : Input
         foreach (var xmlOption in XmlOptions)
         {
             yield return xmlOption;
+        }
+
+        if (AllowNop)
+        {
+            yield return new NopOption();
         }
 
         if (AllowCustom)

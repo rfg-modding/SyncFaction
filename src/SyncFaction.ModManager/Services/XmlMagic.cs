@@ -80,6 +80,13 @@ public class XmlMagic
     private void MergeRecursive(XmlNode source, XmlNode target, string? action, bool copyAttrs)
     {
         log.LogTrace("Merging [{src}] into [{dst}], action [{action}], copyAttrs [{copyAttrs}]", source.Name, target.Name, action, copyAttrs);
+
+        if (xmlHelper.GetNodeOrSubnodeText(source)?.Value?.Contains(XmlModels.Extensions.NopName, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            log.LogTrace("Skipped merging [{src}] as no-op, not descending into [{dst}]", source.Name, target.Name);
+            return;
+        }
+
         if (copyAttrs)
         {
             xmlHelper.CopyAttrs(source, target);
@@ -141,6 +148,12 @@ public class XmlMagic
     /// </summary>
     private void AddNew(XmlNode node, XmlNode target)
     {
+        if (xmlHelper.GetNodeOrSubnodeText(node)?.Value?.Contains(XmlModels.Extensions.NopName, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            log.LogTrace("Skipped add new [{src}] as no-op, not descending into [{dst}]", node.Name, target.Name);
+            return;
+        }
+
         switch (node.NodeType)
         {
             case XmlNodeType.Element:
@@ -159,6 +172,12 @@ public class XmlMagic
 
     private void Add(XmlNode node, XmlNode target)
     {
+        if (xmlHelper.GetNodeOrSubnodeText(node)?.Value?.Contains(XmlModels.Extensions.NopName, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            log.LogTrace("Skipped add [{src}] as no-op, not descending into [{dst}]", node.Name, target.Name);
+            return;
+        }
+
         switch (node.NodeType)
         {
             case XmlNodeType.Element:
@@ -175,6 +194,12 @@ public class XmlMagic
 
     private void CopyRecursive(XmlNode node, XmlNode target, bool copyAttrs)
     {
+        if (xmlHelper.GetNodeOrSubnodeText(node)?.Value?.Contains(XmlModels.Extensions.NopName, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            log.LogTrace("Skipped copy [{src}] as no-op, not descending into [{dst}]", node.Name, target.Name);
+            return;
+        }
+
         if (copyAttrs)
         {
             xmlHelper.CopyAttrs(node, target);

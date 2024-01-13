@@ -256,7 +256,7 @@ public partial class ModInfo
         foreach (var change in changes)
         {
             var vppPaths = GetPaths(fs, change.File);
-            if (!vppPaths.File.EndsWith(".xtbl", StringComparison.InvariantCultureIgnoreCase))
+            if (!vppPaths.File.EndsWith(".xtbl", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -317,13 +317,13 @@ public partial class ModInfo
         }
 
         var vpp = parts[1];
-        if (vpp.EndsWith(".vpp", StringComparison.InvariantCultureIgnoreCase))
+        if (vpp.EndsWith(".vpp", StringComparison.OrdinalIgnoreCase))
         {
             vpp += "_pc";
             log.LogTrace("Patched .vpp archive extension: [{patched}]", vpp);
         }
 
-        if (!vpp.EndsWith(".vpp_pc", StringComparison.InvariantCultureIgnoreCase))
+        if (!vpp.EndsWith(".vpp_pc", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"modinfo.xml references wrong vpp to edit: [{path}]. path should reference vpp_pc archive");
         }

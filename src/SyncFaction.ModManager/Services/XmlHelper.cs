@@ -53,7 +53,7 @@ public class XmlHelper
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unsupported action")
         };
 
-    private XmlText? GetNodeOrSubnodeText(XmlNode node)
+    public XmlText? GetNodeOrSubnodeText(XmlNode node)
     {
         if (node.NodeType == XmlNodeType.Text)
         {

@@ -119,6 +119,11 @@
                     </TextBlock>
                 </Grid>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type modXml:NopOption}">
+                <TextBlock IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Foreground="DarkGray">
+                    Try to leave default value (not guaranteed)
+                </TextBlock>
+            </DataTemplate>
             <ControlTemplate x:Key="TabControlTemplate" TargetType="TabControl">
                 <DockPanel>
                     <!--<Border BorderThickness="0 2 0 0" BorderBrush="LightGray" DockPanel.Dock="Bottom" />-->

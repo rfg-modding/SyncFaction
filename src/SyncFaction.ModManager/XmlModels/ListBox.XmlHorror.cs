@@ -25,6 +25,27 @@ public partial class ListBox
         set => AllowCustom = value;
     }
 
+    [XmlAttribute(AttributeName = "ALLOWNOP")]
+    public bool AllowNopUppercase
+    {
+        get => AllowNop;
+        set => AllowNop = value;
+    }
+
+    [XmlAttribute(AttributeName = "allownop")]
+    public bool AllowNopLowercase
+    {
+        get => AllowNop;
+        set => AllowNop = value;
+    }
+
+    [XmlAttribute(AttributeName = "allowNop")]
+    public bool AllowNopCamelCase
+    {
+        get => AllowNop;
+        set => AllowNop = value;
+    }
+
     [XmlAttribute(AttributeName = "SAMEOPTIONSAS")]
     public string SameOptionsAsUppercase
     {
