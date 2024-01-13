@@ -217,8 +217,13 @@ public partial class ModInfo
         var fs = WorkDir.FileSystem;
         var relativeModFiles = WorkDir.EnumerateFiles("*", SearchOption.AllDirectories).ToImmutableDictionary(x => fs.Path.GetRelativePath(WorkDir.FullName, x.FullName.ToLowerInvariant()));
 
+        // ignore replaces where "default" was selected
+        var replacesWithoutNops = TypedChanges.OfType<Replace>()
+            .Where(x => x.File != Extensions.NopName && x.NewFile != Extensions.NopName)
+            .ToList();
+
         // map replacements inside vpp to relative paths
-        var references = TypedChanges.OfType<Replace>()
+        var references = replacesWithoutNops
             .Select(x => new
             {
                 vppPath = GetPaths(fs, x.File),
@@ -243,7 +248,7 @@ public partial class ModInfo
         }
 
         var referencedFilesDict = referencedFiles.ToImmutableDictionary(static x => x.vppPath, static x => x.fileInfo!);
-        var replaceOperations = TypedChanges.OfType<Replace>().Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict)).ToList();
+        var replaceOperations = replacesWithoutNops.Select((x, i) => ConvertToOperation(x, i, fs, referencedFilesDict)).ToList();
         var editOperations = TypedChanges.OfType<Edit>().Select((x, i) => ConvertToOperation(x, i, fs)).ToList();
         return new ModInfoOperations(replaceOperations, editOperations);
     }
