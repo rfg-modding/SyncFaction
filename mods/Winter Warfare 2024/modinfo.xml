@@ -1,0 +1,314 @@
+<Mod Name="Winter Warfare 2024">
+    <Author>rast</Author>
+    <Description>Who said there's no New Year on Mars? It's only twice as rare: once in 687 days. So Martians have to party twice as hard!
+
+Arm yourselves with snowballs and explosive gifts for proper celebration.
+	
+Best played on Frost, Downfall, Pinnacle or Fortress.
+
+Changes:
+* Replaced hand grenade with snowball: 2 direct hits to kill, also has splash damage. Snowball is selected as default weapon
+* Replaced remote charge model with gift box. Your friends will have to stick to these
+* Replaced singularity bomb model with VOGEL gift bag. No holidays without plastic bricks!
+* Thermobaric fireworks combined with a homemade christmas tree
+	</Description>
+    <WebLink Name="github">https://github.com/rfg-modding/SyncFaction</WebLink>
+    <Changes>
+        <Edit File="data\table.vpp_pc\decal_info.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+            <Decal_Info>
+                <Name>car_track</Name>
+                <Width>.25</Width>
+				<Length>.25</Length>
+            </Decal_Info>
+        </Edit>
+		<Edit File="data\table.vpp_pc\effects.xtbl">
+			<Effect>
+				<Name>snowball</Name>
+				<visual>wep_bullet_impact_ice</visual>
+				<_Editor>
+					<Category>Entries:Weapons:Impacts - Bullets</Category>
+					</_Editor>
+				<kill_sound_when_done>False</kill_sound_when_done>
+				<sound_follows_effect>True</sound_follows_effect>
+				<vfx_kill_particles>False</vfx_kill_particles>
+				<stop_when_host_destroyed>False</stop_when_host_destroyed>
+				<sound>WEP_MELEE_SLEDGE_DIRT</sound>
+				</Effect>
+		</Edit>
+		<Edit File="data\table.vpp_pc\explosions.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+			<Explosion>
+				<Name>mp_grenade</Name>
+				<Radius>0.1</Radius>
+				<Impulse>100000</Impulse>
+				<Effects>
+					<Element>snowball</Element>
+				</Effects>
+				<human_damage_min>100</human_damage_min>
+				<Human_Damage_Max>200</Human_Damage_Max>
+				<Structural_Damage>5000</Structural_Damage>
+				<Always_Ragdoll>True</Always_Ragdoll>
+			</Explosion>
+			<Explosion>
+				<Name>thermo_rocket</Name>
+				<Duration>1000</Duration>
+				<Effects>
+					<Element>fuel_tank_exp</Element>
+				</Effects>
+			</Explosion>
+		</Edit>
+		<Edit File="data\table.vpp_pc\items_3d.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+			<Item>
+				<Name>grenade</Name>
+				<Mesh>
+					<Filename>rpg_projectile.smeshx</Filename>
+				</Mesh>
+				<Collision_Sound></Collision_Sound>
+				<Touch_Sound></Touch_Sound>
+				<Touch_Sound_2></Touch_Sound_2>
+			</Item>
+			<Item>
+				<Name>aircraft_bomb</Name>
+				<Respawn_Delay>100000</Respawn_Delay>
+				<Spin_Time>10000</Spin_Time>
+				<Item_Flags>
+					<Flag>no_auto_delete</Flag>
+				</Item_Flags>
+			</Item>
+			<Item LIST_ACTION="REPLACE">
+				<!-- TODO how to remove nodes? had to replace singularity_bomb entirely to get rid of <character_mesh> -->
+				<Name>singularity_bomb</Name>
+				<Item_Flags>
+					<Flag>spin</Flag>
+					<Flag>collide_as_box</Flag>
+					<Flag>high_res_map_large</Flag>
+				</Item_Flags>
+				<Spin_Time>5000</Spin_Time>
+				<Touch_Script>give_item</Touch_Script>
+				<Respawn_Delay>60000</Respawn_Delay>
+				<streaming_category>General</streaming_category>
+				<_Editor>
+					<Category>Entries:WeaponEDF</Category>
+				</_Editor>
+				<Touch_Sound>SYS_WEP_AMMO_PICKUP</Touch_Sound>
+				<Touch_Sound_2>SYS_WEP_AMMO_PICKUP</Touch_Sound_2>
+				<Mesh>
+					<Filename>amb_bag.smeshx</Filename>
+				</Mesh>
+			</Item>
+		</Edit>
+		<Edit File="data\table.vpp_pc\rfg_bullet_groups.xtbl" LIST_ACTION="ADD">
+			<Bullet_Group>
+				<Name>snowball</Name>
+				<Default>False</Default>
+				<Effects>
+					<Group>
+						<Material>Flesh</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_flesh_a</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Electronics</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_electric</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Plastic</Material>
+						<Type>Sheet</Type>
+						<Effect>wep_bullet_impact_plastic</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Wood</Material>
+						<Type>Sheet</Type>
+						<Bullet_Hole>Test_decal</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Glass</Material>
+						<Type>Sheet</Type>
+						<Effect>wep_bullet_impact_glass_a</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Carbon</Material>
+						<Type>Sheet</Type>
+						<Effect>wep_bullet_impact_carbon</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Composite</Material>
+						<Type>Sheet</Type>
+						<Effect>wep_bullet_impact_composite</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Terrain</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_dirt</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Stone</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_stone</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Sand</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_sand</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Gravel</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_gravel</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Steel</Material>
+						<Type>Sheet</Type>
+						<Effect>wep_bullet_impact_steelthin</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Steel</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_steelsolid</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Steel</Material>
+						<Type>Fence</Type>
+						<Effect>wep_bullet_impact_steelfence</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Concrete</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_concrete</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Ice</Material>
+						<Type>Solid</Type>
+						<Effect>wep_bullet_impact_ice</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					<Group>
+						<Material>Rubber</Material>
+						<Type>Sheet</Type>
+						<Effect>wep_bullet_impact_steelsolid</Effect>
+						<Bullet_Hole>car_track</Bullet_Hole>
+						</Group>
+					</Effects>
+				<_Editor>
+					<Category>Entries:Bullets</Category>
+					</_Editor>
+			</Bullet_Group>
+		</Edit>
+		<Edit File="data\table.vpp_pc\weapons.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+			<Weapon>
+				<Name>camo_grenade</Name>
+				<Bullet_Group>snowball</Bullet_Group>
+				<Damage_Scaling_Min>
+					<NPC_Damage>250</NPC_Damage>
+					<Player_Damage>250</Player_Damage>
+					<Vehicle_Damage>-1</Vehicle_Damage>
+					<Player_Vehicle_Damage>-1</Player_Vehicle_Damage>
+				</Damage_Scaling_Min>
+				<Damage_Scaling_Max>
+					<NPC_Damage>250</NPC_Damage>
+					<Player_Damage>250</Player_Damage>
+					<Vehicle_Damage>-1</Vehicle_Damage>
+					<Player_Vehicle_Damage>-1</Player_Vehicle_Damage>
+				</Damage_Scaling_Max>
+				<Projectile_Info LIST_ACTION="REPLACE">
+					<Model>grenade</Model>
+					<Start_Speed>20</Start_Speed>
+					<Max_Speed>0</Max_Speed>
+					<Fuse_Time>0</Fuse_Time>
+					<Mass>1</Mass>
+					<Linear_Damp>0</Linear_Damp>
+					<Angular_Damp>0</Angular_Damp>
+					<Restitution>1.0</Restitution>
+					<Friction>0.1</Friction>
+					<Angular_Velocity>
+						<X>25</X>
+						<Y>25</Y>
+						<Z>25</Z>
+					</Angular_Velocity>
+					<X>0.0</X>
+					<Y>0.0</Y>
+					<Z>0.0</Z>
+					<Foley_Name></Foley_Name>
+					<Projectile_Flags LIST_ACTION="REPLACE">
+						<Flag>damage on impact</Flag>
+						<Flag>tossable</Flag>
+					</Projectile_Flags>
+					<Time_Until_Propelled>0.0</Time_Until_Propelled>
+					<Time_Until_Prop_Expire>10000</Time_Until_Prop_Expire>
+				</Projectile_Info>
+				<Flags LIST_ACTION="REPLACE">
+					<Flag>shatter</Flag>
+					<Flag>disable player cover</Flag>
+					<Flag>mp selectable</Flag>
+				</Flags>
+				<Sounds LIST_ACTION="REPLACE">
+					<Special_Sound>MOV_MAR_WHOOSH</Special_Sound>
+				</Sounds>
+				<Ragdoll_Chance>100</Ragdoll_Chance>
+			</Weapon>
+			<Weapon>
+				<Name>thermobaric_rockets</Name>
+				<Reload_Delay>10</Reload_Delay>
+				<Magazine_Size>4</Magazine_Size>
+				<Max_Rounds>8</Max_Rounds>
+				<Projectile_Info>
+					<Model>aircraft_bomb</Model>
+					<Start_Speed>10</Start_Speed>
+					<Max_Speed>20</Max_Speed>
+					<Gravity>10</Gravity>
+					<Inaccurate_flight>0.1</Inaccurate_flight>
+					<Time_Until_Prop_Expire>1500</Time_Until_Prop_Expire>
+					<Time_Until_Drop>100000</Time_Until_Drop>
+				</Projectile_Info>
+			</Weapon>
+			<Weapon>
+				<Name>charge_placer</Name>
+				<Projectile_Info>
+					<Model>toolbox</Model>
+				</Projectile_Info>
+			</Weapon>
+		</Edit>
+		<Edit File="data\table.vpp_pc\mp_weapon_overrides.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+			<mp_weapons>
+				<Name>camo_grenade</Name>
+				<Ammo_count>
+					<Magazine_Size>100</Magazine_Size>
+					<Num_Magazines>1</Num_Magazines>
+					<Max_Rounds>100</Max_Rounds>
+				</Ammo_count>
+				<_Editor>
+					<Category>Entries</Category>
+				</_Editor>
+			</mp_weapons>
+		</Edit>
+		<Edit File="data\table.vpp_pc\mp_options_sets.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+			<options_set>
+				<Name>Default</Name>
+					<generic_option_overrides>
+						<starting_weapon_wrapper>
+							<replace_starting_weapon>
+								<starting_weapon>camo_grenade</starting_weapon>
+							</replace_starting_weapon>
+						</starting_weapon_wrapper>
+						<third_weapon_wrapper>
+							<third_weapon>thermobaric_rockets</third_weapon>
+						</third_weapon_wrapper>
+					</generic_option_overrides>
+			</options_set>
+		</Edit>
+    </Changes>
+</Mod>

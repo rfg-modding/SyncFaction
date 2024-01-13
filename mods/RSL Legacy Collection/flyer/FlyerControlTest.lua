@@ -1,0 +1,91 @@
+
+local this = {}
+this.Activated = false
+this.Flyer = nil
+this.UiHandleEngineForce = rfg.AddUserMessage("this.MoveForce: ", 0.02, 0.4, false, -1.0, rfg.MessageTypes.Other)
+this.HavokHandle = 0
+this.MoveForce = 10
+rsl.Log("this.UiHandleEngineForce: {}\n", this.UiHandleEngineForce)
+
+local function FrameUpdateEvent(EventData)
+    if(this.Flyer ~= nil) then
+        if(this.Activated) then
+            rfg.ChangeUserMessage(this.UiHandleEngineForce, "this.MoveForce: " .. ToString(this.MoveForce))
+            this.Flyer.ReqVel.x = 0
+            this.Flyer.ReqVel.y = 0
+            this.Flyer.ReqVel.z = 0
+            this.Flyer.ReqPointIsValid = false
+            this.Flyer.ReqStopAtPoint = false
+        end
+    end
+end
+
+local function KeypressEvent(EventData)
+    if(EventData.KeyDown) then
+        if(this.Activated) then
+            if(EventData.KeyCode == rfg.KeyCodes.v) then
+                rsl.Log("Deactivating flyer control manually!\n")
+                this.Activated = false
+            elseif(EventData.KeyCode == rfg.KeyCodes.e) then
+                rsl.Log("Deactivating flyer control because of vehicle exit!\n")
+                this.Activated = false
+            elseif(EventData.KeyCode == rfg.KeyCodes.w) then
+                ForwardUnitVec = this.Flyer.Orientation.fvec:UnitVector()
+                rfg.HavokBodyApplyLinearImpulse(this.HavokHandle, ForwardUnitVec:Scale(this.MoveForce))
+            elseif(EventData.KeyCode == rfg.KeyCodes.s) then
+                ForwardUnitVec = this.Flyer.Orientation.fvec:UnitVector()
+                rfg.HavokBodyApplyLinearImpulse(this.HavokHandle, ForwardUnitVec:Scale(-1.0 * this.MoveForce))
+            elseif(EventData.KeyCode == rfg.KeyCodes.a) then
+                RightUnitVec = this.Flyer.Orientation.rvec:UnitVector()
+                rfg.HavokBodyApplyLinearImpulse(this.HavokHandle, RightUnitVec:Scale(-1.0 * this.MoveForce))
+            elseif(EventData.KeyCode == rfg.KeyCodes.d) then
+                RightUnitVec = this.Flyer.Orientation.rvec:UnitVector()
+                rfg.HavokBodyApplyLinearImpulse(this.HavokHandle, RightUnitVec:Scale(this.MoveForce))
+            elseif(EventData.ControlDown) then
+                DownVector = rfg.Vector:new(0.0, -1.0, 0.0)
+                rfg.HavokBodyApplyLinearImpulse(this.HavokHandle, DownVector:Scale(this.MoveForce))
+            elseif(EventData.ShiftDown) then
+                UpVector = rfg.Vector:new(0.0, 1.0, 0.0)
+                rfg.HavokBodyApplyLinearImpulse(this.HavokHandle, UpVector:Scale(this.MoveForce))
+            elseif(EventData.KeyCode == rfg.KeyCodes.z) then
+                if(this.MoveForce > 0) then
+                    this.MoveForce = this.MoveForce - 1
+                end
+            elseif(EventData.KeyCode == rfg.KeyCodes.x) then
+                this.MoveForce = this.MoveForce + 1
+            end
+        else
+            if(EventData.KeyCode == rfg.KeyCodes.v) then
+				-- teleport player to a flyer
+				NewTarget = rfg.GetObject(Player.AimTarget)
+				if(NewTarget ~= nil) then
+					if(NewTarget.Type == rfg.ObjectTypes.Vehicle and NewTarget.SubType == rfg.ObjectSubTypes.VehicleFlyer) then
+						Veh = NewTarget:CastToVehicle()
+						if(Veh ~= nil) then
+							rfg.TeleportPlayerIntoVehicle(Veh)
+						end
+					end
+				end
+				-- enable flyer controls when player is inside
+                Obj = rfg.GetObject(Player.VehicleHandle)
+                if(Obj ~= nil) then
+                    if(Obj.Type == rfg.ObjectTypes.Vehicle and Obj.SubType == rfg.ObjectSubTypes.VehicleFlyer) then
+                        Flyer = Obj:CastToFlyer()
+                        if(Flyer ~= nil) then
+                            this.Flyer = Flyer
+                            this.Activated = true
+                            this.Flyer.EngineForce = 1
+                            this.HavokHandle = Flyer.HavokHandle
+                            this.MoveForce = 750
+                            rsl.Log("Enabling flyer control!\nthis.Flyer.EngineForce: {}\nthis.Activated: {}\n, this.MoveForce: {}\n", this.Flyer.EngineForce,
+                            this.Activated, this.MoveForce)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+rfg.RegisterEvent("Keypress", KeypressEvent, "[FlyerControl] Keypress event")
+rfg.RegisterEvent("FrameUpdate", FrameUpdateEvent, "[FlyerControl] Ui update event")
