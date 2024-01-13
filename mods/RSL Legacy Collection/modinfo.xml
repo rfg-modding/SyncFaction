@@ -1,0 +1,234 @@
+<Mod Name="Companion XML tweaks for RSL scripts">
+  <Author>Multiple authors</Author>
+  <Description>See mod description for full info!
+  
+  Select Default option to disable any tweak.
+  
+  * Swap Mason's head to pistol model for better experience in First Person mode
+  * Change vehicle spawn at any safehouse to EDF flyer. Use with Flyer Control script. 
+  
+  </Description>
+  <WebLink Name="Red Faction Community Discord (FactionFiles)">https://discord.gg/factionfiles</WebLink>
+  <UserInput>
+
+	<ListBox Name="head_swap" DisplayName="Swap heads for less clipping in first person?" Description="WARNING: Some characters, eg Samanya, will become really, really scary">
+	<Option Name="Swap to pistol model">
+        <Edit File="data\misc.vpp\character.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name,_Editor\Category">
+
+			<!--Change all characters which use base_hires_head to a new head mesh, except the player.-->
+			<!--It'd be simpler to only edit the player head but the main menu crashes if you change it.-->
+			<Character>
+				<Name>Admiral_Kobel</Name>
+				<_Editor>
+					<Category>Entries:Military:Admiral</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>kobel_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>Dan</Name>
+				<_Editor>
+					<Category>Entries:Story</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>dan_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>Samanya</Name>
+				<_Editor>
+					<Category>Entries:Story</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>samanya_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>EDF_Voice</Name>
+				<_Editor>
+					<Category>Entries:Military:Voice</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>voice_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>mp_guerilla_engineer_mason</Name>
+				<_Editor>
+					<Category>Entries:Multiplayer</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+						<Name>Mason_head</Name>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>RFCommander</Name>
+				<_Editor>
+					<Category>Entries:Story</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>rfcommander_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>EDF_General_Roth</Name>
+				<_Editor>
+					<Category>Entries:Military:General</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>roth_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>MP_Dan</Name>
+				<_Editor>
+					<Category>Entries:Multiplayer</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>dan_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+			<Character>
+				<Name>MP_RFC</Name>
+				<_Editor>
+					<Category>Entries:Multiplayer</Category>
+				</_Editor>
+				<Heads>
+					<Head>
+						<Name>rfcommander_head</Name>
+						<Base_Head>base_head</Base_Head>
+						<Lod_Head>None</Lod_Head>
+					</Head>
+				</Heads>
+			</Character>
+
+		</Edit>
+
+
+		<Edit File="data\misc.vpp\items_3d.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name,_Editor\Category">
+
+			<!--Change the mesh that masons head uses-->
+			<Item>
+				<Name>base_hires_head</Name>
+				<Spin_Time>5000</Spin_Time>
+				<character_mesh>
+					<character_mesh>
+						<Filename>pistol.cmeshx</Filename>
+					</character_mesh>
+					<rig>
+						<Filename>Base_HiRes_Head.rigx</Filename>
+					</rig>
+					<Anim_set>none</Anim_set>
+				</character_mesh>
+				<streaming_category>Head mesh</streaming_category>
+				<_Editor>
+					<Category>Head meshes</Category>
+				</_Editor>
+			</Item>
+
+		</Edit>
+      </Option>
+	</ListBox>
+    <ListBox Name="VehicleTypeParker" DisplayName="Flyer for Parker Safehouse">
+      <Option Name="AAX Air 1">
+        <vehicle_type>EDF_AAXAir_1</vehicle_type>
+      </Option>
+      <Option Name="AAX Air 2">
+        <vehicle_type>EDF_AAXAir_2</vehicle_type>
+      </Option>
+      <Option Name="AAX Air Gauss">
+        <vehicle_type>EDF_AAXAir_Gauss</vehicle_type>
+      </Option>
+      <Option Name="ABX Air 1 (big, explodes in hangars)">
+        <vehicle_type>EDF_ABXAir_1</vehicle_type>
+      </Option>
+    </ListBox>
+    <ListBox Name="VehicleTypeDust" DisplayName="Flyer for Dust Safehouse" SameOptionsAs="VehicleTypeParker" />
+    <ListBox Name="VehicleTypeBadlands" DisplayName="Flyer for Badlands Safehouse" SameOptionsAs="VehicleTypeParker" />
+    <ListBox Name="VehicleTypeOASIS" DisplayName="Flyer for OASIS Safehouse" SameOptionsAs="VehicleTypeParker" />
+    <ListBox Name="VehicleTypeEOS" DisplayName="Flyer for EOS Safehouse" SameOptionsAs="VehicleTypeParker" />
+
+  </UserInput>
+  <Changes>
+	<USER_INPUT>head_swap</USER_INPUT>
+    <Edit File="data\misc.vpp\spawn_group_vehicle.xtbl" LIST_ACTION="COMBINE_BY_FIELD:Name">
+
+      <spawn_group_vehicle>
+        <Name>Amb_0410Safehouse</Name>
+        <vehicle_list LIST_ACTION="REPLACE">
+          <USER_INPUT>VehicleTypeParker</USER_INPUT>
+        </vehicle_list>
+      </spawn_group_vehicle>
+
+      <spawn_group_vehicle>
+        <Name>Amb_DustSafehouse</Name>
+        <vehicle_list LIST_ACTION="REPLACE">
+          <USER_INPUT>VehicleTypeDust</USER_INPUT>
+        </vehicle_list>
+      </spawn_group_vehicle>
+
+      <spawn_group_vehicle>
+        <Name>Amb_BadlandsSafehouse</Name>
+        <vehicle_list LIST_ACTION="REPLACE">
+          <USER_INPUT>VehicleTypeBadlands</USER_INPUT>
+        </vehicle_list>
+      </spawn_group_vehicle>
+
+      <spawn_group_vehicle>
+        <Name>Amb_EosSafehouse</Name>
+        <vehicle_list LIST_ACTION="REPLACE">
+          <USER_INPUT>VehicleTypeEOS</USER_INPUT>
+        </vehicle_list>
+      </spawn_group_vehicle>
+
+      <spawn_group_vehicle>
+        <Name>Amb_OasisSafehouse</Name>
+        <vehicle_list LIST_ACTION="REPLACE">
+          <USER_INPUT>VehicleTypeOASIS</USER_INPUT>
+        </vehicle_list>
+      </spawn_group_vehicle>
+
+    </Edit>
+  </Changes>
+</Mod>

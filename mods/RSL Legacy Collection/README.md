@@ -1,3 +1,5 @@
+Based on works by multiple authors, including Hazard, moneyl, Camo, rast1234, RFG
+
 # RSL
 
 https://rsl.readthedocs.io/en/latest/Installation.html
