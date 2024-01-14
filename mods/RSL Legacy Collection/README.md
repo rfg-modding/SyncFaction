@@ -81,7 +81,7 @@ by [VAXIS](https://www.factionfiles.com/ff.php?action=file&id=7503) and [Camo](h
 
 # Vehicle Overlay
 
-by Camo
+by Camo and moneyl
 
 Displays vehicle information. Useful for debugging mods. Activate by executing script. Can be disabled with `RemoveLabels()` function, though it will interfere with other scripts if they display text
 
