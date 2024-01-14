@@ -1,6 +1,6 @@
 # Winter Warfare 2024
 
-![screenshot.png]
+![](screenshot.png)
 
 Experimental winter-themed mod with texture replacements and weapon tweaks
 

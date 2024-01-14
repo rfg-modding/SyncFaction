@@ -1,5 +1,7 @@
 # Steam Re-enabler
 
+![](pain.png)
+
 Mod consists of 4 files:
 
 * `rfg.xdelta` is a binary diff to revert GOG .exe back to steam .exe
