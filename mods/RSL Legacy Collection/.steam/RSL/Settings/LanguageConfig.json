@@ -1,0 +1,41 @@
+{
+    "Lua": {
+      "Comment(Not used by RSL)": "For lua the preprocessor section is used for namespaces rather than doing nothing with it.",
+      "PreprocessorValues": [
+        {
+          "Name": "rfg",
+          "Description": "Contains all game specific types and functions."
+        },
+        {
+          "Name": "rsl",
+          "Description": "Used for rsl types and helper functions."
+        }
+      ],
+      "Identifiers": [
+        {
+          "Name": "Player",
+          "Description": "Type containing all the variables which represent a player. To get the actual player instance use rfg.ActivePlayer."
+        },
+        {
+          "Name": "ActivePlayer",
+          "Description": "The current player instance. Automatically located by RSL for convenience."
+        },
+        {
+          "Name": "HideHud",
+          "Description": "Sets the visibility of the hud.\n\nArgs:\nbool Hide: Whether or not to hide the hud. Pass true to hide it and false to make it visible."
+        },
+        {
+          "Name": "HideFog",
+          "Description": "Set the visibility of fog.\nArgs:\nbool Hide: Whether or not to hide the fog. Pass true to hide it and false to make it visible.\n\nReturns: void"
+        },
+        {
+          "Name": "ToggleFog",
+          "Description": "Toggles the visibility of fog. No args, returns void."
+        },
+        {
+          "Name": "ToggleHud",
+          "Description": "Toggles the visibility of the hud. No args, returns void."
+        }
+      ]
+    }
+}

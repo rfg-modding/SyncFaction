@@ -1,0 +1,15 @@
+return {
+    ["Undefined"] = 0xFFFFFFFF,
+    ["MoverGeneral"] = 0,
+    ["MoverRfg"] = 1,
+    ["HumanNpc"] = 2,
+    ["HumanPlayer"] = 3,
+    ["VehicleAuto"] = 4,
+    ["VehicleFlyer"] = 5,
+    ["VehicleWalker"] = 6,
+    ["ItemWeapon"] = 7,
+    ["ItemProjectile"] = 8,
+    ["ItemMultiFlag"] = 9,
+    ["ItemMultiBackpack"] = 10,
+    ["NumObjectSubTypes"] = 11,
+}

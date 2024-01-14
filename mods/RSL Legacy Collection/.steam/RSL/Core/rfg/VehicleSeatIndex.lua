@@ -1,0 +1,16 @@
+return {
+    ["Best"] = 4294967294,
+    ["Invalid"] = 4294967295,
+    ["Driver"] = 0,
+    ["Passenger1"] = 1,
+    ["Passenger2"] = 2,
+    ["Passenger3"] = 3,
+    ["Passenger4"] = 4,
+    ["Passenger5"] = 5,
+    ["Passenger6"] = 6,
+    ["Passenger7"] = 7,
+    ["Passenger8"] = 8,
+    ["Passenger9"] = 9,
+    ["Passenger10"] = 10,
+    ["NumVehicleSeats"] = 11,
+}
