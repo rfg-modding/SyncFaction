@@ -55,32 +55,59 @@ public class Archiver
         var sw = Stopwatch.StartNew();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         var metadata = new Metadata();
-        var tasks = archivePaths.Select(archivePath => new FileInfo(archivePath)).Select(x => UnpackArchive(x, output, matcher, settings, string.Empty, cts.Token)).ToList();
+        var unpackArgsQueue = archivePaths.Select(x => new FileInfo(x)).Select(x =>
+        {
+            var extension = x.Name.ToLowerInvariant().Split('.').Last();
+            var isArchive = KnownArchiveExtensions.Contains(extension);
+            var isTextureArchive = KnownTextureArchiveExtensions.Contains(extension);
+            if (isArchive)
+            {
+                return new UnpackArgs(ArchiveType.Vpp, x, output, matcher, settings, string.Empty);
+            }
 
-        //var batchSize = Environment.ProcessorCount;
-        var batchSize = 1;
-        while (tasks.Any())
+            if (isTextureArchive)
+            {
+                // unpack explicitly given pegs, even if -t is not specified
+                var (cpu, gpu) = pegArchiver.GetPairFiles(x);
+                if (cpu is not null && gpu is not null)
+                {
+                    return new UnpackArgs(ArchiveType.Peg, cpu, output, matcher, settings, string.Empty);
+                }
+            }
+
+            throw new InvalidOperationException($"Unknown archive type [{x.FullName}]");
+        }).ToList();
+        var runningTasks = new Dictionary<UnpackArgs, Task<UnpackResult>>();
+        var batchSize = settings.Parallel;
+        while (unpackArgsQueue.Any())
         {
             token.ThrowIfCancellationRequested();
             try
             {
-                var batch = tasks.Take(batchSize).ToList();
-                var completed = await Task.WhenAny(batch);
+                var batch = unpackArgsQueue.Take(batchSize).ToList();
+                foreach (var x in batch.Where(x => !runningTasks.ContainsKey(x)))
+                {
+                    runningTasks.Add(x, UnpackArchive(x, cts.Token));
+                    log.LogDebug("Started new task, running {running}, args {args}", runningTasks.Count, x);
+                }
+                var completed = await Task.WhenAny(runningTasks.Values);
                 var result = await completed;
                 metadata.Add(result.RelativePath, result.ArchiveMetadata);
-                tasks.AddRange(result.MoreTasks);
-                tasks.Remove(completed);
+                unpackArgsQueue.AddRange(result.More);
+                unpackArgsQueue.Remove(result.Args);
+                runningTasks.Remove(result.Args);
             }
             catch (Exception e)
             {
                 cts.Cancel();
-                tasks.Clear();
+                unpackArgsQueue.Clear();
                 log.LogError("Tasks canceled because of exception");
                 throw;
             }
         }
 
-        await Task.WhenAll(tasks);
+
+        await Task.WhenAll(runningTasks.Values);
 
         if (settings.Metadata)
         {
@@ -109,33 +136,34 @@ public class Archiver
         return sb.ToString();
     }
 
-    private async Task<UnpackResult> UnpackArchive(FileInfo archive, DirectoryInfo output, Matcher matcher, UnpackSettings settings, string relativePath, CancellationToken token)
+    record UnpackArgs(ArchiveType Type, FileInfo Archive, DirectoryInfo Output, Matcher Matcher, UnpackSettings Settings, string RelativePath);
+
+    enum ArchiveType
+    {
+        Vpp, Peg
+    }
+
+    private async Task<UnpackResult> UnpackArchive(UnpackArgs args, CancellationToken token)
     {
         try
         {
-            return await UnpackArchiveInternal(archive, output, matcher, settings, relativePath, token);
+            return args.Type switch
+            {
+                ArchiveType.Vpp => await UnpackArchiveInternal(args, token),
+                ArchiveType.Peg => await UnpackTexturesInternal(args, token),
+                _ => throw new ArgumentOutOfRangeException()
+            };
         }
         catch (Exception e)
         {
-            throw new Exception($"Failed {nameof(UnpackArchive)}({archive.FullName}, {output.FullName}, {matcher}, {settings}, {relativePath}, token)", e);
+            throw new Exception($"Failed {nameof(UnpackArchive)}({args.Type}, {args.Archive.FullName}, {args.Output.FullName}, {args.Settings}, {args.RelativePath})", e);
         }
     }
 
-    private async Task<UnpackResult> UnpackTextures(FileInfo archive, DirectoryInfo output, Matcher matcher, UnpackSettings settings, string relativePath, CancellationToken token)
-    {
-        try
-        {
-            return await UnpackTexturesInternal(archive, output, matcher, settings, relativePath, token);
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Failed {nameof(UnpackTextures)}({archive.FullName}, {output.FullName}, {matcher}, {settings}, {relativePath}, token)", e);
-        }
-    }
-
-    private async Task<UnpackResult> UnpackArchiveInternal(FileInfo archive, DirectoryInfo output, Matcher matcher, UnpackSettings settings, string relativePath, CancellationToken token)
+    private async Task<UnpackResult> UnpackArchiveInternal(UnpackArgs args, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        var (_, archive, output, matcher, settings, relativePath) = args;
         var outputDir = new DirectoryInfo(Path.Combine(output.FullName, archive.Name));
         if (outputDir.Exists)
         {
@@ -159,7 +187,7 @@ public class Archiver
         var matchedFiles = matcher.Match(vpp.LogicalFiles.Select(x => x.Name)).Files.Select(x => x.Path).ToHashSet();
         log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", archive.Name, settings.FileGlob, matchedFiles.Count);
 
-        var tasks = new List<Task<UnpackResult>>();
+        var result = new List<UnpackArgs>();
         var metaEntries = new MetaEntries();
         foreach (var logicalFile in vpp.LogicalFiles.Where(x => matchedFiles.Contains(x.Name)))
         {
@@ -179,35 +207,34 @@ public class Archiver
             var isTextureArchive = KnownTextureArchiveExtensions.Contains(extension);
 
             await ExtractFile(logicalFile, isXml, outputFile, settings, token);
-            outputFile.Refresh();
             var eHash = await ComputeHash(outputFile);
             metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
 
             var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, DefaultDir));
             if (settings.Recursive && isArchive)
             {
-                var task = UnpackArchive(outputFile, innerOutputDir, matcher, settings, archiveRelativePath, token);
-                tasks.Add(task);
+                result.Add(new UnpackArgs(ArchiveType.Vpp, outputFile, innerOutputDir, matcher, settings, archiveRelativePath));
             }
 
-            if (settings.Textures && isTextureArchive)
+            if (settings.Textures.Any() && isTextureArchive)
             {
-                // TODO possible race condition and unpack starts twice?
+                // NOTE: no race condition because key is always "cpu" file from the pair and tasks are created per unique args key
                 var (cpu, gpu) = pegArchiver.GetPairFiles(outputFile);
                 if (cpu is not null && gpu is not null)
                 {
-                    var task = UnpackTextures(outputFile, innerOutputDir, matcher, settings, archiveRelativePath, token);
-                    tasks.Add(task);
+                    result.Add(new UnpackArgs(ArchiveType.Peg, cpu, innerOutputDir, matcher, settings, archiveRelativePath));
                 }
             }
         }
 
         var archiveMetadata = new ArchiveMetadata(vpp.Name, vpp.Mode.ToString(), (ulong) archive.Length, (ulong) matchedFiles.Count, hash, metaEntries);
-        return new UnpackResult(archiveRelativePath, archiveMetadata, tasks);
+        return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
-    private async Task<UnpackResult> UnpackTexturesInternal(FileInfo archive, DirectoryInfo output, Matcher matcher, UnpackSettings settings, string relativePath, CancellationToken token)
+    private async Task<UnpackResult> UnpackTexturesInternal(UnpackArgs args, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+        var (_, archive, output, matcher, settings, relativePath) = args;
         var outputDir = new DirectoryInfo(Path.Combine(output.FullName, archive.Name));
         var (cpu, gpu) = pegArchiver.GetPairFiles(archive);
         if (cpu is null || gpu is null)
@@ -240,37 +267,21 @@ public class Archiver
         var matchedFiles = matcher.Match(peg.LogicalTextures.Select(x => x.Name)).Files.Select(x => x.Path).ToHashSet();
         log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", archive.Name, settings.FileGlob, matchedFiles.Count);
 
-        var tasks = new List<Task<UnpackResult>>();
+        // NOTE: peg containers are not expected to have nested stuff
+        var result = new List<UnpackArgs>();
         var metaEntries = new MetaEntries();
         foreach (var logicalTexture in peg.LogicalTextures.Where(x => matchedFiles.Contains(x.Name)))
         {
-            var fileName = Path.GetFileNameWithoutExtension(logicalTexture.Name);
-            // NOTE: names are non-unique
-            var name = $"{logicalTexture.Order:D4} {fileName}";
-            var outputFile = new FileInfo($"{Path.Combine(outputDir.FullName, name)}.dds");
-            if (outputFile.Exists)
+            foreach (var textureFormat in args.Settings.Textures)
             {
-                throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
+                token.ThrowIfCancellationRequested();
+                var outputFile = await ExtractTexture(logicalTexture, textureFormat, outputDir, token);
+                var hash = await ComputeHash(outputFile);
+                metaEntries.Add(outputFile.Name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, hash));
             }
-
-            await ExtractRawTexture(logicalTexture, outputFile, token);
-            outputFile.Refresh();
-            var dHash = await ComputeHash(outputFile);
-            metaEntries.Add(name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, dHash));
-
-            logicalTexture.Data.Seek(0, SeekOrigin.Begin);
-            var pngFile = new FileInfo($"{Path.Combine(outputDir.FullName, name)}.png");
-            if (pngFile.Exists)
-            {
-                throw new InvalidOperationException($"File [{pngFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
-            }
-            await ExtractPngTexture(logicalTexture, pngFile, token);
-            pngFile.Refresh();
-            var pHash = await ComputeHash(pngFile);
-            metaEntries.Add(pngFile.Name, new EntryMetadata(pngFile.Name, logicalTexture.Order, 0, (ulong) pngFile.Length, 0, pHash));
         }
-        var archiveMetadata = new ArchiveMetadata(peg.Name, "texture", (ulong) archive.Length, (ulong) matchedFiles.Count, $"{cpuHash}_{gpuHash}", metaEntries);
-        return new UnpackResult(archiveRelativePath, archiveMetadata, tasks);
+        var archiveMetadata = new ArchiveMetadata(peg.Name, "peg", (ulong) archive.Length, (ulong) matchedFiles.Count, $"{cpuHash}_{gpuHash}", metaEntries);
+        return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
     private async Task ExtractFile(LogicalFile logicalFile, bool isXml, FileInfo outputFile, UnpackSettings settings, CancellationToken token)
@@ -290,21 +301,40 @@ public class Archiver
         {
             await logicalFile.Content.CopyToAsync(fileStream, token);
         }
+        outputFile.Refresh();
     }
 
-    private async Task ExtractRawTexture(LogicalTexture logicalTexture, FileInfo outputFile, CancellationToken token)
+    private async Task<FileInfo> ExtractTexture(LogicalTexture logicalTexture, TextureFormat format, DirectoryInfo outputDir, CancellationToken token)
     {
-        await using var fileStream = outputFile.OpenWrite();
-        var header = await imageConverter.BuildHeader(logicalTexture, token);
-        await header.CopyToAsync(fileStream, token);
-        await logicalTexture.Data.CopyToAsync(fileStream, token);
-    }
-
-    private async Task ExtractPngTexture(LogicalTexture logicalTexture, FileInfo outputFile, CancellationToken token)
-    {
-        await using var fileStream = outputFile.OpenWrite();
-        var image = imageConverter.DecodeFirstFrame(logicalTexture);
-        await imageConverter.WritePngFile(image, fileStream, token);
+        var fileName = Path.GetFileNameWithoutExtension(logicalTexture.Name);
+        // NOTE: names are non-unique
+        var name = $"{logicalTexture.Order:D4} {fileName}";
+        var outputFile = new FileInfo($"{Path.Combine(outputDir.FullName, name)}.{format.ToString().ToLowerInvariant()}");
+        if (outputFile.Exists)
+        {
+            throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
+        }
+        await using var output = outputFile.OpenWrite();
+        switch(format)
+        {
+            case TextureFormat.DDS:
+                var header = await imageConverter.BuildHeader(logicalTexture, token);
+                await header.CopyToAsync(output, token);
+                await logicalTexture.Data.CopyToAsync(output, token);
+                break;
+            case TextureFormat.PNG:
+                var image = imageConverter.DecodeFirstFrame(logicalTexture);
+                await imageConverter.WritePngFile(image, output, token);
+                break;
+            case TextureFormat.RAW:
+                await logicalTexture.Data.CopyToAsync(output, token);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(format), format, null);
+        }
+        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+        outputFile.Refresh();
+        return outputFile;
     }
 
     public static async Task<string> ComputeHash(FileInfo file)
@@ -341,5 +371,10 @@ public class Archiver
         "gvbm_pc",
     }.ToImmutableHashSet();
 
-    private record UnpackResult(string RelativePath, ArchiveMetadata ArchiveMetadata, IReadOnlyList<Task<UnpackResult>> MoreTasks);
+    private record UnpackResult(string RelativePath, ArchiveMetadata ArchiveMetadata, UnpackArgs Args, IReadOnlyList<UnpackArgs> More);
+
+    public enum TextureFormat
+    {
+        DDS, PNG, RAW
+    }
 }

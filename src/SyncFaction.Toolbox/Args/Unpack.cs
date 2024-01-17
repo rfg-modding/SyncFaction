@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using SyncFaction.Toolbox.Models;
 
@@ -9,7 +10,8 @@ namespace SyncFaction.Toolbox.Args;
 
 public class Unpack : Command
 {
-    private readonly Argument<string> archiveArg = new("archive", "vpp_pc to unpack, globs allowed");
+    private readonly Argument<string> archiveArg = new("archive", "vpp or peg archive to unpack, globs allowed");
+    private readonly Argument<string> fileArg = new("file", () => "*", "file inside archive to extract, globs allowed");
     private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultDir, "output path");
 
     private readonly Option<bool> xmlFormat = new(new[]
@@ -17,28 +19,33 @@ public class Unpack : Command
             "-x",
             "--xml-format"
         },
-        "format xml file");
+        "format xml-like files (.xtbl .dtdox .gtdox) for readability, some files will become unusable in game");
 
     private readonly Option<bool> recursive = new(new[]
         {
             "-r",
             "--recursive"
         },
-        $"unpack nested archives recursively in default subfolder ({Archiver.DefaultDir})");
+        $"unpack nested archives (typically .str2_pc) recursively in {Archiver.DefaultDir} subfolder");
 
-    private readonly Option<bool> textures = new(new[]
+    private readonly Option<List<Archiver.TextureFormat>> textures = new(new[]
         {
             "-t",
             "--textures"
         },
-        $"unpack cpeg_pc/cvbm_pc/gpeg_pc/gvbm_pc texture containers");
+        () => new List<Archiver.TextureFormat>(),
+        $"unpack textures from containers (.cpeg_pc .cvbm_pc .gpeg_pc .gvbm_pc) in {Archiver.DefaultDir} subfolder. Specify one or more supported formats: dds png raw")
+    {
+        ArgumentHelpName = "formats",
+        AllowMultipleArgumentsPerToken = true
+    };
 
     private readonly Option<bool> metadata = new(new[]
         {
             "-m",
             "--metadata"
         },
-        $"write file with archive information ({Archiver.MetadataFile})");
+        $"write {Archiver.MetadataFile} file with archive information: entries, sizes, hashes");
 
     private readonly Option<bool> force = new(new[]
         {
@@ -47,21 +54,46 @@ public class Unpack : Command
         },
         "overwrite output if exists");
 
-    public Unpack() : base(nameof(Unpack).ToLowerInvariant(), "Extract vpp_pc to dir")
+    private readonly Option<int> parallel = new(new[]
+        {
+            "-p",
+            "--parallel"
+        },
+        "number of parallel tasks. Defaults to processor core count. Use 1 for lower RAM usage")
     {
+        ArgumentHelpName = "N"
+    };
+
+    public override string? Description => @"Extract archive to dir
+Supported formats: " + string.Join(" ", Archiver.KnownArchiveExtensions.Concat(Archiver.KnownTextureArchiveExtensions));
+
+    public Unpack() : base(nameof(Unpack).ToLowerInvariant())
+    {
+
         AddArgument(archiveArg);
+        AddArgument(fileArg);
         AddArgument(outputArg);
         AddOption(xmlFormat);
         AddOption(recursive);
         AddOption(textures);
         AddOption(metadata);
         AddOption(force);
+        AddOption(parallel);
         Handler = CommandHandler.Create(Handle);
     }
 
-    private async Task<int> Handle(string archive, string output, bool xmlFormat, bool recursive, bool textures, bool metadata, bool force, InvocationContext context, CancellationToken token)
+    private async Task<int> Handle(InvocationContext context, CancellationToken token)
     {
-        var settings = new UnpackSettings(archive, "*", output, xmlFormat, recursive, textures, metadata, force);
+        var archive = context.ParseResult.GetValueForArgument(archiveArg);
+        var file = context.ParseResult.GetValueForArgument(fileArg);
+        var output = context.ParseResult.GetValueForArgument(outputArg);
+        var xmlFormat = context.ParseResult.GetValueForOption(this.xmlFormat);
+        var recursive = context.ParseResult.GetValueForOption(this.recursive);
+        var textures = context.ParseResult.GetValueForOption(this.textures);
+        var metadata = context.ParseResult.GetValueForOption(this.metadata);
+        var force = context.ParseResult.GetValueForOption(this.force);
+        var parallel = context.ParseResult.GetValueForOption(this.parallel);
+        var settings = new UnpackSettings(archive, file, output, xmlFormat, recursive, textures, metadata, force, parallel < 1 ? Environment.ProcessorCount : parallel);
         var archiver = context.GetHost().Services.GetRequiredService<Archiver>();
         await archiver.Unpack(settings, token);
         return 0;
