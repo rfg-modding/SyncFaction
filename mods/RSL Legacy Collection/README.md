@@ -10,7 +10,8 @@ Based on works by multiple authors, including moneyl, Camo, arrows, RFG, donsloc
 
 * Works ONLY with Steam version of RFGR
 * This mod disables Reconstructor
-* [Visual Studio 2019 x86 Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads/) is required. You might need to reboot
+* DO NOT install Steam Re-enabler mod, this bundle is self-sufficient
+* [Visual Studio 2019 x86 Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads) is required. You might need to reboot
 * Disable overlay software. Recommended to disable Steam overlay too, even if it appears to work
 
 ## RSL
@@ -32,7 +33,7 @@ You will want to tune `Camera offset` and FOV in game settings to get better res
 
 To hide Mason's head and avoid clipping through it, use mod settings in SyncFaction. This is not ideal because some NPCs will have creepy faces.
 
-# Flyer controls
+## Flyer controls
 
 by [moneyl](https://discord.com/channels/416631942738346008/424009433253806080/1192943648690675913), [RFG & donslockz](https://discord.com/channels/416631942738346008/1000693872256614453/1065268322960162846)
 
@@ -45,11 +46,11 @@ Script that lets you "control" the flyer. You can't use flyers that come with hi
 * `E`: exit, as with vehicle
 * `arrow keys`: roll/pitch, in improved script only
 
-# Telekinesis
+## Telekinesis
 
 by [moneyl](https://www.nexusmods.com/redfactionguerrillaremarstered/mods/19)
 
-> This mod autoloads on startup. To disable, rename or delete its `main.lua` file.
+**This mod autoloads on startup. To disable, rename or delete its `main.lua` file.**
 
 Lift objects with the power of your mind! Throw EDF vehicles off cliffs, or through buildings. Use debris and other heavy objects as weapons. Controls:
 
@@ -59,11 +60,11 @@ Lift objects with the power of your mind! Throw EDF vehicles off cliffs, or thro
 * `Ctrl + mouse wheel scroll`: change distance to object
 
 
-# Graphics
+## Graphics
 
 by [Camo](https://www.factionfiles.com/ff.php?action=file&id=6364)
 
-> This mod autoloads on startup. To disable, rename or delete its `main.lua` file.
+**This mod autoloads on startup. To disable, rename or delete its `main.lua` file.**
 
 A lot of improvements based on internal engine parameters, impossible with other tools like ReShade or Nvidia profiles. How to use:
 
@@ -72,27 +73,34 @@ A lot of improvements based on internal engine parameters, impossible with other
 * Set shadows back to HIGH, apply
 * Graphics will be improved until you exit the game
 
-# Physics
+## Physics
 
 by [VAXIS](https://www.factionfiles.com/ff.php?action=file&id=7503) and [Camo](https://www.factionfiles.com/ff.php?action=file&id=6363)
 
 * VaxisFrictionMod with several presets to change building toughness
 * Gravity presets to load by default or manually. Rename `_main.lua` to `main.lua` to enable auto load
 
-# Vehicle Overlay
+## Vehicle Overlay
 
 by Camo and moneyl
 
 Displays vehicle information. Useful for debugging mods. Activate by executing script. Can be disabled with `RemoveLabels()` function, though it will interfere with other scripts if they display text
 
-# Teams
+## Teams
 
 by [Camo](https://www.factionfiles.com/ff.php?action=file&id=7502) and [arrows](https://www.factionfiles.com/ff.php?action=file&id=4699)
 
 Scripts that let you change player or NPC team: Guerrilla, EDF or Marauder. `Set Team` scripts are one-shot, `EveryoneHostile` works even on newly spawned NPCs
 
-# No overheating
+## No overheating
 
 by [arrows](https://www.factionfiles.com/ff.php?action=file&id=4707)
 
 Removes overheating from all weapons, including turrets
+
+## Companion XML tweaks
+
+For better experience with first person mode and flyer script some tweaks are included with the mod. If you don't want them:
+
+* Latest SyncFaction builds: Choose "default" option for each setting
+* Workaround for older versions with no "default" option: edit modinfo.xml and remove unwanted changes
