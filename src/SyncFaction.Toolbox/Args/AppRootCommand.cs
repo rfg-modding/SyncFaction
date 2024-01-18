@@ -11,7 +11,6 @@ public class AppRootCommand : RootCommand
         AddCommand(new Unpeg());
         AddCommand(new Repeg());
         //AddCommand(new Pack());
-        AddCommand(new Get());
     }
 
     public class CommandHandler : ICommandHandler

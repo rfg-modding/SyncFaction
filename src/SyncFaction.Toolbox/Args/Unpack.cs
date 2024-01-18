@@ -11,7 +11,7 @@ namespace SyncFaction.Toolbox.Args;
 public class Unpack : Command
 {
     private readonly Argument<string> archiveArg = new("archive", "vpp or peg archive to unpack, globs allowed");
-    private readonly Argument<string> fileArg = new("file", () => "*", "file inside archive to extract, globs allowed");
+    private readonly Argument<string> fileArg = new("file", () => "*", "file inside archive to extract, globs allowed. lookup is not recursive!");
     private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultDir, "output path");
 
     private readonly Option<bool> xmlFormat = new(new[]
@@ -33,11 +33,10 @@ public class Unpack : Command
             "-t",
             "--textures"
         },
-        () => new List<Archiver.TextureFormat>(),
         $"unpack textures from containers (.cpeg_pc .cvbm_pc .gpeg_pc .gvbm_pc) in {Archiver.DefaultDir} subfolder. Specify one or more supported formats: dds png raw")
     {
         ArgumentHelpName = "formats",
-        AllowMultipleArgumentsPerToken = true
+        AllowMultipleArgumentsPerToken = true,
     };
 
     private readonly Option<bool> metadata = new(new[]
@@ -64,7 +63,7 @@ public class Unpack : Command
         ArgumentHelpName = "N"
     };
 
-    public override string? Description => @"Extract archive to dir
+    public override string? Description => @"Extract archives and containers
 Supported formats: " + string.Join(" ", Archiver.KnownArchiveExtensions.Concat(Archiver.KnownTextureArchiveExtensions));
 
     public Unpack() : base(nameof(Unpack).ToLowerInvariant())
@@ -89,7 +88,7 @@ Supported formats: " + string.Join(" ", Archiver.KnownArchiveExtensions.Concat(A
         var output = context.ParseResult.GetValueForArgument(outputArg);
         var xmlFormat = context.ParseResult.GetValueForOption(this.xmlFormat);
         var recursive = context.ParseResult.GetValueForOption(this.recursive);
-        var textures = context.ParseResult.GetValueForOption(this.textures);
+        var textures = context.ParseResult.GetValueForOption(this.textures) ?? new List<Archiver.TextureFormat>();
         var metadata = context.ParseResult.GetValueForOption(this.metadata);
         var force = context.ParseResult.GetValueForOption(this.force);
         var parallel = context.ParseResult.GetValueForOption(this.parallel);

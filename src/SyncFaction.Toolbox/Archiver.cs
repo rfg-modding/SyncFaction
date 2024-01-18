@@ -88,7 +88,6 @@ public class Archiver
                 foreach (var x in batch.Where(x => !runningTasks.ContainsKey(x)))
                 {
                     runningTasks.Add(x, UnpackArchive(x, cts.Token));
-                    log.LogDebug("Started new task, running {running}, args {args}", runningTasks.Count, x);
                 }
                 var completed = await Task.WhenAny(runningTasks.Values);
                 var result = await completed;

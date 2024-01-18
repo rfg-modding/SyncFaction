@@ -35,7 +35,7 @@ public class Unpeg : Command
         },
         "overwrite output if exists");
 
-    public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "TEST: debug peg info and image conversions")
+    public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "TEST TODO: debug compare dds and png")
     {
         AddArgument(pathArg);
         //AddArgument(outputArg);
