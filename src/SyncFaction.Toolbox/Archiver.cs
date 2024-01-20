@@ -75,7 +75,7 @@ public class Archiver
                     {
                         throw new ArgumentException("Specify at least one texture format to unpack: \"-t png\"");
                     }
-                    return new UnpackArgs(pegFiles, pegFiles.Cpu.Name, output, matcher, settings, string.Empty);
+                    return new UnpackArgs(pegFiles.OpenRead(), pegFiles.Cpu.Name, output, matcher, settings, string.Empty);
                 }
             }
 
@@ -173,10 +173,12 @@ public class Archiver
 
         var result = new List<UnpackArgs>();
         var metaEntries = new MetaEntries();
-        Dictionary<string, LogicalFile> cache = new();
+        Dictionary<string, MemoryStream> cache = new();
         foreach (var logicalFile in vpp.LogicalFiles.Where(x => matchedFiles.Contains(x.Name)))
         {
-            cache.Add(logicalFile.Name, logicalFile);
+            var ms = new MemoryStream();
+            await logicalFile.Content.CopyToAsync(ms, token);
+            ms.Seek(0, SeekOrigin.Begin);
             var outputFile = new FileInfo(Path.Combine(outputDir.FullName, logicalFile.Name));
             if (outputFile.Exists)
             {
@@ -195,27 +197,27 @@ public class Archiver
 
             if (isRegularFile || !settings.SkipArchives)
             {
-                await ExtractFile(logicalFile, isXml, outputFile, settings, token);
+                await ExtractFile(ms, isXml, outputFile, settings, token);
             }
 
-            var eHash = await Utils.ComputeHash(logicalFile.Content);
-            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
+            var eHash = await Utils.ComputeHash(ms);
+            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) ms.Length, logicalFile.CompressedSize, eHash));
 
-            // TODO is copy to MS this needed? vpp is not explicitly disposed, maybe a ref to original Content will work
             var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, Constatns.DefaultDir));
             if (settings.Recursive && isVpp)
             {
-                //var ms = new MemoryStream();
-                //await logicalFile.Content.CopyToAsync(ms, token);
-                result.Add(new UnpackArgs(logicalFile.Content, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
+                result.Add(new UnpackArgs(ms, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
             }
 
             if (settings.Textures.Any() && isPeg)
             {
-                var pegFiles = FindPegEntryPair(logicalFile.Name, cache);
-                if (pegFiles is not null)
+                cache.Add(logicalFile.Name, ms);
+                var pegStreams = FindPegEntryPair(logicalFile.Name, cache);
+                if (pegStreams is not null)
                 {
-                    result.Add(new UnpackArgs(pegFiles, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
+                    result.Add(new UnpackArgs(pegStreams, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
+                    cache.Remove(PegFiles.GetCpuFileName(logicalFile.Name)!);
+                    cache.Remove(PegFiles.GetGpuFileName(logicalFile.Name)!);
                 }
             }
         }
@@ -224,18 +226,18 @@ public class Archiver
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
-    public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, LogicalFile> cache)
+    public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, MemoryStream> cache)
     {
         var cpu = PegFiles.GetCpuFileName(name);
-        var gpu = PegFiles.GetCpuFileName(name);
-        var cpuEntry = cache.GetValueOrDefault(cpu);
-        var gpuEntry = cache.GetValueOrDefault(gpu);
-        if (cpuEntry is null || gpuEntry is null)
+        var gpu = PegFiles.GetGpuFileName(name);
+        var cpuStream = cache.GetValueOrDefault(cpu);
+        var gpuStream = cache.GetValueOrDefault(gpu);
+        if (cpuStream is null || gpuStream is null)
         {
             return null;
         }
 
-        return new PegStreams(cpuEntry.Content, gpuEntry.Content);
+        return new PegStreams(cpuStream, gpuStream);
     }
 
     private async Task<UnpackResult> UnpackTexturesInternal(UnpackArgs args, PegStreams pegStreams, CancellationToken token)
@@ -283,14 +285,14 @@ public class Archiver
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
-    private async Task ExtractFile(LogicalFile logicalFile, bool isXml, FileInfo outputFile, UnpackSettings settings, CancellationToken token)
+    private async Task ExtractFile(MemoryStream content, bool isXml, FileInfo outputFile, UnpackSettings settings, CancellationToken token)
     {
         await using var fileStream = outputFile.OpenWrite();
         if (settings.XmlFormat && isXml)
         {
             // reformat original xml for readability
             var xml = new XmlDocument();
-            using var reader = new StreamReader(logicalFile.Content);
+            using var reader = new StreamReader(content);
             xml.Load(reader);
             using var ms = new MemoryStream();
             xml.SerializeToMemoryStream(ms, true);
@@ -298,9 +300,10 @@ public class Archiver
         }
         else
         {
-            await logicalFile.Content.CopyToAsync(fileStream, token);
+            await content.CopyToAsync(fileStream, token);
         }
         outputFile.Refresh();
+        content.Seek(0, SeekOrigin.Begin);
     }
 
     private async Task<FileInfo> ExtractTexture(LogicalTexture logicalTexture, TextureFormat format, DirectoryInfo outputDir, CancellationToken token)
@@ -313,6 +316,8 @@ public class Archiver
         {
             throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
         }
+
+        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
         await using var output = outputFile.OpenWrite();
         switch(format)
         {

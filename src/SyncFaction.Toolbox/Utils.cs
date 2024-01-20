@@ -45,11 +45,6 @@ public static class Utils
             throw new ArgumentException($"Expected start of stream, got position = {s.Position}", nameof(s));
         }
 
-        if (s.Length != 0)
-        {
-            throw new ArgumentException($"Expected empty stream, got length = {s.Length}", nameof(s));
-        }
-
         using var sha = SHA256.Create();
         var hashValue = await sha.ComputeHashAsync(s);
         var hash = BitConverter.ToString(hashValue).Replace("-", "");

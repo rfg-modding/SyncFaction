@@ -11,7 +11,7 @@ namespace SyncFaction.Toolbox.Args;
 public class Unpack : Command
 {
     private readonly Argument<string> archiveArg = new("archive", "vpp or peg archive to unpack, globs allowed");
-    private readonly Argument<string> fileArg = new("file", () => "*", "file inside archive to extract, globs allowed. lookup is not recursive!");
+    private readonly Argument<string> filesArg = new("files", () => "*", "files inside archive to extract, globs allowed. lookup is not recursive!");
     private readonly Argument<string> outputArg = new("output", () => Constatns.DefaultDir, "output path");
 
     private readonly Option<bool> xmlFormat = new(new[]
@@ -77,7 +77,7 @@ Supported formats: " + string.Join(" ", Constatns.KnownVppExtensions.Concat(Cons
     {
 
         AddArgument(archiveArg);
-        AddArgument(fileArg);
+        AddArgument(filesArg);
         AddArgument(outputArg);
         AddOption(xmlFormat);
         AddOption(recursive);
@@ -91,8 +91,10 @@ Supported formats: " + string.Join(" ", Constatns.KnownVppExtensions.Concat(Cons
 
     private async Task<int> Handle(InvocationContext context, CancellationToken token)
     {
+        // TODO configure log level with -v to hide TRACE logs
+        // TODO log start and end each operation
         var archive = context.ParseResult.GetValueForArgument(archiveArg);
-        var file = context.ParseResult.GetValueForArgument(fileArg);
+        var files = context.ParseResult.GetValueForArgument(filesArg);
         var output = context.ParseResult.GetValueForArgument(outputArg);
         var xmlFormat = context.ParseResult.GetValueForOption(this.xmlFormat);
         var recursive = context.ParseResult.GetValueForOption(this.recursive);
@@ -101,7 +103,7 @@ Supported formats: " + string.Join(" ", Constatns.KnownVppExtensions.Concat(Cons
         var metadata = context.ParseResult.GetValueForOption(this.metadata);
         var force = context.ParseResult.GetValueForOption(this.force);
         var parallel = context.ParseResult.GetValueForOption(this.parallel);
-        var settings = new UnpackSettings(archive, file, output, xmlFormat, recursive, textures, metadata, force, parallel < 1 ? Environment.ProcessorCount : parallel, skipArchives);
+        var settings = new UnpackSettings(archive, files, output, xmlFormat, recursive, textures, metadata, force, parallel < 1 ? Environment.ProcessorCount : parallel, skipArchives);
         var archiver = context.GetHost().Services.GetRequiredService<Archiver>();
         await archiver.Unpack(settings, token);
         return 0;
