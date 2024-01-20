@@ -234,8 +234,7 @@ public class Archiver
         outputDir.Create();
         outputDir.Refresh();
 
-        var cpuHash = await Utils.ComputeHash(pegFiles.Cpu);
-        var gpuHash = await Utils.ComputeHash(pegFiles.Gpu);
+        var pegHash = await Utils.ComputeHash(pegFiles);
         await using var streams = pegFiles.OpenRead();
         var peg = await pegArchiver.UnpackPeg(streams, pegNameNoExt, token);
         var archiveRelativePath = Path.Combine(relativePath, peg.Name);
@@ -256,7 +255,7 @@ public class Archiver
                 metaEntries.Add(outputFile.Name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, hash));
             }
         }
-        var archiveMetadata = new ArchiveMetadata(peg.Name, "peg", (ulong) archive.Length, (ulong) matchedFiles.Count, $"{cpuHash}_{gpuHash}", metaEntries);
+        var archiveMetadata = new ArchiveMetadata(peg.Name, "peg", (ulong) archive.Length, (ulong) matchedFiles.Count, pegHash, metaEntries);
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
