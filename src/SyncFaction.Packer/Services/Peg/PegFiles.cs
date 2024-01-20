@@ -9,29 +9,16 @@ public record PegFiles(FileInfo Cpu, FileInfo Gpu)
             return null;
         }
 
-        var ext = input.Extension.ToLowerInvariant();
-        var pairExt = ext switch
-        {
-            ".cpeg_pc" => ".gpeg_pc",
-            ".gpeg_pc" => ".cpeg_pc",
-            ".cvbm_pc" => ".gvbm_pc",
-            ".gvbm_pc" => ".cvbm_pc",
-            _ => null
-        };
-        if (pairExt is null)
+        var cpu = GetCpuFileName(input.FullName);
+        var gpu = GetGpuFileName(input.FullName);
+        if (cpu is null || gpu is null)
         {
             return null;
         }
 
-        var pairPath = Path.ChangeExtension(input.FullName, pairExt);
-        var pair = new FileInfo(pairPath);
-        if (!pair.Exists)
-        {
-            return null;
-        }
-
-        var first = ext.StartsWith(".c");
-        return first ? new(input, pair) : new(pair, input);
+        var cpuFile = new FileInfo(cpu);
+        var gpuFile = new FileInfo(gpu);
+        return new(cpuFile, gpuFile);
     }
 
     public PegStreams OpenRead()
@@ -49,4 +36,42 @@ public record PegFiles(FileInfo Cpu, FileInfo Gpu)
     }
 
     public string FullName => Cpu.FullName;
+
+    /// <summary>
+    /// Works for full and relative filenames
+    /// </summary>
+    public static string? GetCpuFileName(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant()[1..];
+        var cpuExt = ext switch
+        {
+            "cpeg_pc" => "cpeg_pc",
+            "gpeg_pc" => "cpeg_pc",
+            "cvbm_pc" => "cvbm_pc",
+            "gvbm_pc" => "cvbm_pc",
+            _ => null
+        };
+        return cpuExt is null
+            ? null
+            : Path.ChangeExtension(fileName, cpuExt);
+    }
+
+    /// <summary>
+    /// Works for full and relative filenames
+    /// </summary>
+    public static string? GetGpuFileName(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant()[1..];
+        var gpuExt = ext switch
+        {
+            "cpeg_pc" => "gpeg_pc",
+            "gpeg_pc" => "gpeg_pc",
+            "cvbm_pc" => "gvbm_pc",
+            "gvbm_pc" => "gvbm_pc",
+            _ => null
+        };
+        return gpuExt is null
+            ? null
+            : Path.ChangeExtension(fileName, gpuExt);
+    }
 }

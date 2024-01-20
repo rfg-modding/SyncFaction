@@ -22,7 +22,7 @@ public class Repack : Command
         "overwrite output if exists");
 
     public override string? Description => @"Apply replacements or add files to archives and containers
-Supported formats: " + string.Join(" ", Constatns.KnownArchiveExtensions.Concat(Constatns.KnownTextureArchiveExtensions));
+Supported formats: " + string.Join(" ", Constatns.KnownVppExtensions.Concat(Constatns.KnownPegExtensions));
 
     public Repack() : base(nameof(Repack).ToLowerInvariant())
     {

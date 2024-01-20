@@ -58,20 +58,24 @@ public class Archiver
         var unpackArgsQueue = archivePaths.Select(x => new FileInfo(x)).Select(x =>
         {
             var extension = x.Name.ToLowerInvariant().Split('.').Last();
-            var isArchive = Constatns.KnownArchiveExtensions.Contains(extension);
-            var isTextureArchive = Constatns.KnownTextureArchiveExtensions.Contains(extension);
+            var isArchive = Constatns.KnownVppExtensions.Contains(extension);
+            var isTextureArchive = Constatns.KnownPegExtensions.Contains(extension);
             if (isArchive)
             {
-                return new UnpackArgs(ArchiveType.Vpp, x, output, matcher, settings, string.Empty);
+                var stream = x.OpenRead();
+                return new UnpackArgs(stream, x.Name, output, matcher, settings, string.Empty);
             }
 
             if (isTextureArchive)
             {
-                // unpack explicitly given pegs, even if -t is not specified
                 var pegFiles = PegFiles.FromExistingFile(x);
                 if (pegFiles is not null)
                 {
-                    return new UnpackArgs(ArchiveType.Peg, pegFiles.Cpu, output, matcher, settings, string.Empty);
+                    if (!settings.Textures.Any())
+                    {
+                        throw new ArgumentException("Specify at least one texture format to unpack: \"-t png\"");
+                    }
+                    return new UnpackArgs(pegFiles, pegFiles.Cpu.Name, output, matcher, settings, string.Empty);
                 }
             }
 
@@ -124,24 +128,27 @@ public class Archiver
     {
         try
         {
-            return args.Type switch
+            return args.Archive switch
             {
-                ArchiveType.Vpp => await UnpackArchiveInternal(args, token),
-                ArchiveType.Peg => await UnpackTexturesInternal(args, token),
+                Stream stream => await UnpackArchiveInternal(args, stream, token),
+                PegStreams pegStreams => await UnpackTexturesInternal(args, pegStreams, token),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
         catch (Exception e)
         {
-            throw new Exception($"Failed {nameof(UnpackArchive)}({args.Type}, {args.Archive.FullName}, {args.Output.FullName}, {args.Settings}, {args.RelativePath})", e);
+            throw new Exception($"Failed {nameof(UnpackArchive)} {args}", e);
         }
     }
 
-    private async Task<UnpackResult> UnpackArchiveInternal(UnpackArgs args, CancellationToken token)
+    /// <summary>
+    /// NOTE: archive stream is disposed here! any new streams are copies (MemStreams)
+    /// </summary>
+    private async Task<UnpackResult> UnpackArchiveInternal(UnpackArgs args, Stream archiveStream, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var (_, archive, output, matcher, settings, relativePath) = args;
-        var outputDir = new DirectoryInfo(Path.Combine(output.FullName, archive.Name));
+        var (_, name, output, matcher, settings, relativePath) = args;
+        var outputDir = new DirectoryInfo(Path.Combine(output.FullName, name));
         if (outputDir.Exists)
         {
             if (outputDir.EnumerateFileSystemInfos().Any() && !settings.Force)
@@ -156,70 +163,87 @@ public class Archiver
         outputDir.Create();
         outputDir.Refresh();
 
-        var hash = await Utils.ComputeHash(archive);
-        await using var src = archive.OpenRead();
-        var vpp = await vppArchiver.UnpackVpp(src, archive.Name, token);
+        var hash = await Utils.ComputeHash(archiveStream);
+        await using var src = archiveStream;
+        var vpp = await vppArchiver.UnpackVpp(src, name, token);
         var archiveRelativePath = Path.Combine(relativePath, vpp.Name);
 
         var matchedFiles = matcher.Match(vpp.LogicalFiles.Select(x => x.Name)).Files.Select(x => x.Path).ToHashSet();
-        log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", archive.Name, settings.FileGlob, matchedFiles.Count);
+        log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", name, settings.FileGlob, matchedFiles.Count);
 
         var result = new List<UnpackArgs>();
         var metaEntries = new MetaEntries();
+        Dictionary<string, LogicalFile> cache = new();
         foreach (var logicalFile in vpp.LogicalFiles.Where(x => matchedFiles.Contains(x.Name)))
         {
+            cache.Add(logicalFile.Name, logicalFile);
             var outputFile = new FileInfo(Path.Combine(outputDir.FullName, logicalFile.Name));
             if (outputFile.Exists)
             {
                 throw new InvalidOperationException($"File [{outputFile.FullName}] exists, can not unpack. Duplicate entries in archive?");
             }
-            if (!outputFile.Directory.Exists)
+            if (!outputFile.Directory!.Exists)
             {
                 throw new InvalidOperationException($"Directory [{outputFile.Directory.FullName}] doesnt exist, can not unpack. Race condition?");
             }
 
-            var extension = logicalFile.Name.ToLowerInvariant().Split('.').Last();
+            var extension = Path.GetExtension(logicalFile.Name).ToLowerInvariant()[1..]; // exclude "."
             var isXml = xmlHelper.KnownXmlExtensions.Contains(extension);
-            var isArchive = Constatns.KnownArchiveExtensions.Contains(extension);
-            var isTextureArchive = Constatns.KnownTextureArchiveExtensions.Contains(extension);
+            var isVpp = Constatns.KnownVppExtensions.Contains(extension);
+            var isPeg = Constatns.KnownPegExtensions.Contains(extension);
+            var isRegularFile = !isVpp && !isPeg;
 
-            await ExtractFile(logicalFile, isXml, outputFile, settings, token);
-            var eHash = await Utils.ComputeHash(outputFile);
-            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
-
-            var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, Constatns.DefaultDir));
-            if (settings.Recursive && isArchive)
+            if (isRegularFile || !settings.SkipArchives)
             {
-                result.Add(new UnpackArgs(ArchiveType.Vpp, outputFile, innerOutputDir, matcher, settings, archiveRelativePath));
+                await ExtractFile(logicalFile, isXml, outputFile, settings, token);
             }
 
-            if (settings.Textures.Any() && isTextureArchive)
+            var eHash = await Utils.ComputeHash(logicalFile.Content);
+            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
+
+            // TODO is copy to MS this needed? vpp is not explicitly disposed, maybe a ref to original Content will work
+            var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, Constatns.DefaultDir));
+            if (settings.Recursive && isVpp)
             {
-                // NOTE: no race condition because key is always "cpu" file from the pair and tasks are created per unique args key
-                var pegFiles = PegFiles.FromExistingFile(outputFile);
+                //var ms = new MemoryStream();
+                //await logicalFile.Content.CopyToAsync(ms, token);
+                result.Add(new UnpackArgs(logicalFile.Content, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
+            }
+
+            if (settings.Textures.Any() && isPeg)
+            {
+                var pegFiles = FindPegEntryPair(logicalFile.Name, cache);
                 if (pegFiles is not null)
                 {
-                    result.Add(new UnpackArgs(ArchiveType.Peg, pegFiles.Cpu, innerOutputDir, matcher, settings, archiveRelativePath));
+                    result.Add(new UnpackArgs(pegFiles, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
                 }
             }
         }
 
-        var archiveMetadata = new ArchiveMetadata(vpp.Name, vpp.Mode.ToString(), (ulong) archive.Length, (ulong) matchedFiles.Count, hash, metaEntries);
+        var archiveMetadata = new ArchiveMetadata(vpp.Name, vpp.Mode.ToString(), archiveStream.Length.ToString(), (ulong) matchedFiles.Count, hash, metaEntries);
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
-    private async Task<UnpackResult> UnpackTexturesInternal(UnpackArgs args, CancellationToken token)
+    public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, LogicalFile> cache)
     {
-        token.ThrowIfCancellationRequested();
-        var (_, archive, output, matcher, settings, relativePath) = args;
-        var outputDir = new DirectoryInfo(Path.Combine(output.FullName, archive.Name));
-        var pegFiles = PegFiles.FromExistingFile(archive);
-        if (pegFiles is null)
+        var cpu = PegFiles.GetCpuFileName(name);
+        var gpu = PegFiles.GetCpuFileName(name);
+        var cpuEntry = cache.GetValueOrDefault(cpu);
+        var gpuEntry = cache.GetValueOrDefault(gpu);
+        if (cpuEntry is null || gpuEntry is null)
         {
-            throw new ArgumentException($"PEG does not have a pair: [{archive.FullName}]");
+            return null;
         }
 
-        var pegNameNoExt = Path.GetFileNameWithoutExtension(archive.Name);
+        return new PegStreams(cpuEntry.Content, gpuEntry.Content);
+    }
+
+    private async Task<UnpackResult> UnpackTexturesInternal(UnpackArgs args, PegStreams pegStreams, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var (_, name, output, matcher, settings, relativePath) = args;
+        var outputDir = new DirectoryInfo(Path.Combine(output.FullName, name));
+        var pegNameNoExt = Path.GetFileNameWithoutExtension(name);
         if (outputDir.Exists)
         {
             if (outputDir.EnumerateFileSystemInfos().Any() && !settings.Force)
@@ -234,13 +258,13 @@ public class Archiver
         outputDir.Create();
         outputDir.Refresh();
 
-        var pegHash = await Utils.ComputeHash(pegFiles);
-        await using var streams = pegFiles.OpenRead();
+        var pegHash = await Utils.ComputeHash(pegStreams);
+        await using var streams = pegStreams;
         var peg = await pegArchiver.UnpackPeg(streams, pegNameNoExt, token);
         var archiveRelativePath = Path.Combine(relativePath, peg.Name);
 
         var matchedFiles = matcher.Match(peg.LogicalTextures.Select(x => x.Name)).Files.Select(x => x.Path).ToHashSet();
-        log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", archive.Name, settings.FileGlob, matchedFiles.Count);
+        log.LogInformation("[{archive}]: [{fileGlob}] matched {count} files", name, settings.FileGlob, matchedFiles.Count);
 
         // NOTE: peg containers are not expected to have nested stuff
         var result = new List<UnpackArgs>();
@@ -255,7 +279,7 @@ public class Archiver
                 metaEntries.Add(outputFile.Name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, hash));
             }
         }
-        var archiveMetadata = new ArchiveMetadata(peg.Name, "peg", (ulong) archive.Length, (ulong) matchedFiles.Count, pegHash, metaEntries);
+        var archiveMetadata = new ArchiveMetadata(peg.Name, "peg", pegStreams.Size, (ulong) matchedFiles.Count, pegHash, metaEntries);
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 

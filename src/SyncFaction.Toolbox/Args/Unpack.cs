@@ -17,7 +17,7 @@ public class Unpack : Command
     private readonly Option<bool> xmlFormat = new(new[]
         {
             "-x",
-            "--xml-format"
+            "--xmlFormat"
         },
         "format xml-like files (.xtbl .dtdox .gtdox) for readability, some files will become unusable in game");
 
@@ -63,8 +63,15 @@ public class Unpack : Command
         ArgumentHelpName = "N"
     };
 
+    private readonly Option<bool> skipArchives = new(new[]
+        {
+            "-s",
+            "--skipArchives"
+        },
+        $"do not unpack archive files. With -r will unpack all regular files without wasting space");
+
     public override string? Description => @"Extract archives and containers
-Supported formats: " + string.Join(" ", Constatns.KnownArchiveExtensions.Concat(Constatns.KnownTextureArchiveExtensions));
+Supported formats: " + string.Join(" ", Constatns.KnownVppExtensions.Concat(Constatns.KnownPegExtensions));
 
     public Unpack() : base(nameof(Unpack).ToLowerInvariant())
     {
@@ -74,10 +81,11 @@ Supported formats: " + string.Join(" ", Constatns.KnownArchiveExtensions.Concat(
         AddArgument(outputArg);
         AddOption(xmlFormat);
         AddOption(recursive);
+        AddOption(skipArchives);
         AddOption(textures);
         AddOption(metadata);
-        AddOption(force);
         AddOption(parallel);
+        AddOption(force);
         Handler = CommandHandler.Create(Handle);
     }
 
@@ -88,11 +96,12 @@ Supported formats: " + string.Join(" ", Constatns.KnownArchiveExtensions.Concat(
         var output = context.ParseResult.GetValueForArgument(outputArg);
         var xmlFormat = context.ParseResult.GetValueForOption(this.xmlFormat);
         var recursive = context.ParseResult.GetValueForOption(this.recursive);
+        var skipArchives = context.ParseResult.GetValueForOption(this.skipArchives);
         var textures = context.ParseResult.GetValueForOption(this.textures) ?? new List<TextureFormat>();
         var metadata = context.ParseResult.GetValueForOption(this.metadata);
         var force = context.ParseResult.GetValueForOption(this.force);
         var parallel = context.ParseResult.GetValueForOption(this.parallel);
-        var settings = new UnpackSettings(archive, file, output, xmlFormat, recursive, textures, metadata, force, parallel < 1 ? Environment.ProcessorCount : parallel);
+        var settings = new UnpackSettings(archive, file, output, xmlFormat, recursive, textures, metadata, force, parallel < 1 ? Environment.ProcessorCount : parallel, skipArchives);
         var archiver = context.GetHost().Services.GetRequiredService<Archiver>();
         await archiver.Unpack(settings, token);
         return 0;

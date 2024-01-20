@@ -15,7 +15,7 @@ public static class Constatns
     public static readonly Regex TextureNameFormat = new (@"^(?<name>.*?)\s+(?<format>.*?)\s+(?<mipLevels>\d+).png$", RegexOptions.Compiled);
 
 
-    public static readonly ImmutableHashSet<string> KnownArchiveExtensions = new HashSet<string>
+    public static readonly ImmutableHashSet<string> KnownVppExtensions = new HashSet<string>
     {
         "vpp",
         "vpp_pc",
@@ -23,7 +23,7 @@ public static class Constatns
         "str2_pc"
     }.ToImmutableHashSet();
 
-    public static readonly ImmutableHashSet<string> KnownTextureArchiveExtensions = new HashSet<string>
+    public static readonly ImmutableHashSet<string> KnownPegExtensions = new HashSet<string>
     {
         "cpeg_pc",
         "cvbm_pc",
