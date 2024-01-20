@@ -13,20 +13,21 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SyncFaction.Packer.Models.Peg;
 using SyncFaction.Packer.Services.Peg;
+using SyncFaction.Toolbox.Models;
 
 namespace SyncFaction.Toolbox.Args;
 
 public class Unpeg : Command
 {
     private readonly Argument<string> pathArg = new("path", "path to look for pegs");
-    private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultDir, "output path");
+    private readonly Argument<string> outputArg = new("output", () => Constatns.DefaultDir, "output path");
 
     private readonly Option<bool> metadata = new(new[]
         {
             "-m",
             "--metadata"
         },
-        $"write file with archive information ({Archiver.MetadataFile})");
+        $"write file with archive information ({Constatns.MetadataFile})");
 
     private readonly Option<bool> force = new(new[]
         {
@@ -110,22 +111,21 @@ public class Unpeg : Command
     {
         var nameNoExt = Path.GetFileNameWithoutExtension(filePath);
 
-        var (cpuFile, gpuFile) = archiver.GetPairFiles(new FileInfo(filePath));
-        if (cpuFile is null || gpuFile is null)
+        var pegFiles = PegFiles.FromExistingFile(new FileInfo(filePath));
+        if (pegFiles is null)
         {
             throw new InvalidOperationException("Can not find pair cpu+gpu files");
         }
-        log.LogDebug("cpu {cpu}, gpu {gpu}", cpuFile.FullName, gpuFile.FullName);
+        log.LogDebug("initialized {PegFiles}", pegFiles);
 
-        await using var cpu = cpuFile.OpenRead();
-        await using var gpu = gpuFile.OpenRead();
-        var logicalTextureArchive = await archiver.UnpackPeg(cpu, gpu, nameNoExt, token);
+        await using var pegStreams = pegFiles.OpenRead();
+        var logicalTextureArchive = await archiver.UnpackPeg(pegStreams, nameNoExt, token);
 
 
         foreach (var logicalTexture in logicalTextureArchive.LogicalTextures)
         {
             token.ThrowIfCancellationRequested();
-            log.LogInformation("{file} {texture}", cpuFile.FullName, logicalTexture);
+            log.LogInformation("{file} {texture}", pegFiles.FullName, logicalTexture);
 
             await Write(logicalTexture, converter, log, token);
 

@@ -58,8 +58,8 @@ public class Archiver
         var unpackArgsQueue = archivePaths.Select(x => new FileInfo(x)).Select(x =>
         {
             var extension = x.Name.ToLowerInvariant().Split('.').Last();
-            var isArchive = KnownArchiveExtensions.Contains(extension);
-            var isTextureArchive = KnownTextureArchiveExtensions.Contains(extension);
+            var isArchive = Constatns.KnownArchiveExtensions.Contains(extension);
+            var isTextureArchive = Constatns.KnownTextureArchiveExtensions.Contains(extension);
             if (isArchive)
             {
                 return new UnpackArgs(ArchiveType.Vpp, x, output, matcher, settings, string.Empty);
@@ -68,10 +68,10 @@ public class Archiver
             if (isTextureArchive)
             {
                 // unpack explicitly given pegs, even if -t is not specified
-                var (cpu, gpu) = pegArchiver.GetPairFiles(x);
-                if (cpu is not null && gpu is not null)
+                var pegFiles = PegFiles.FromExistingFile(x);
+                if (pegFiles is not null)
                 {
-                    return new UnpackArgs(ArchiveType.Peg, cpu, output, matcher, settings, string.Empty);
+                    return new UnpackArgs(ArchiveType.Peg, pegFiles.Cpu, output, matcher, settings, string.Empty);
                 }
             }
 
@@ -111,35 +111,13 @@ public class Archiver
         if (settings.Metadata)
         {
             //var json = JsonSerializer.Serialize(metadata, new JsonSerializerOptions {WriteIndented = true});
-            var serialized = Serialize(metadata);
-            var metaFile = new FileInfo(Path.Combine(output.FullName, MetadataFile));
+            var serialized = metadata.Serialize();
+            var metaFile = new FileInfo(Path.Combine(output.FullName, Constatns.MetadataFile));
             await File.WriteAllTextAsync(metaFile.FullName, serialized, cts.Token);
             log.LogInformation("Metadata saved to {file}", metaFile.FullName);
         }
 
         log.LogInformation("Completed in {time}", sw.Elapsed);
-    }
-
-    private string Serialize(Metadata metadata)
-    {
-        var sb = new StringBuilder();
-        foreach (var (key, (name, mode, size, entryCount, hash, metaEntries)) in metadata)
-        {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"{key}\t\t{mode}, {entryCount} entries, {size} bytes, {hash}");
-            foreach (var (eKey, (eName, order, offset, eSize, compressedSize, eHash)) in metaEntries)
-            {
-                sb.AppendLine(CultureInfo.InvariantCulture, $"{key}\\{eKey}\t\t{order}, {eSize} bytes, {eHash}");
-            }
-        }
-
-        return sb.ToString();
-    }
-
-    record UnpackArgs(ArchiveType Type, FileInfo Archive, DirectoryInfo Output, Matcher Matcher, UnpackSettings Settings, string RelativePath);
-
-    enum ArchiveType
-    {
-        Vpp, Peg
     }
 
     private async Task<UnpackResult> UnpackArchive(UnpackArgs args, CancellationToken token)
@@ -178,7 +156,7 @@ public class Archiver
         outputDir.Create();
         outputDir.Refresh();
 
-        var hash = await ComputeHash(archive);
+        var hash = await Utils.ComputeHash(archive);
         await using var src = archive.OpenRead();
         var vpp = await vppArchiver.UnpackVpp(src, archive.Name, token);
         var archiveRelativePath = Path.Combine(relativePath, vpp.Name);
@@ -202,14 +180,14 @@ public class Archiver
 
             var extension = logicalFile.Name.ToLowerInvariant().Split('.').Last();
             var isXml = xmlHelper.KnownXmlExtensions.Contains(extension);
-            var isArchive = KnownArchiveExtensions.Contains(extension);
-            var isTextureArchive = KnownTextureArchiveExtensions.Contains(extension);
+            var isArchive = Constatns.KnownArchiveExtensions.Contains(extension);
+            var isTextureArchive = Constatns.KnownTextureArchiveExtensions.Contains(extension);
 
             await ExtractFile(logicalFile, isXml, outputFile, settings, token);
-            var eHash = await ComputeHash(outputFile);
+            var eHash = await Utils.ComputeHash(outputFile);
             metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) logicalFile.Content.Length, logicalFile.CompressedSize, eHash));
 
-            var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, DefaultDir));
+            var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, Constatns.DefaultDir));
             if (settings.Recursive && isArchive)
             {
                 result.Add(new UnpackArgs(ArchiveType.Vpp, outputFile, innerOutputDir, matcher, settings, archiveRelativePath));
@@ -218,10 +196,10 @@ public class Archiver
             if (settings.Textures.Any() && isTextureArchive)
             {
                 // NOTE: no race condition because key is always "cpu" file from the pair and tasks are created per unique args key
-                var (cpu, gpu) = pegArchiver.GetPairFiles(outputFile);
-                if (cpu is not null && gpu is not null)
+                var pegFiles = PegFiles.FromExistingFile(outputFile);
+                if (pegFiles is not null)
                 {
-                    result.Add(new UnpackArgs(ArchiveType.Peg, cpu, innerOutputDir, matcher, settings, archiveRelativePath));
+                    result.Add(new UnpackArgs(ArchiveType.Peg, pegFiles.Cpu, innerOutputDir, matcher, settings, archiveRelativePath));
                 }
             }
         }
@@ -235,8 +213,8 @@ public class Archiver
         token.ThrowIfCancellationRequested();
         var (_, archive, output, matcher, settings, relativePath) = args;
         var outputDir = new DirectoryInfo(Path.Combine(output.FullName, archive.Name));
-        var (cpu, gpu) = pegArchiver.GetPairFiles(archive);
-        if (cpu is null || gpu is null)
+        var pegFiles = PegFiles.FromExistingFile(archive);
+        if (pegFiles is null)
         {
             throw new ArgumentException($"PEG does not have a pair: [{archive.FullName}]");
         }
@@ -256,11 +234,10 @@ public class Archiver
         outputDir.Create();
         outputDir.Refresh();
 
-        var cpuHash = await ComputeHash(cpu);
-        var gpuHash = await ComputeHash(gpu);
-        await using var c = cpu.OpenRead();
-        await using var g = gpu.OpenRead();
-        var peg = await pegArchiver.UnpackPeg(c, g, pegNameNoExt, token);
+        var cpuHash = await Utils.ComputeHash(pegFiles.Cpu);
+        var gpuHash = await Utils.ComputeHash(pegFiles.Gpu);
+        await using var streams = pegFiles.OpenRead();
+        var peg = await pegArchiver.UnpackPeg(streams, pegNameNoExt, token);
         var archiveRelativePath = Path.Combine(relativePath, peg.Name);
 
         var matchedFiles = matcher.Match(peg.LogicalTextures.Select(x => x.Name)).Files.Select(x => x.Path).ToHashSet();
@@ -275,7 +252,7 @@ public class Archiver
             {
                 token.ThrowIfCancellationRequested();
                 var outputFile = await ExtractTexture(logicalTexture, textureFormat, outputDir, token);
-                var hash = await ComputeHash(outputFile);
+                var hash = await Utils.ComputeHash(outputFile);
                 metaEntries.Add(outputFile.Name, new EntryMetadata(outputFile.Name, logicalTexture.Order, (ulong)logicalTexture.DataOffset, (ulong) logicalTexture.Data.Length, 0, hash));
             }
         }
@@ -334,46 +311,5 @@ public class Archiver
         logicalTexture.Data.Seek(0, SeekOrigin.Begin);
         outputFile.Refresh();
         return outputFile;
-    }
-
-    public static async Task<string> ComputeHash(FileInfo file)
-    {
-        await using var s = file.OpenRead();
-        return ComputeHash(s);
-    }
-
-    public static string ComputeHash(Stream stream)
-    {
-        using var sha = SHA256.Create();
-        var hashValue = sha.ComputeHash(stream);
-        var hash = BitConverter.ToString(hashValue).Replace("-", "");
-        return hash;
-    }
-
-    public const string DefaultDir = ".unpack";
-    public const string DefaultOutputDir = ".output";
-    public const string MetadataFile = ".metadata";
-
-    public static readonly ImmutableHashSet<string> KnownArchiveExtensions = new HashSet<string>
-    {
-        "vpp",
-        "vpp_pc",
-        "str2",
-        "str2_pc"
-    }.ToImmutableHashSet();
-
-    public static readonly ImmutableHashSet<string> KnownTextureArchiveExtensions = new HashSet<string>
-    {
-        "cpeg_pc",
-        "cvbm_pc",
-        "gpeg_pc",
-        "gvbm_pc",
-    }.ToImmutableHashSet();
-
-    private record UnpackResult(string RelativePath, ArchiveMetadata ArchiveMetadata, UnpackArgs Args, IReadOnlyList<UnpackArgs> More);
-
-    public enum TextureFormat
-    {
-        DDS, PNG, RAW
     }
 }

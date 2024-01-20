@@ -12,7 +12,7 @@ public class Unpack : Command
 {
     private readonly Argument<string> archiveArg = new("archive", "vpp or peg archive to unpack, globs allowed");
     private readonly Argument<string> fileArg = new("file", () => "*", "file inside archive to extract, globs allowed. lookup is not recursive!");
-    private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultDir, "output path");
+    private readonly Argument<string> outputArg = new("output", () => Constatns.DefaultDir, "output path");
 
     private readonly Option<bool> xmlFormat = new(new[]
         {
@@ -26,14 +26,14 @@ public class Unpack : Command
             "-r",
             "--recursive"
         },
-        $"unpack nested archives (typically .str2_pc) recursively in {Archiver.DefaultDir} subfolder");
+        $"unpack nested archives (typically .str2_pc) recursively in {Constatns.DefaultDir} subfolder");
 
-    private readonly Option<List<Archiver.TextureFormat>> textures = new(new[]
+    private readonly Option<List<TextureFormat>> textures = new(new[]
         {
             "-t",
             "--textures"
         },
-        $"unpack textures from containers (.cpeg_pc .cvbm_pc .gpeg_pc .gvbm_pc) in {Archiver.DefaultDir} subfolder. Specify one or more supported formats: dds png raw")
+        $"unpack textures from containers (.cpeg_pc .cvbm_pc .gpeg_pc .gvbm_pc) in {Constatns.DefaultDir} subfolder. Specify one or more supported formats: dds png raw")
     {
         ArgumentHelpName = "formats",
         AllowMultipleArgumentsPerToken = true,
@@ -44,7 +44,7 @@ public class Unpack : Command
             "-m",
             "--metadata"
         },
-        $"write {Archiver.MetadataFile} file with archive information: entries, sizes, hashes");
+        $"write {Constatns.MetadataFile} file with archive information: entries, sizes, hashes");
 
     private readonly Option<bool> force = new(new[]
         {
@@ -64,7 +64,7 @@ public class Unpack : Command
     };
 
     public override string? Description => @"Extract archives and containers
-Supported formats: " + string.Join(" ", Archiver.KnownArchiveExtensions.Concat(Archiver.KnownTextureArchiveExtensions));
+Supported formats: " + string.Join(" ", Constatns.KnownArchiveExtensions.Concat(Constatns.KnownTextureArchiveExtensions));
 
     public Unpack() : base(nameof(Unpack).ToLowerInvariant())
     {
@@ -88,7 +88,7 @@ Supported formats: " + string.Join(" ", Archiver.KnownArchiveExtensions.Concat(A
         var output = context.ParseResult.GetValueForArgument(outputArg);
         var xmlFormat = context.ParseResult.GetValueForOption(this.xmlFormat);
         var recursive = context.ParseResult.GetValueForOption(this.recursive);
-        var textures = context.ParseResult.GetValueForOption(this.textures) ?? new List<Archiver.TextureFormat>();
+        var textures = context.ParseResult.GetValueForOption(this.textures) ?? new List<TextureFormat>();
         var metadata = context.ParseResult.GetValueForOption(this.metadata);
         var force = context.ParseResult.GetValueForOption(this.force);
         var parallel = context.ParseResult.GetValueForOption(this.parallel);

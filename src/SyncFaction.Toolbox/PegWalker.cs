@@ -23,8 +23,8 @@ public class PegWalker
 
     public async Task RepackPeg(FileInfo archive, DirectoryInfo edits, DirectoryInfo output, bool force, CancellationToken token)
     {
-        var (cpu, gpu) = pegArchiver.GetPairFiles(archive);
-        if (cpu is null || gpu is null)
+        var pegFiles = PegFiles.FromExistingFile(archive);
+        if (pegFiles is null)
         {
             throw new ArgumentException($"PEG does not have a pair: [{archive.FullName}]");
         }
@@ -44,20 +44,19 @@ public class PegWalker
         output.Create();
         output.Refresh();
 
-        await using var c = cpu.OpenRead();
-        await using var g = gpu.OpenRead();
-        var peg = await pegArchiver.UnpackPeg(c, g, name, token);
+        await using var streams = pegFiles.OpenRead();
+        var peg = await pegArchiver.UnpackPeg(streams, name, token);
         var editFiles = edits
             .EnumerateFiles()
             .Where(x => x.Extension.ToLowerInvariant() == ".png")
             .ToDictionary(x => x.Name.ToLowerInvariant());
         var logicalTextures = WalkTextures(peg, editFiles, token).ToList();
 
-        var cpuOut = new FileInfo(Path.Combine(output.FullName, $"{peg.Name}{Path.GetExtension(cpu.Name)}"));
-        var gpuOut = new FileInfo(Path.Combine(output.FullName, $"{peg.Name}{Path.GetExtension(gpu.Name)}"));
-        await using var cpuOutStream = cpuOut.OpenWrite();
-        await using var gpuOutStream = gpuOut.OpenWrite();
-        await pegArchiver.PackPeg(peg with {LogicalTextures = logicalTextures}, cpuOutStream, gpuOutStream, token);
+        var cpuOut = new FileInfo(Path.Combine(output.FullName, $"{peg.Name}{Path.GetExtension(pegFiles.Cpu.Name)}"));
+        var gpuOut = new FileInfo(Path.Combine(output.FullName, $"{peg.Name}{Path.GetExtension(pegFiles.Gpu.Name)}"));
+        var outPeg = new PegFiles(cpuOut, gpuOut);
+        await using var outStreams = outPeg.OpenWrite();
+        await pegArchiver.PackPeg(peg with {LogicalTextures = logicalTextures}, outStreams, token);
 
     }
 
@@ -84,8 +83,8 @@ public class PegWalker
             }
         }
 
-        var newfiles = editFiles.OrderBy(x => x.Key, StringComparer.Ordinal);
-        foreach (var (_, file) in newfiles)
+        var newFiles = editFiles.OrderBy(x => x.Key, StringComparer.Ordinal);
+        foreach (var (_, file) in newFiles)
         {
             var png = imageConverter.ReadPngFile(file, token).Result;
             var size = new Size(png.Width, png.Height);
@@ -95,22 +94,11 @@ public class PegWalker
             var data = imageConverter.Encode(png, stub);
             yield return stub with {Data = data};
         }
-
-
-        /*
-         TODO invent sane name format for new textures
-         * no order number (order by filename)
-         * format and flag: dxt1, dxt5, rgba, dxt1_srgb, dxt5_srgb, rgba_srgb
-         * mip levels
-
-         "foo_bar rgba_srgb 5.png"
-
-        */
     }
 
     private (RfgCpeg.Entry.BitmapFormat format, TextureFlags flags, int mipLevels, string name) ParseFilename(string fileName)
     {
-        var match = nameFormat.Match(fileName.ToLowerInvariant());
+        var match = Constatns.TextureNameFormat.Match(fileName.ToLowerInvariant());
         var name = match.Groups["name"].Value + ".tga";
         var formatString = match.Groups["format"].Value;
         var mipLevels = int.Parse(match.Groups["mipLevels"].Value);
@@ -128,6 +116,4 @@ public class PegWalker
 
         return (format, flags, mipLevels, name);
     }
-
-    private readonly Regex nameFormat = new (@"^(?<name>.*?)\s+(?<format>.*?)\s+(?<mipLevels>\d+).png$");
 }

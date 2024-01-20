@@ -4,7 +4,6 @@ namespace SyncFaction.Packer.Services.Peg;
 
 public interface IPegArchiver
 {
-    Task<LogicalTextureArchive> UnpackPeg(Stream cpu, Stream gpu, string name, CancellationToken token);
-    Task PackPeg(LogicalTextureArchive logicalTextureArchive, Stream destinationCpu, Stream destinationGpu, CancellationToken token);
-    (FileInfo? cpu, FileInfo? gpu) GetPairFiles(FileInfo input);
+    Task<LogicalTextureArchive> UnpackPeg(PegStreams streams, string name, CancellationToken token);
+    Task PackPeg(LogicalTextureArchive logicalTextureArchive, PegStreams streams, CancellationToken token);
 }

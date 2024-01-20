@@ -3,6 +3,7 @@ using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using Microsoft.Extensions.DependencyInjection;
+using SyncFaction.Toolbox.Models;
 
 namespace SyncFaction.Toolbox.Args;
 
@@ -10,7 +11,7 @@ public class Repeg : Command
 {
     private readonly Argument<string> pegArg = new("peg", "One peg filename: foo.cpeg_pc, foo.gpeg_pc, foo.cvbm_pc, foo.gvbm_pc");
     private readonly Argument<string> editsArg = new("edits", "Folder with replacement and new textures");
-    private readonly Argument<string> outputArg = new("output", () => Archiver.DefaultOutputDir, "output path");
+    private readonly Argument<string> outputArg = new("output", () => Constatns.DefaultOutputDir, "output path");
 
     private readonly Option<bool> force = new(new[]
         {
