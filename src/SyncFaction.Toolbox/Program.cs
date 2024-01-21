@@ -1,9 +1,12 @@
+using System.Collections.Concurrent;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IO;
 using NLog.Config;
 using NLog.Extensions.Logging;
 using NLog.Filters;
@@ -26,6 +29,35 @@ var runner = new CommandLineBuilder(new AppRootCommand()).UseHost(_ => new HostB
                 services.AddTransient<ImageConverter>();
                 services.AddTransient<XmlHelper>();
                 services.AddTransient<PegWalker>();
+                services.AddSingleton(sp =>
+                {
+                    var log = sp.GetRequiredService<ILogger<RecyclableMemoryStreamManager>>();
+                    var manager = new RecyclableMemoryStreamManager();
+                    var tags = new ConcurrentDictionary<string,byte>();
+                    manager.StreamCreated += (_, eventArgs) =>
+                    {
+                        log.LogDebug("Stream created: {tag}", eventArgs.Tag);
+
+                        if (!tags.TryAdd(eventArgs.Tag!, 1))
+                        {
+                            throw new InvalidOperationException($"Duplicate stream tag [{eventArgs.Tag}]");
+                        }
+                    };
+                    manager.StreamDisposed += (_, eventArgs) =>
+                    {
+                        log.LogDebug("Stream disposed: {tag}", eventArgs.Tag);
+                        if (!tags.TryRemove(eventArgs.Tag!, out var _))
+                        {
+                            throw new InvalidOperationException($"Missing stream tag [{eventArgs.Tag}]");
+                        }
+                    };
+                    manager.UsageReport += (_, eventArgs) =>
+                    {
+                        //var info = JsonSerializer.Serialize(eventArgs);
+                        log.LogDebug("Streams: {n} in use", tags.Count);
+                    };
+                    return manager;
+                });
                 services.AddLogging(x =>
                 {
                     x.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);

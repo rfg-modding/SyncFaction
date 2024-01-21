@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
+using Microsoft.IO;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Models;
@@ -22,14 +23,16 @@ public class Archiver
     private readonly IPegArchiver pegArchiver;
     private readonly ImageConverter imageConverter;
     private readonly XmlHelper xmlHelper;
+    private readonly RecyclableMemoryStreamManager streamManager;
     private readonly ILogger<Archiver> log;
 
-    public Archiver(IVppArchiver vppArchiver, IPegArchiver pegArchiver, ImageConverter imageConverter, XmlHelper xmlHelper, ILogger<Archiver> log)
+    public Archiver(IVppArchiver vppArchiver, IPegArchiver pegArchiver, ImageConverter imageConverter, XmlHelper xmlHelper, RecyclableMemoryStreamManager streamManager, ILogger<Archiver> log)
     {
         this.vppArchiver = vppArchiver;
         this.pegArchiver = pegArchiver;
         this.imageConverter = imageConverter;
         this.xmlHelper = xmlHelper;
+        this.streamManager = streamManager;
         this.log = log;
     }
 
@@ -173,12 +176,9 @@ public class Archiver
 
         var result = new List<UnpackArgs>();
         var metaEntries = new MetaEntries();
-        Dictionary<string, MemoryStream> cache = new();
+        Dictionary<string, Stream> cache = new();
         foreach (var logicalFile in vpp.LogicalFiles.Where(x => matchedFiles.Contains(x.Name)))
         {
-            var ms = new MemoryStream();
-            await logicalFile.Content.CopyToAsync(ms, token);
-            ms.Seek(0, SeekOrigin.Begin);
             var outputFile = new FileInfo(Path.Combine(outputDir.FullName, logicalFile.Name));
             if (outputFile.Exists)
             {
@@ -195,23 +195,32 @@ public class Archiver
             var isPeg = Constatns.KnownPegExtensions.Contains(extension);
             var isRegularFile = !isVpp && !isPeg;
 
+            var tag = Path.Combine(archiveRelativePath, logicalFile.Name);
+            var copyStream = streamManager.GetStream(tag, logicalFile.Content.Length);
+            await logicalFile.Content.CopyToAsync(copyStream, token);
+            copyStream.Seek(0, SeekOrigin.Begin);
+            bool canDispose = true;
+
             if (isRegularFile || !settings.SkipArchives)
             {
-                await ExtractFile(ms, isXml, outputFile, settings, token);
+                await ExtractFile(copyStream, isXml, outputFile, settings, token);
             }
 
-            var eHash = await Utils.ComputeHash(ms);
-            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) ms.Length, logicalFile.CompressedSize, eHash));
+            var eHash = await Utils.ComputeHash(copyStream);
+            metaEntries.Add(logicalFile.Name, new EntryMetadata(logicalFile.Name, logicalFile.Order, logicalFile.Offset, (ulong) copyStream.Length, logicalFile.CompressedSize, eHash));
 
             var innerOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, Constatns.DefaultDir));
             if (settings.Recursive && isVpp)
             {
-                result.Add(new UnpackArgs(ms, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
+                result.Add(new UnpackArgs(copyStream, logicalFile.Name, innerOutputDir, matcher, settings, archiveRelativePath));
+                canDispose = false;
             }
 
             if (settings.Textures.Any() && isPeg)
             {
-                cache.Add(logicalFile.Name, ms);
+                cache.Add(logicalFile.Name, copyStream);
+                canDispose = false;
+
                 var pegStreams = FindPegEntryPair(logicalFile.Name, cache);
                 if (pegStreams is not null)
                 {
@@ -220,13 +229,24 @@ public class Archiver
                     cache.Remove(PegFiles.GetGpuFileName(logicalFile.Name)!);
                 }
             }
+
+            if (canDispose)
+            {
+                await copyStream.DisposeAsync();
+            }
+        }
+
+        if (cache.Any())
+        {
+            var items = string.Join(", ", cache.Keys);
+            throw new InvalidOperationException($"Some items failed to extract properly from {archiveRelativePath}: [{items}]");
         }
 
         var archiveMetadata = new ArchiveMetadata(vpp.Name, vpp.Mode.ToString(), archiveStream.Length.ToString(), (ulong) matchedFiles.Count, hash, metaEntries);
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
-    public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, MemoryStream> cache)
+    public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, Stream> cache)
     {
         var cpu = PegFiles.GetCpuFileName(name);
         var gpu = PegFiles.GetGpuFileName(name);
