@@ -2,7 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SyncFaction.Packer.Models;
 
-public sealed class StreamWrapper : Stream
+/// <summary>
+/// Wrapper which can be disposed without disposing underlying stream
+/// </summary>
+public sealed class DisposableStreamWrapper : Stream
 {
     public override bool CanRead => stream.CanRead;
 
@@ -21,7 +24,7 @@ public sealed class StreamWrapper : Stream
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Wrapper is not owner of the stream")]
     private readonly Stream stream;
 
-    public StreamWrapper(Stream stream) => this.stream = stream;
+    public DisposableStreamWrapper(Stream stream) => this.stream = stream;
 
     public override async ValueTask DisposeAsync() => await base.DisposeAsync();
 

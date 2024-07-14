@@ -248,7 +248,7 @@ doc: Compressed entry data size in bytes. If file is not compressed, should be 0
         Func<Stream, Stream> wrapperFactory = compressOutput switch
         {
             true => x => new DeflaterOutputStream(x, new Deflater(compressionLevel)) { IsStreamOwner = false },
-            false => x => new StreamWrapper(x)
+            false => x => new DisposableStreamWrapper(x)
         };
 
         uint uncompressedSize = 0;

@@ -7,6 +7,7 @@ using System.Xml;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using Microsoft.IO;
+using PleOps.XdeltaSharp.Vcdiff.Instructions;
 using SyncFaction.ModManager;
 using SyncFaction.ModManager.Services;
 using SyncFaction.Packer.Models;
@@ -94,7 +95,7 @@ public class Archiver
                 var batch = unpackArgsQueue.Take(batchSize).ToList();
                 foreach (var x in batch.Where(x => !runningTasks.ContainsKey(x)))
                 {
-                    runningTasks.Add(x, UnpackArchive(x, cts.Token));
+                    runningTasks.Add(x, Unpack(x, cts.Token));
                 }
                 var completed = await Task.WhenAny(runningTasks.Values);
                 var result = await completed;
@@ -127,27 +128,27 @@ public class Archiver
         log.LogInformation("Completed in {time}", sw.Elapsed);
     }
 
-    private async Task<UnpackResult> UnpackArchive(UnpackArgs args, CancellationToken token)
+    private async Task<UnpackResult> Unpack(UnpackArgs args, CancellationToken token)
     {
         try
         {
             return args.Archive switch
             {
-                Stream stream => await UnpackArchiveInternal(args, stream, token),
-                PegStreams pegStreams => await UnpackTexturesInternal(args, pegStreams, token),
+                Stream stream => await UnpackVpp(args, stream, token),
+                PegStreams pegStreams => await UnpackPeg(args, pegStreams, token),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
         catch (Exception e)
         {
-            throw new Exception($"Failed {nameof(UnpackArchive)} {args}", e);
+            throw new Exception($"Failed {nameof(Unpack)} {args}", e);
         }
     }
 
     /// <summary>
     /// NOTE: archive stream is disposed here! any new streams are copies (MemStreams)
     /// </summary>
-    private async Task<UnpackResult> UnpackArchiveInternal(UnpackArgs args, Stream archiveStream, CancellationToken token)
+    private async Task<UnpackResult> UnpackVpp(UnpackArgs args, Stream archiveStream, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var (_, name, output, matcher, settings, relativePath) = args;
@@ -162,9 +163,6 @@ public class Archiver
             outputDir.Delete(true);
             outputDir.Refresh();
         }
-
-        outputDir.Create();
-        outputDir.Refresh();
 
         var hash = await Utils.ComputeHash(archiveStream);
         await using var src = archiveStream;
@@ -186,7 +184,9 @@ public class Archiver
             }
             if (!outputFile.Directory!.Exists)
             {
-                throw new InvalidOperationException($"Directory [{outputFile.Directory.FullName}] doesnt exist, can not unpack. Race condition?");
+                outputFile.Directory.Create();
+                outputFile.Directory.Refresh();
+                outputFile.Refresh();
             }
 
             var extension = Path.GetExtension(logicalFile.Name).ToLowerInvariant()[1..]; // exclude "."
@@ -195,10 +195,24 @@ public class Archiver
             var isPeg = Constatns.KnownPegExtensions.Contains(extension);
             var isRegularFile = !isVpp && !isPeg;
 
-            var tag = Path.Combine(archiveRelativePath, logicalFile.Name);
-            var copyStream = streamManager.GetStream(tag, logicalFile.Content.Length);
-            await logicalFile.Content.CopyToAsync(copyStream, token);
-            copyStream.Seek(0, SeekOrigin.Begin);
+            /*
+                return task with logical file
+                extraction:
+                    regular file: write if matched
+                    archive: loop, write if not "-s", write if matched
+
+            */
+
+            //var tag = Path.Combine(archiveRelativePath, logicalFile.Name);
+            //var copyStream = streamManager.GetStream(tag, logicalFile.Content.Length);
+            //await logicalFile.Content.CopyToAsync(copyStream, token);
+            //copyStream.Seek(0, SeekOrigin.Begin);
+            if (!logicalFile.Content.CanSeek)
+            {
+                logicalFile.Content.Seek(0, SeekOrigin.Begin);
+                throw new InvalidOperationException($"Not seekable: {logicalFile.Content}");
+            }
+            var copyStream = CreateThreadSafeCopy(logicalFile.Content);
             bool canDispose = true;
 
             if (isRegularFile || !settings.SkipArchives)
@@ -246,6 +260,16 @@ public class Archiver
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
+    private Stream CreateThreadSafeCopy(Stream stream)
+    {
+        if (stream is not StreamView view)
+        {
+            throw new ArgumentException($"Only StreamView is supported, got {stream}");
+        }
+
+        view.Stream
+    }
+
     public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, Stream> cache)
     {
         var cpu = PegFiles.GetCpuFileName(name);
@@ -260,7 +284,7 @@ public class Archiver
         return new PegStreams(cpuStream, gpuStream);
     }
 
-    private async Task<UnpackResult> UnpackTexturesInternal(UnpackArgs args, PegStreams pegStreams, CancellationToken token)
+    private async Task<UnpackResult> UnpackPeg(UnpackArgs args, PegStreams pegStreams, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var (_, name, output, matcher, settings, relativePath) = args;
@@ -305,7 +329,7 @@ public class Archiver
         return new UnpackResult(archiveRelativePath, archiveMetadata, args, result);
     }
 
-    private async Task ExtractFile(MemoryStream content, bool isXml, FileInfo outputFile, UnpackSettings settings, CancellationToken token)
+    private async Task ExtractFile(Stream content, bool isXml, FileInfo outputFile, UnpackSettings settings, CancellationToken token)
     {
         await using var fileStream = outputFile.OpenWrite();
         if (settings.XmlFormat && isXml)

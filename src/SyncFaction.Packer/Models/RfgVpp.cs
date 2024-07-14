@@ -97,7 +97,7 @@ public partial class RfgVpp
         {
             token.ThrowIfCancellationRequested();
             entryData.OverrideAlignmentSize(alignment);
-            entryData.OverrideData(new StreamView(new StreamView(ms, 0, decompressedLength), entryData.XDataOffset, entryData.XLenData));
+            entryData.OverrideData(new StreamView(ms, entryData.XDataOffset, entryData.XLenData));
         }
     }
 
@@ -111,7 +111,6 @@ public partial class RfgVpp
         {
             token.ThrowIfCancellationRequested();
 
-            // TODO maybe get rid of some views here?
             var compressedLength = entryData.DataSize;
             // NOTE: important to calculate it before all overrides
             var totalCompressedLength = entryData.TotalSize;
