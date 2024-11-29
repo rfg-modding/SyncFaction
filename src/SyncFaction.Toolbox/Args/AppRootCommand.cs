@@ -7,10 +7,10 @@ public class AppRootCommand : RootCommand
 {
     public AppRootCommand()
     {
-        AddCommand(new Unpack());
+        //AddCommand(new Unpack());
         AddCommand(new Unpeg());
         AddCommand(new Repeg());
-        AddCommand(new Repack());
+        //AddCommand(new Repack());
     }
 
     public class CommandHandler : ICommandHandler

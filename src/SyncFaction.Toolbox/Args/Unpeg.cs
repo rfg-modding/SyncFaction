@@ -19,57 +19,94 @@ namespace SyncFaction.Toolbox.Args;
 
 public class Unpeg : Command
 {
-    private readonly Argument<string> pathArg = new("path", "path to look for pegs");
+    private readonly Argument<string> pegArg = new("peg", "One peg filename: foo.cpeg_pc, foo.gpeg_pc, foo.cvbm_pc, foo.gvbm_pc");
     private readonly Argument<string> outputArg = new("output", () => Constatns.DefaultDir, "output path");
 
-    private readonly Option<bool> metadata = new(new[]
-        {
-            "-m",
-            "--metadata"
-        },
-        $"write file with archive information ({Constatns.MetadataFile})");
-
-    private readonly Option<bool> force = new(new[]
+    private readonly Option<bool> forceArg = new(new[]
         {
             "-f",
             "--force"
         },
         "overwrite output if exists");
 
+    private readonly Option<bool> ddsArg = new(new[]
+        {
+            "-d",
+            "--dds"
+        },
+        "write dds files without conversion");
+
     public Unpeg() : base(nameof(Unpeg).ToLowerInvariant(), "TEST TODO: debug compare dds and png")
     {
-        AddArgument(pathArg);
-        //AddArgument(outputArg);
-        //AddOption(metadata);
-        //AddOption(force);
+        AddArgument(pegArg);
+        AddArgument(outputArg);
+        AddOption(forceArg);
+        AddOption(ddsArg);
         Handler = CommandHandler.Create(Handle);
     }
 
-    private async Task<int> Handle(string path, InvocationContext context, CancellationToken token)
+    private async Task<int> Handle(string peg, string output, bool force, bool dds, InvocationContext context, CancellationToken token)
     {
-        var absPath = new DirectoryInfo(path).FullName;
-        Console.WriteLine(absPath);
         var services = context.GetHost().Services;
         var log = services.GetRequiredService<ILogger<Unpeg>>();
         var archiver = services.GetRequiredService<IPegArchiver>();
+        var imageConverter = new ImageConverter(services.GetRequiredService<ILogger<ImageConverter>>());
 
-        var converter = new ImageConverter(services.GetRequiredService<ILogger<ImageConverter>>());
-        var documentMatcher = new Matcher(StringComparison.OrdinalIgnoreCase);
-        documentMatcher.AddInclude("**/*.cvbm_pc");
-        documentMatcher.AddInclude("**/*.cpeg_pc");
-        var paths = documentMatcher.GetResultsInFullPath(absPath).ToList();
-        foreach (var filePath in paths)
+        var pegFile = new FileInfo(peg);
+        if (!pegFile.Exists)
         {
-            token.ThrowIfCancellationRequested();
-            var file = new FileInfo(filePath);
-            if (!file.Exists)
+            throw new ArgumentException($"Peg file does not exist: [{pegFile.FullName}]");
+        }
+
+        var outputDir = new DirectoryInfo(output);
+        if (outputDir.Exists)
+        {
+            if (outputDir.EnumerateFileSystemInfos().Any() && !force)
             {
-                // skip dirs
-                continue;
+                throw new ArgumentException($"Output directory [{outputDir.FullName}] is not empty. Use --force to overwrite");
             }
 
-            await GetStats(filePath, archiver, converter, log, token);
+            outputDir.Delete(true);
+            outputDir.Refresh();
+        }
 
+        outputDir.Create();
+        outputDir.Refresh();
+
+
+
+        var nameNoExt = Path.GetFileNameWithoutExtension(pegFile.FullName);
+
+        var pegFiles = PegFiles.FromExistingFile(pegFile);
+        if (pegFiles is null)
+        {
+            throw new InvalidOperationException("Can not find pair cpu+gpu files");
+        }
+        log.LogDebug("initialized {PegFiles}", pegFiles);
+
+        await using var pegStreams = pegFiles.OpenRead();
+        var logicalTextureArchive = await archiver.UnpackPeg(pegStreams, nameNoExt, token);
+
+        foreach (var logicalTexture in logicalTextureArchive.LogicalTextures)
+        {
+            token.ThrowIfCancellationRequested();
+            log.LogInformation("{file} {texture}", pegFiles.FullName, logicalTexture);
+
+            var name = Path.GetFileNameWithoutExtension(logicalTexture.Name);
+            var order = logicalTexture.Order;
+            var pngFile = new FileInfo(Path.Combine(outputDir.FullName, $"{order:D4} {name}.png"));
+            var pngImage = imageConverter.DecodeFirstFrame(logicalTexture);
+            await using var pngOut = pngFile.OpenWrite();
+            await imageConverter.WritePngFile(pngImage, pngOut, token);
+            if (dds)
+            {
+                var ddsFile = new FileInfo(Path.Combine(outputDir.FullName, $"{order:D4} {name}.dds"));
+                await using var d = ddsFile.OpenWrite();
+                var header = await imageConverter.BuildHeader(logicalTexture, token);
+                await header.CopyToAsync(d, token);
+                await logicalTexture.Data.CopyToAsync(d, token);
+                logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+            }
         }
 
 
@@ -107,49 +144,9 @@ public class Unpeg : Command
         return 0;*/
     }
 
-    private async Task GetStats(string filePath, IPegArchiver archiver, ImageConverter converter, ILogger<Unpeg> log, CancellationToken token)
+    private async Task GetStats(FileInfo file, IPegArchiver archiver, ImageConverter converter, ILogger<Unpeg> log, CancellationToken token)
     {
-        var nameNoExt = Path.GetFileNameWithoutExtension(filePath);
 
-        var pegFiles = PegFiles.FromExistingFile(new FileInfo(filePath));
-        if (pegFiles is null)
-        {
-            throw new InvalidOperationException("Can not find pair cpu+gpu files");
-        }
-        log.LogDebug("initialized {PegFiles}", pegFiles);
-
-        await using var pegStreams = pegFiles.OpenRead();
-        var logicalTextureArchive = await archiver.UnpackPeg(pegStreams, nameNoExt, token);
-
-
-        foreach (var logicalTexture in logicalTextureArchive.LogicalTextures)
-        {
-            token.ThrowIfCancellationRequested();
-            log.LogInformation("{file} {texture}", pegFiles.FullName, logicalTexture);
-
-            await Write(logicalTexture, converter, log, token);
-
-            //var png = converter.Decode(logicalTexture);
-            //var result = converter.Encode(png, logicalTexture);
-            //var pngResult = converter.Decode(logicalTexture with {Data = result});
-
-            //var encoder = new PngEncoder();
-
-            //using var raw = File.OpenWrite($"{logicalTexture.Name}.1.raw");
-            //logicalTexture.Data.Position = 0;
-            //logicalTexture.Data.CopyTo(raw);
-
-            //using var png1 = File.OpenWrite($"_{logicalTexture.Name}.1.png");
-            //await png.SaveAsync(png1, encoder, token);
-
-            /*using var conv = File.OpenWrite($"{logicalTexture.Name}.2conv");
-            result.Position = 0;
-            result.CopyTo(conv);
-
-            using var png2 = File.OpenWrite($"{logicalTexture.Name}.2.png");
-            await pngResult.SaveAsync(png2, encoder, token);*/
-
-        }
 
     }
 
@@ -194,21 +191,16 @@ public class Unpeg : Command
     {
         var raw = new FileInfo($"_{name}.raw");
         log.LogDebug("Writing {name} {size}", raw.Name, logicalTexture.Data.Length);
-        /*await using var s = raw.OpenWrite();
-        await logicalTexture.Data.CopyToAsync(s, token);*/
+        await using var s = raw.OpenWrite();
+        await logicalTexture.Data.CopyToAsync(s, token);
         logicalTexture.Data.Seek(0, SeekOrigin.Begin);
 
-        var dds = new FileInfo($"_{name}.dds");
-        await using var d = dds.OpenWrite();
-        var header = await imageConverter.BuildHeader(logicalTexture, token);
-        /*await header.CopyToAsync(d, token);
-        await logicalTexture.Data.CopyToAsync(d, token);*/
-        logicalTexture.Data.Seek(0, SeekOrigin.Begin);
+
 
         var png = new FileInfo($"_{name}.png");
         var pngImage = imageConverter.DecodeFirstFrame(logicalTexture);
-        /*await using var pngOut = png.OpenWrite();
-        await imageConverter.WritePngFile(pngImage, pngOut, token);*/
+        await using var pngOut = png.OpenWrite();
+        await imageConverter.WritePngFile(pngImage, pngOut, token);
         return pngImage;
     }
 

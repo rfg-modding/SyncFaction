@@ -267,7 +267,8 @@ public class Archiver
             throw new ArgumentException($"Only StreamView is supported, got {stream}");
         }
 
-        view.Stream
+        throw new NotImplementedException("TODO: work in progress, abandoned something here");
+        //view.Stream
     }
 
     public static PegStreams? FindPegEntryPair(string name, IReadOnlyDictionary<string, Stream> cache)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
@@ -84,6 +85,7 @@ public class PegWalker
         }
 
         var newFiles = editFiles.OrderBy(x => x.Key, StringComparer.Ordinal);
+        var count = peg.LogicalTextures.Count;
         foreach (var (_, file) in newFiles)
         {
             var png = imageConverter.ReadPngFile(file, token).Result;
@@ -92,12 +94,13 @@ public class PegWalker
             var stub = new LogicalTexture(size, size, new Size(0, 0), format, flags, mipLevels, -1, name, -1, -1, peg.Align, Stream.Null);
             log.LogInformation("New [{texture}] from [{file}]", stub, file.FullName);
             var data = imageConverter.Encode(png, stub);
-            yield return stub with {Data = data};
+            yield return stub with {Data = data, Order = count++};
         }
     }
 
     private (RfgCpeg.Entry.BitmapFormat format, TextureFlags flags, int mipLevels, string name) ParseFilename(string fileName)
     {
+        log.LogDebug("{name}", fileName);
         var match = Constatns.TextureNameFormat.Match(fileName.ToLowerInvariant());
         var name = match.Groups["name"].Value + ".tga";
         var formatString = match.Groups["format"].Value;
